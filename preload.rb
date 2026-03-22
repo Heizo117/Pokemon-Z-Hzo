@@ -878,6 +878,84 @@ module Graphics
                 @form = persistent
               end
             end
+
+            # --- AMPLIACIÓN A 8 MOVIMIENTOS ---
+            unless method_defined?(:old_init_moves)
+              alias old_init_moves initialize
+              def initialize(species, level, player=nil, withMoves=true)
+                old_init_moves(species, level, player, false) # Inicializar sin movimientos primero
+                if withMoves
+                  begin
+                    atkdata = pbRgssOpen("Data/attacksRS.dat", "rb")
+                    offset = atkdata.getOffset(species - 1)
+                    length = atkdata.getLength(species - 1) >> 1
+                    atkdata.pos = offset
+                    movelist = []
+                    for i in 0..length - 1
+                      alevel = atkdata.fgetw
+                      move = atkdata.fgetw
+                      movelist.push(move) if alevel <= level
+                    end
+                    atkdata.close
+                    movelist |= [] # Eliminar duplicados
+                    
+                    # Cargar hasta los últimos 8 movimientos conocidos
+                    listend = movelist.length - 8
+                    listend = 0 if listend < 0
+                    @moves = []
+                    j = 0
+                    for i in listend...listend + 8
+                      moveid = (i >= movelist.length) ? 0 : movelist[i]
+                      @moves[j] = PBMove.new(moveid)
+                      j += 1
+                    end
+                  rescue
+                    # Fallback si falla la lectura de datos
+                    @moves = []
+                    8.times { @moves.push(PBMove.new(0)) }
+                  end
+                end
+              end
+            end
+
+            def numMoves
+              ret = 0
+              for i in 0...8 # Ampliado a 8
+                ret += 1 if @moves[i] && @moves[i].id != 0
+              end
+              return ret
+            end
+
+            def hasMove?(move)
+              if move.is_a?(String) || move.is_a?(Symbol)
+                move = getID(PBMoves, move)
+              end
+              for i in 0...8
+                return true if @moves[i] && @moves[i].id == move
+              end
+              return false
+            end
+
+            def pbLearnMove(move)
+              if move.is_a?(String) || move.is_a?(Symbol)
+                move = getID(PBMoves, move)
+              end
+              return false if hasMove?(move)
+              for i in 0...8
+                if !@moves[i] || @moves[i].id == 0
+                  @moves[i] = PBMove.new(move)
+                  return true
+                end
+              end
+              return false
+            end
+
+            def pbDeleteMoveAtIndex(index)
+              return if index < 0 || index >= 8
+              @moves[index] = PBMove.new(0)
+              @moves.compact!
+              @moves.push(PBMove.new(0)) while @moves.length < 8
+            end
           end
           unless method_defined?(:pbCheckPokemonBitmapFiles_H)
             alias pbCheckPokemonBitmapFiles_H pbCheckPokemonBitmapFiles
@@ -1010,6 +1088,449 @@ module Graphics
           rescue; end
         end
         
+        # --- HOOK GLOBAL PARA APRENDER MOVIMIENTOS (8 SLOTS) ---
+        if !method_defined?(:pbLearnMove_orig_8moves) && (respond_to?(:pbLearnMove, true) || Kernel.respond_to?(:pbLearnMove, true))
+          begin
+            alias pbLearnMove_orig_8moves pbLearnMove
+            def pbLearnMove(pokemon, move, ignoreifknown=false, bymachine=false, &block)
+              return if !pokemon || move <= 0
+              # Si ya lo conoce, no hacer nada
+              return if pokemon.hasMove?(move) && ignoreifknown
+              
+              # Si tiene espacio (menos de 8), aprender directamente
+              if pokemon.numMoves < 8
+                pokemon.pbLearnMove(move)
+                movename = PBMoves.getName(move)
+                Kernel.pbMessage(_INTL("{1} aprendió {2}!", pokemon.name, movename))
+                return true
+              end
+              
+              # Si tiene 8 movimientos, preguntar para olvidar uno
+              movename = PBMoves.getName(move)
+              Kernel.pbMessage(_INTL("{1} quiere aprender {2}, pero ya conoce 8 movimientos.", pokemon.name, movename))
+              if Kernel.pbConfirmMessage(_INTL("¿Quieres olvidar un movimiento para aprender {1}?", movename))
+                loop do
+                  Kernel.pbMessage(_INTL("Selecciona un movimiento para olvidar."))
+                  forgetmove = Kernel.pbShowMoveList_FINAL(pokemon)
+                  if forgetmove >= 0 && forgetmove < 8
+                    oldmove = pokemon.moves[forgetmove].id
+                    oldmovename = PBMoves.getName(oldmove)
+                    pokemon.moves[forgetmove] = PBMove.new(move)
+                    Kernel.pbMessage(_INTL("¡1, 2 y... puf! {1} olvidó {2}...", pokemon.name, oldmovename))
+                    Kernel.pbMessage(_INTL("Y... ¡{1} aprendió {2}!", pokemon.name, movename))
+                    return true
+                  elsif Kernel.pbConfirmMessage(_INTL("¿Quieres dejar de aprender {1}?", movename))
+                    Kernel.pbMessage(_INTL("{1} no aprendió {2}.", pokemon.name, movename))
+                    return false
+                  end
+                end
+              else
+                Kernel.pbMessage(_INTL("{1} no aprendió {2}.", pokemon.name, movename))
+                return false
+              end
+            end
+          rescue
+          end
+        end
+      end
+
+      # Helper para mostrar lista del Pokémon (selector simple de 8 slots)
+      def self.pbShowMoveList_FINAL(pokemon)
+        commands = []
+        for i in 0...8
+          move = pokemon.moves[i]
+          if move && move.id != 0
+            commands.push(PBMoves.getName(move.id))
+          else
+            commands.push("[VACÍO]")
+          end
+        end
+        commands.push("Cancelar")
+        return Kernel.pbMessage(_INTL("¿Qué movimiento debe olvidar?"), commands, 8)
+      end
+
+      # --- UI: RESUMEN CON 8 MOVIMIENTOS (MULTIPÁGINA) ---
+      if defined?(MoveSelectionSprite)
+        MoveSelectionSprite.class_eval do
+          def refresh
+            w = @movesel.width
+            h = @movesel.height / 2
+            self.x = 240
+            # Usar un índice relativo para el dibujo (0 a 3 o 0 a 4 si hay 5º move)
+            # Pero en mi lógica de scroll, el sprite siempre se posiciona en 0-4
+            display_index = self.index
+            # Si estamos en modo scroll, el index real puede ser 0-7, 
+            # pero el sprite solo se mueve en las 4 posiciones visibles.
+            # Sin embargo, mi drawMoveSelection actual dibuja 5 slots.
+            
+            # Ajuste dinámico de posición Y
+            row = self.index % 4
+            row = 4 if self.index == 8 # Movimiento nuevo
+            
+            self.y = 92 + (row * 64)
+            self.y -= 76 if @fifthmove
+            self.y += 20 if @fifthmove && self.index == 8 # El nuevo move va abajo
+            
+            self.bitmap = @movesel.bitmap
+            if self.preselected
+              self.src_rect.set(0, h, w, h)
+            else
+              self.src_rect.set(0, 0, w, h)
+            end
+          end
+        end
+      end
+
+      if defined?(PokemonSummaryScene)
+        PokemonSummaryScene.class_eval do
+          # Respaldar la página 4 original (probablemente Cintas) como página 5
+          unless method_defined?(:drawPageFive)
+            alias drawPageFive drawPageFour rescue nil
+          end
+
+          # Página de movimientos 1-4
+          def drawPageThree(pokemon)
+            overlay = @sprites["overlay"].bitmap
+            overlay.clear
+            @sprites["background"].setBitmap("Graphics/Pictures/summary4")
+            @sprites["pokemon"].visible = true
+            @sprites["pokeicon"].visible = false
+            imagepos = []
+            if pbPokerus(pokemon) == 1 || pokemon.hp == 0 || @pokemon.status > 0
+              status = 8 if pbPokerus(pokemon) == 1
+              status = @pokemon.status - 1 if @pokemon.status > 0
+              status = 7 if pokemon.hp == 0
+              imagepos.push(["Graphics/Pictures/statuses", 124, 100, 0, 16 * status, 44, 16])
+            end
+            if pokemon.isShiny?
+              imagepos.push([sprintf("Graphics/Pictures/shiny"), 2, 134, 0, 0, -1, -1])
+            end
+            if pbPokerus(pokemon) == 2
+              imagepos.push([sprintf("Graphics/Pictures/summaryPokerus"), 176, 100, 0, 0, -1, -1])
+            end
+            ballused = @pokemon.ballused ? @pokemon.ballused : 0
+            ballimage = sprintf("Graphics/Pictures/summaryball%02d", @pokemon.ballused)
+            imagepos.push([ballimage, 14, 60, 0, 0, -1, -1])
+            pbDrawImagePositions(overlay, imagepos)
+            base = Color.new(248, 248, 248)
+            shadow = Color.new(104, 104, 104)
+            pbSetSystemFont(overlay)
+            pokename = @pokemon.name
+            textpos = [
+              [_INTL("MOVIMIENTOS 1"), 26, 16, 0, base, shadow],
+              [pokename, 46, 62, 0, base, shadow],
+              [pokemon.level.to_s, 46, 92, 0, Color.new(64, 64, 64), Color.new(176, 176, 176)],
+              [_INTL("Objeto"), 16, 320, 0, base, shadow]
+            ]
+            if pokemon.hasItem?
+              textpos.push([PBItems.getName(pokemon.item), 16, 352, 0, Color.new(64, 64, 64), Color.new(176, 176, 176)])
+            else
+              textpos.push([_INTL("Ninguno"), 16, 352, 0, Color.new(184, 184, 160), Color.new(208, 208, 200)])
+            end
+            if pokemon.isMale?
+              textpos.push([_INTL("♂"), 178, 62, 0, Color.new(24, 112, 216), Color.new(136, 168, 208)])
+            elsif pokemon.isFemale?
+              textpos.push([_INTL("♀"), 178, 62, 0, Color.new(248, 56, 32), Color.new(224, 152, 144)])
+            end
+            
+            imagepos = []
+            yPos = 98
+            for i in 0...4 # Solo primeros 4
+              move = pokemon.moves[i]
+              if move && move.id > 0
+                imagepos.push(["Graphics/Pictures/types", 248, yPos + 2, 0, move.type * 28, 64, 28])
+                textpos.push([PBMoves.getName(move.id), 316, yPos, 0, Color.new(64, 64, 64), Color.new(176, 176, 176)])
+                if move.totalpp > 0
+                  textpos.push([_ISPRINTF("PP"), 342, yPos + 32, 0, Color.new(64, 64, 64), Color.new(176, 176, 176)])
+                  textpos.push([sprintf("%d/%d", move.pp, move.totalpp), 460, yPos + 32, 1, Color.new(64, 64, 64), Color.new(176, 176, 176)])
+                end
+              else
+                textpos.push(["-", 316, yPos, 0, Color.new(64, 64, 64), Color.new(176, 176, 176)])
+                textpos.push(["--", 442, yPos + 32, 1, Color.new(64, 64, 64), Color.new(176, 176, 176)])
+              end
+              yPos += 64
+            end
+            pbDrawTextPositions(overlay, textpos)
+            pbDrawImagePositions(overlay, imagepos)
+            drawMarkings(overlay, 15, 291, 72, 20, pokemon.markings)
+          end
+
+          # Página de movimientos 5-8
+          def drawPageFour(pokemon)
+            overlay = @sprites["overlay"].bitmap
+            overlay.clear
+            @sprites["background"].setBitmap("Graphics/Pictures/summary4")
+            @sprites["pokemon"].visible = true
+            @sprites["pokeicon"].visible = false
+            imagepos = []
+            if pbPokerus(pokemon) == 1 || pokemon.hp == 0 || @pokemon.status > 0
+              status = 8 if pbPokerus(pokemon) == 1
+              status = @pokemon.status - 1 if @pokemon.status > 0
+              status = 7 if pokemon.hp == 0
+              imagepos.push(["Graphics/Pictures/statuses", 124, 100, 0, 16 * status, 44, 16])
+            end
+            if pokemon.isShiny?
+              imagepos.push([sprintf("Graphics/Pictures/shiny"), 2, 134, 0, 0, -1, -1])
+            end
+            if pbPokerus(pokemon) == 2
+              imagepos.push([sprintf("Graphics/Pictures/summaryPokerus"), 176, 100, 0, 0, -1, -1])
+            end
+            ballused = @pokemon.ballused ? @pokemon.ballused : 0
+            ballimage = sprintf("Graphics/Pictures/summaryball%02d", @pokemon.ballused)
+            imagepos.push([ballimage, 14, 60, 0, 0, -1, -1])
+            pbDrawImagePositions(overlay, imagepos)
+            base = Color.new(248, 248, 248)
+            shadow = Color.new(104, 104, 104)
+            pbSetSystemFont(overlay)
+            pokename = @pokemon.name
+            textpos = [
+              [_INTL("MOVIMIENTOS 2"), 26, 16, 0, base, shadow],
+              [pokename, 46, 62, 0, base, shadow],
+              [pokemon.level.to_s, 46, 92, 0, Color.new(64, 64, 64), Color.new(176, 176, 176)],
+              [_INTL("Objeto"), 16, 320, 0, base, shadow]
+            ]
+            if pokemon.hasItem?
+              textpos.push([PBItems.getName(pokemon.item), 16, 352, 0, Color.new(64, 64, 64), Color.new(176, 176, 176)])
+            else
+              textpos.push([_INTL("Ninguno"), 16, 352, 0, Color.new(184, 184, 160), Color.new(208, 208, 200)])
+            end
+            if pokemon.isMale?
+              textpos.push([_INTL("♂"), 178, 62, 0, Color.new(24, 112, 216), Color.new(136, 168, 208)])
+            elsif pokemon.isFemale?
+              textpos.push([_INTL("♀"), 178, 62, 0, Color.new(248, 56, 32), Color.new(224, 152, 144)])
+            end
+            
+            imagepos = []
+            yPos = 98
+            for i in 4...8 # Movimientos 5, 6, 7, 8
+              move = pokemon.moves[i]
+              if move && move.id > 0
+                imagepos.push(["Graphics/Pictures/types", 248, yPos + 2, 0, move.type * 28, 64, 28])
+                textpos.push([PBMoves.getName(move.id), 316, yPos, 0, Color.new(64, 64, 64), Color.new(176, 176, 176)])
+                if move.totalpp > 0
+                  textpos.push([_ISPRINTF("PP"), 342, yPos + 32, 0, Color.new(64, 64, 64), Color.new(176, 176, 176)])
+                  textpos.push([sprintf("%d/%d", move.pp, move.totalpp), 460, yPos + 32, 1, Color.new(64, 64, 64), Color.new(176, 176, 176)])
+                end
+              else
+                textpos.push(["-", 316, yPos, 0, Color.new(64, 64, 64), Color.new(176, 176, 176)])
+                textpos.push(["--", 442, yPos + 32, 1, Color.new(64, 64, 64), Color.new(176, 176, 176)])
+              end
+              yPos += 64
+            end
+            pbDrawTextPositions(overlay, textpos)
+            pbDrawImagePositions(overlay, imagepos)
+            drawMarkings(overlay, 15, 291, 72, 20, pokemon.markings)
+          end
+
+          # Sobrescribir el bucle de la escena para añadir la página extra
+          def pbScene
+            pbPlayCry(@pokemon)
+            loop do
+              Graphics.update
+              Input.update
+              pbUpdate
+              if Input.trigger?(Input::B); break; end
+              if Input.trigger?(Input::C)
+                if @page == 1
+                  Habilidades(@pokemon) rescue nil
+                  dorefresh = true
+                elsif @page == 2 || @page == 3
+                  pbMoveSelection
+                  dorefresh = true
+                end
+              end
+
+              dorefresh = false
+              if Input.trigger?(Input::UP) && @partyindex > 0
+                oldindex = @partyindex
+                pbGoToPrevious
+                if @partyindex != oldindex
+                  @pokemon = @party[@partyindex]
+                  @sprites["pokemon"].setPokemonBitmap(@pokemon)
+                  @sprites["pokemon"].color = Color.new(0,0,0,0)
+                  pbPositionPokemonSprite(@sprites["pokemon"], 40, 144)
+                  dorefresh = true
+                  pbPlayCry(@pokemon)
+                end
+              end
+              if Input.trigger?(Input::DOWN) && @partyindex < @party.length - 1
+                oldindex = @partyindex
+                pbGoToNext
+                if @partyindex != oldindex
+                  @pokemon = @party[@partyindex]
+                  @sprites["pokemon"].setPokemonBitmap(@pokemon)
+                  @sprites["pokemon"].color = Color.new(0,0,0,0)
+                  pbPositionPokemonSprite(@sprites["pokemon"], 40, 144)
+                  dorefresh = true
+                  pbPlayCry(@pokemon)
+                end
+              end
+              if Input.trigger?(Input::LEFT) && !@pokemon.isEgg?
+                oldpage = @page
+                @page -= 1
+                @page = 4 if @page < 0
+                dorefresh = true
+                if @page != oldpage; pbPlayCursorSE(); dorefresh = true; end
+              end
+              if Input.trigger?(Input::RIGHT) && !@pokemon.isEgg?
+                oldpage = @page
+                @page += 1
+                @page = 0 if @page > 4
+                dorefresh = true
+                if @page != oldpage; pbPlayCursorSE(); dorefresh = true; end
+              end
+              
+              if dorefresh
+                case @page
+                when 0; drawPageOne(@pokemon)
+                when 1; drawPageTwo(@pokemon)
+                when 2; drawPageThree(@pokemon)
+                when 3; drawPageFour(@pokemon)
+                when 4; drawPageFive(@pokemon) rescue nil
+                end
+              end
+            end
+            return @partyindex
+          end
+
+          # Actualizar dibujo de selección con scroll de 4 en 4
+          def drawMoveSelection(pokemon, moveToLearn)
+            overlay = @sprites["overlay"].bitmap
+            overlay.clear
+            base = Color.new(248, 248, 248)
+            shadow = Color.new(104, 104, 104)
+            @sprites["background"].setBitmap("Graphics/Pictures/summary4details")
+            @sprites["background"].setBitmap("Graphics/Pictures/summary4learning") if moveToLearn != 0
+            pbSetSystemFont(overlay)
+            textpos = [
+              [_INTL("MOVIMIENTOS"), 26, 16, 0, base, shadow],
+              [_INTL("CATEGORÍA"), 20, 122, 0, base, shadow],
+              [_INTL("POTENCIA"), 20, 154, 0, base, shadow],
+              [_INTL("PRECISIÓN"), 20, 186, 0, base, shadow]
+            ]
+            
+            imagepos = []
+            yPos = 98
+            yPos -= 76 if moveToLearn != 0
+            
+            # Rango de movimientos a mostrar (0-3 o 4-7)
+            @move_scroll = (@sprites["movesel"].index >= 4 && @sprites["movesel"].index < 8) ? 4 : 0
+            
+            for i in 0...4
+              idx = i + @move_scroll
+              moveobject = pokemon.moves[idx]
+              
+              if moveobject
+                if moveobject.id != 0
+                  imagepos.push(["Graphics/Pictures/types", 248, yPos + 2, 0, moveobject.type * 28, 64, 28])
+                  textpos.push([PBMoves.getName(moveobject.id), 316, yPos, 0, Color.new(64, 64, 64), Color.new(176, 176, 176)])
+                  if moveobject.totalpp > 0
+                    textpos.push([_ISPRINTF("PP"), 342, yPos + 32, 0, Color.new(64, 64, 64), Color.new(176, 176, 176)])
+                    textpos.push([sprintf("%d/%d", moveobject.pp, moveobject.totalpp), 460, yPos + 32, 1, Color.new(64, 64, 64), Color.new(176, 176, 176)])
+                  end
+                else
+                  textpos.push(["-", 316, yPos, 0, Color.new(64, 64, 64), Color.new(176, 176, 176)])
+                  textpos.push(["--", 442, yPos + 32, 1, Color.new(64, 64, 64), Color.new(176, 176, 176)])
+                end
+              end
+              yPos += 64
+            end
+            
+            # Dibujar el nuevo movimiento a aprender siempre abajo
+            if moveToLearn != 0
+              yPos += 20
+              moveobject = PBMove.new(moveToLearn)
+              imagepos.push(["Graphics/Pictures/types", 248, yPos + 2, 0, moveobject.type * 28, 64, 28])
+              textpos.push([PBMoves.getName(moveobject.id), 316, yPos, 0, Color.new(64, 64, 64), Color.new(176, 176, 176)])
+              if moveobject.totalpp > 0
+                textpos.push([_ISPRINTF("PP"), 342, yPos + 32, 0, Color.new(64, 64, 64), Color.new(176, 176, 176)])
+                textpos.push([sprintf("%d/%d", moveobject.pp, moveobject.totalpp), 460, yPos + 32, 1, Color.new(64, 64, 64), Color.new(176, 176, 176)])
+              end
+            end
+            pbDrawTextPositions(overlay, textpos)
+            pbDrawImagePositions(overlay, imagepos)
+          end
+
+          def pbChooseMoveToForget(moveToLearn)
+            selmove = 0
+            ret = 0
+            maxmove = (moveToLearn > 0) ? 8 : 7
+            @sprites["movesel"].index = 0
+            loop do
+              Graphics.update
+              Input.update
+              pbUpdate
+              if Input.trigger?(Input::B); ret = 8; break; end
+              if Input.trigger?(Input::C); break; end
+              if Input.trigger?(Input::DOWN)
+                selmove = (selmove + 1) % (maxmove + 1)
+                @sprites["movesel"].index = selmove
+                newmove = (selmove == 8) ? moveToLearn : @pokemon.moves[selmove].id
+                drawMoveSelection(@pokemon, moveToLearn) # Refrescar dibujo para el scroll
+                drawSelectedMove(@pokemon, moveToLearn, newmove)
+                ret = selmove
+              elsif Input.trigger?(Input::UP)
+                selmove = (selmove - 1) % (maxmove + 1)
+                @sprites["movesel"].index = selmove
+                newmove = (selmove == 8) ? moveToLearn : @pokemon.moves[selmove].id
+                drawMoveSelection(@pokemon, moveToLearn) # Refrescar dibujo para el scroll
+                drawSelectedMove(@pokemon, moveToLearn, newmove)
+                ret = selmove
+              end
+            end
+            return (ret == 8) ? -1 : ret
+          end
+
+          def pbMoveSelection
+            @sprites["movesel"].visible = true
+            # Empezar en el primer move de la página actual
+            selmove = (@page == 3) ? 4 : 0
+            @sprites["movesel"].index = selmove
+            switching = false
+            drawMoveSelection(@pokemon, 0) # Inicializar vista correcta (página 1 o 2)
+            drawSelectedMove(@pokemon, 0, @pokemon.moves[selmove].id)
+            loop do
+              Graphics.update
+              Input.update
+              pbUpdate
+              if Input.trigger?(Input::B)
+                break if !switching
+                @sprites["movepresel"].visible = false
+                switching = false
+              end
+              if Input.trigger?(Input::C)
+                if !(@pokemon.isShadow? rescue false)
+                  if !switching
+                    @sprites["movepresel"].index = selmove
+                    oldselmove = selmove
+                    @sprites["movepresel"].visible = true
+                    switching = true
+                  else
+                    tmpmove = @pokemon.moves[oldselmove]
+                    @pokemon.moves[oldselmove] = @pokemon.moves[selmove]
+                    @pokemon.moves[selmove] = tmpmove
+                    @sprites["movepresel"].visible = false
+                    switching = false
+                    drawMoveSelection(@pokemon, 0)
+                    drawSelectedMove(@pokemon, 0, @pokemon.moves[selmove].id)
+                  end
+                end
+              end
+              if Input.trigger?(Input::DOWN)
+                selmove = (selmove + 1) % 8
+                @sprites["movesel"].index = selmove
+                drawMoveSelection(@pokemon, 0)
+                drawSelectedMove(@pokemon, 0, @pokemon.moves[selmove].id)
+              elsif Input.trigger?(Input::UP)
+                selmove = (selmove - 1) % 8
+                @sprites["movesel"].index = selmove
+                drawMoveSelection(@pokemon, 0)
+                drawSelectedMove(@pokemon, 0, @pokemon.moves[selmove].id)
+              end
+            end
+            @sprites["movesel"].visible = false
+          end
+        end
       end
 
       # Hook para Kernel.pbMessageChooseNumber - REEMPLAZA el selector numérico por menú
