@@ -2050,8 +2050,71 @@ module Graphics
               $current_battle_for_ui = nil
               return ret
             end
+            
+            # Sincronización PC: Permitir el cambio si el objeto Pokémon ha cambiado tras usar el PC
+            unless method_defined?(:pbCanSwitchLax_pc_hook)
+              alias pbCanSwitchLax_pc_hook pbCanSwitchLax?
+            end
+            def pbCanSwitchLax?(idxPokemon, pkmnidxTo, showMessages)
+              if pkmnidxTo >= 0
+                party = pbParty(idxPokemon)
+                battler = @battlers[idxPokemon]
+                if battler && battler.pokemonIndex == pkmnidxTo && party[pkmnidxTo] != battler.pokemon
+                  return true
+                end
+              end
+              return pbCanSwitchLax_pc_hook(idxPokemon, pkmnidxTo, showMessages)
+            end
+
+            # SINCRONIZACIÓN HIERRO: Si el equipo cambió en el PC, forzamos el cambio al intentar actuar
+            unless method_defined?(:pbCommandMenu_pc_hook)
+              alias pbCommandMenu_pc_hook pbCommandMenu
+            end
+            def pbCommandMenu(i)
+              idx = @battlers[i].pokemonIndex
+              if idx >= 0 && pbParty(i)[idx] != @battlers[i].pokemon
+                # ¡Desincronización detectada! El Pokémon en el slot que usa este battler es otro.
+                # Forzamos que se elija la opción "Pokémon" (2) para que pbSwitchPlayer haga el resto.
+                return 2
+              end
+              return pbCommandMenu_pc_hook(i)
+            end
+
+            unless method_defined?(:pbSwitchPlayer_pc_hook)
+              alias pbSwitchPlayer_pc_hook pbSwitchPlayer
+            end
+            def pbSwitchPlayer(index, lax, cancancel)
+              idx = @battlers[index].pokemonIndex
+              if idx >= 0 && pbParty(index)[idx] != @battlers[index].pokemon
+                # Si el Pokémon ha cambiado en el PC, no abrimos la pantalla, 
+                # devolvemos el índice directamente para registrar el cambio y gastar turno.
+                pbDisplay(_INTL("¡El equipo ha cambiado! {1} sale a combatir.", pbParty(index)[idx].name))
+                return idx
+              end
+              return pbSwitchPlayer_pc_hook(index, lax, cancancel)
+            end
           end
 
+          class PokeBattle_Scene
+            unless method_defined?(:pbPokemonScreen_pc_hook)
+              alias pbPokemonScreen_pc_hook pbPokemonScreen
+            end
+            def pbPokemonScreen(index, lax, cancancel)
+              ret = pbPokemonScreen_pc_hook(index, lax, cancancel)
+              # Al salir de la pantalla de Pokémon en combate, comprobamos si hubo un cambio vía PC
+              if $game_temp.in_battle && $game_temp.pc_forced_switch
+                $game_temp.pc_forced_switch = false
+                # Forzamos el retorno del índice 0 para que el combate registre el cambio
+                return 0
+              end
+              return ret
+            end
+          end
+
+          class PokemonScreen_Scene
+            # ... nada de hooks raros aquí, dejamos que PokeBattle_Battle lo gestione
+          end
+          
           class PokeSelectionSprite
             unless method_defined?(:refresh_orig_party_hook)
               alias refresh_orig_party_hook refresh
