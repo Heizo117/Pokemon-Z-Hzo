@@ -2138,13 +2138,28 @@ module Graphics
               
               if $scene.is_a?(Scene_Map)
                 if !pkmn
-                  setCustomSprite(nil)
+                  # Ocultar usando opacidad en lugar de nombre nil para evitar TypeError
+                  if respond_to?(:pbFollowingOpacity)
+                    pbFollowingOpacity(0)
+                  elsif $PokemonTemp.dependentEvents.respond_to?(:pbFollowingOpacity)
+                     $PokemonTemp.dependentEvents.pbFollowingOpacity(0)
+                  end
                 elsif !pkmn.isEgg?
+                  if respond_to?(:pbFollowingOpacity)
+                    pbFollowingOpacity(255)
+                  elsif $PokemonTemp.dependentEvents.respond_to?(:pbFollowingOpacity)
+                     $PokemonTemp.dependentEvents.pbFollowingOpacity(255)
+                  end
                   shiny = pkmn.isShiny?
                   form = pkmn.form > 0 ? pkmn.form : nil
                   shadow = defined?(pkmn.isShadow?) ? pkmn.isShadow? : false
                   change_sprite(pkmn.species, shiny, false, form, pkmn.gender, shadow)
                 else
+                  if respond_to?(:pbFollowingOpacity)
+                    pbFollowingOpacity(255)
+                  elsif $PokemonTemp.dependentEvents.respond_to?(:pbFollowingOpacity)
+                     $PokemonTemp.dependentEvents.pbFollowingOpacity(255)
+                  end
                   setCustomSprite("egg")
                 end
               end
@@ -2310,10 +2325,10 @@ module Graphics
                 elsif cmdFollow>=0 && command==cmdFollow
                   # Establecer como follower independiente
                   if ($Trainer.follower_index || 0) == pkmnid
-                    $Trainer.follower_index = -1 # Ninguno sigue (o podrías ponerlo a nil)
-                    if $PokemonTemp.dependentEvents.respond_to?(:setCustomSprite)
-                       $PokemonTemp.dependentEvents.setCustomSprite(nil)
-                       # Esto podría ocultar el sprite. Depende del script.
+                    $Trainer.follower_index = -1 # Ninguno sigue
+                    # Forzar refresco para ocultar
+                    if $PokemonTemp.dependentEvents.respond_to?(:refresh_sprite)
+                      $PokemonTemp.dependentEvents.refresh_sprite(false)
                     end
                     pbDisplay(_INTL("¡Has guardado a {1}!", pkmn.name))
                   else
