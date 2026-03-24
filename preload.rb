@@ -2099,15 +2099,15 @@ module Graphics
             unless method_defined?(:pbPokemonScreen_pc_hook)
               alias pbPokemonScreen_pc_hook pbPokemonScreen
             end
-            def pbPokemonScreen(index, lax, cancancel)
-              ret = pbPokemonScreen_pc_hook(index, lax, cancancel)
-              # Al salir de la pantalla de Pokémon en combate, comprobamos si hubo un cambio vía PC
-              if $game_temp.in_battle && $game_temp.pc_forced_switch
-                $game_temp.pc_forced_switch = false
-                # Forzamos el retorno del índice 0 para que el combate registre el cambio
-                return 0
+            unless method_defined?(:pc_sync_follow_pbEndBattle)
+              alias pc_sync_follow_pbEndBattle pbEndBattle
+            end
+            def pbEndBattle(result)
+              pc_sync_follow_pbEndBattle(result)
+              # Sincronización Overworld: Refrescamos el sprite del Follower al terminar el combate
+              if $PokemonTemp && $PokemonTemp.dependentEvents && $PokemonTemp.dependentEvents.respond_to?(:refresh_sprite)
+                $PokemonTemp.dependentEvents.refresh_sprite(false)
               end
-              return ret
             end
           end
 
