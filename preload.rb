@@ -1190,15 +1190,16 @@ module Graphics
 
           # Página de movimientos 1-4
           def drawPageThree(pokemon)
+            return if !pokemon
             overlay = @sprites["overlay"].bitmap
             overlay.clear
             @sprites["background"].setBitmap("Graphics/Pictures/summary4")
             @sprites["pokemon"].visible = true
             @sprites["pokeicon"].visible = false
             imagepos = []
-            if pbPokerus(pokemon) == 1 || pokemon.hp == 0 || @pokemon.status > 0
+            if pbPokerus(pokemon) == 1 || pokemon.hp == 0 || pokemon.status > 0
               status = 8 if pbPokerus(pokemon) == 1
-              status = @pokemon.status - 1 if @pokemon.status > 0
+              status = pokemon.status - 1 if pokemon.status > 0
               status = 7 if pokemon.hp == 0
               imagepos.push(["Graphics/Pictures/statuses", 124, 100, 0, 16 * status, 44, 16])
             end
@@ -1208,14 +1209,14 @@ module Graphics
             if pbPokerus(pokemon) == 2
               imagepos.push([sprintf("Graphics/Pictures/summaryPokerus"), 176, 100, 0, 0, -1, -1])
             end
-            ballused = @pokemon.ballused ? @pokemon.ballused : 0
-            ballimage = sprintf("Graphics/Pictures/summaryball%02d", @pokemon.ballused)
+            ballused = pokemon.ballused ? pokemon.ballused : 0
+            ballimage = sprintf("Graphics/Pictures/summaryball%02d", pokemon.ballused)
             imagepos.push([ballimage, 14, 60, 0, 0, -1, -1])
             pbDrawImagePositions(overlay, imagepos)
             base = Color.new(248, 248, 248)
             shadow = Color.new(104, 104, 104)
             pbSetSystemFont(overlay)
-            pokename = @pokemon.name
+            pokename = pokemon.name
             textpos = [
               [_INTL("MOVIMIENTOS 1"), 26, 16, 0, base, shadow],
               [pokename, 46, 62, 0, base, shadow],
@@ -1257,15 +1258,16 @@ module Graphics
 
           # Página de movimientos 5-8
           def drawPageFour(pokemon)
+            return if !pokemon
             overlay = @sprites["overlay"].bitmap
             overlay.clear
             @sprites["background"].setBitmap("Graphics/Pictures/summary4")
             @sprites["pokemon"].visible = true
             @sprites["pokeicon"].visible = false
             imagepos = []
-            if pbPokerus(pokemon) == 1 || pokemon.hp == 0 || @pokemon.status > 0
+            if pbPokerus(pokemon) == 1 || pokemon.hp == 0 || pokemon.status > 0
               status = 8 if pbPokerus(pokemon) == 1
-              status = @pokemon.status - 1 if @pokemon.status > 0
+              status = pokemon.status - 1 if pokemon.status > 0
               status = 7 if pokemon.hp == 0
               imagepos.push(["Graphics/Pictures/statuses", 124, 100, 0, 16 * status, 44, 16])
             end
@@ -1275,14 +1277,14 @@ module Graphics
             if pbPokerus(pokemon) == 2
               imagepos.push([sprintf("Graphics/Pictures/summaryPokerus"), 176, 100, 0, 0, -1, -1])
             end
-            ballused = @pokemon.ballused ? @pokemon.ballused : 0
-            ballimage = sprintf("Graphics/Pictures/summaryball%02d", @pokemon.ballused)
+            ballused = pokemon.ballused ? pokemon.ballused : 0
+            ballimage = sprintf("Graphics/Pictures/summaryball%02d", pokemon.ballused)
             imagepos.push([ballimage, 14, 60, 0, 0, -1, -1])
             pbDrawImagePositions(overlay, imagepos)
             base = Color.new(248, 248, 248)
             shadow = Color.new(104, 104, 104)
             pbSetSystemFont(overlay)
-            pokename = @pokemon.name
+            pokename = pokemon.name
             textpos = [
               [_INTL("MOVIMIENTOS 2"), 26, 16, 0, base, shadow],
               [pokename, 46, 62, 0, base, shadow],
@@ -2274,26 +2276,27 @@ module Graphics
             end
             
             # 3. Mantenerlo actualizado
+            # Hook para Habilidades (sub-vista de información)
+            unless method_defined?(:_itm_old_habilidades)
+              alias _itm_old_habilidades Habilidades
+              def Habilidades(pokemon)
+                @_itm_in_habilidades = true
+                _itm_old_habilidades(pokemon)
+                @_itm_in_habilidades = false
+              end
+            end
+
             def _update_itm_overlay
               return if !@_itm_overlay || @_itm_overlay.disposed?
               
             # Resetear estado si cambiamos de página o de Pokémon
             pkmn = @pokemon rescue nil
-            if @page != 2 || (pkmn && pkmn != @_itm_last_pkmn)
+            if (pkmn && pkmn != @_itm_last_pkmn)
               @_itm_in_subview = false
             end
 
-            # Detectar si entramos/salimos de la subvista de EVs/IVs en la página 2
-            if @page == 2
-              if Input.trigger?(Input::C) # Toggle con Aceptar (por si es cíclico)
-                @_itm_in_subview = !@_itm_in_subview
-              elsif Input.trigger?(Input::B) # Siempre mostrar al pulsar Cancelar
-                @_itm_in_subview = false
-              end
-            end
-
-            # Lógica de visibilidad (Fade Out si está en subview, Fade In si no)
-            target_opacity = @_itm_in_subview ? 0 : 255
+            # Lógica de visibilidad (Esconder si estamos en la sub-vista de Habilidades)
+            target_opacity = (@_itm_in_habilidades || @_itm_in_subview) ? 0 : 255
             if @_itm_overlay.opacity != target_opacity
               step = 50 # Animación más rápida
               if @_itm_overlay.opacity < target_opacity
