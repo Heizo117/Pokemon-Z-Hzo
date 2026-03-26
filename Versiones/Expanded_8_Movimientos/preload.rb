@@ -2372,6 +2372,7 @@ module Graphics
                 cmdMail    = -1
                 cmdItem    = -1
                 cmdPokedex = -1          
+                cmdRelearn = -1
                 
                 # Build the commands
                 commands[cmdSummary=commands.length]      = _INTL("Datos")
@@ -2407,6 +2408,7 @@ module Graphics
                   end
                 end
                 commands[cmdPokedex=commands.length]      = _INTL("Pokedex")
+                commands[cmdRelearn=commands.length]      = _INTL("Recordar Movimientos")
                 commands[commands.length]                 = _INTL("Salir")
                 
                 command=@scene.pbShowCommands(_INTL("¿Qué hacer con {1}?",pkmn.name),commands)
@@ -2516,6 +2518,8 @@ module Graphics
                   scene=PokemonPokedexScene.new
                   screen=PokemonPokedex.new(scene)
                   screen.pbDexEntry(pkmn.species)
+                elsif cmdRelearn>=0 && command==cmdRelearn
+                  pbRelearnMoveScreen(pkmn)
                 end
               end
               @scene.pbEndScene
