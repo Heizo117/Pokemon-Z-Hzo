@@ -1339,7 +1339,7 @@ module Graphics
               pbUpdate
               if Input.trigger?(Input::B); break; end
               if Input.trigger?(Input::C)
-                if @page == 1
+                if @page == 2
                   Habilidades(@pokemon) rescue nil
                   dorefresh = true
                 elsif @page == 3 || @page == 4
