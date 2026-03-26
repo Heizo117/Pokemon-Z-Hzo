@@ -1376,14 +1376,14 @@ module Graphics
               if Input.trigger?(Input::LEFT) && !@pokemon.isEgg?
                 oldpage = @page
                 @page -= 1
-                @page = 4 if @page < 0
+                @page = 5 if @page < 0
                 dorefresh = true
                 if @page != oldpage; pbPlayCursorSE(); dorefresh = true; end
               end
               if Input.trigger?(Input::RIGHT) && !@pokemon.isEgg?
                 oldpage = @page
                 @page += 1
-                @page = 0 if @page > 4
+                @page = 0 if @page > 5
                 dorefresh = true
                 if @page != oldpage; pbPlayCursorSE(); dorefresh = true; end
               end
@@ -1395,6 +1395,7 @@ module Graphics
                 when 2; drawPageThree(@pokemon)
                 when 3; drawPageMoves1(@pokemon)
                 when 4; drawPageMoves2(@pokemon)
+                when 5; drawPageFive(@pokemon) rescue nil
                 end
               end
             end
@@ -1574,9 +1575,9 @@ module Graphics
               elsif Input.trigger?(Input::LEFT) || Input.trigger?(Input::RIGHT)
                 # Cambiar de página (0:Info, 1:Memo, 2:Stats, 3:Moves1, 4:Moves2)
                 if Input.trigger?(Input::LEFT)
-                  @page = (@page - 1) % 5
+                  @page = (@page - 1) % 6
                 else
-                  @page = (@page + 1) % 5
+                  @page = (@page + 1) % 6
                 end
                 
                 pbPlayCursorSE()
@@ -1586,6 +1587,7 @@ module Graphics
                 when 2; drawPageThree(@pokemon)
                 when 3; drawPageMoves1(@pokemon); @move_scroll = 0
                 when 4; drawPageMoves2(@pokemon); @move_scroll = 4
+                when 5; drawPageFive(@pokemon) rescue nil
                 end
                 
                 # Sincronizar UI si estamos en páginas de movimientos
