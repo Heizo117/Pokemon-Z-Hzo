@@ -575,6 +575,17 @@ module Kernel
       if sel_id == -1
         filter = Kernel.pbMessageFreeText(_INTL("Buscar:"), filter, false, 20)
       else
+        return sel_id
+      end
+    end
+  end
+
+  # Menú desplegable para seleccionar formas - REEMPLAZA el selector numérico
+  def pbChooseFormMenu_FINAL(pkmn)
+    return nil if !pkmn
+    
+    species_name = PBSpecies.getName(pkmn.species) rescue "???"
+    
     # Construir lista de opciones disponibles
     cmds = []
     form_data = []  # [form_id, sprite_only_flag]
@@ -1526,7 +1537,7 @@ module Graphics
               Input.update
               pbUpdate
               if Input.trigger?(Input::B); ret = 8; break; end
-              if Input.trigger?(Input::C) && (@page == 3 || @page == 4); break; end
+              if Input.trigger?(Input::C) && (@page == 3 || @page == 4); ret = selmove; break; end
               
               moving = false
               if Input.trigger?(Input::DOWN)

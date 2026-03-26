@@ -1535,7 +1535,7 @@ module Graphics
               Input.update
               pbUpdate
               if Input.trigger?(Input::B); ret = 8; break; end
-              if Input.trigger?(Input::C) && (@page == 3 || @page == 4); break; end
+              if Input.trigger?(Input::C) && (@page == 3 || @page == 4); ret = selmove; break; end
               
               moving = false
               if Input.trigger?(Input::DOWN)
