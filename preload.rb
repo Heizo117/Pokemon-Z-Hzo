@@ -1616,7 +1616,7 @@ module Graphics
             @sprites["movesel"].index = selmove
             switching = false
             oldselmove = 0
-            drawMoveSelection(@pokemon, 0) # Inicializar vista correcta (página 1 o 2)
+            drawMoveSelection(@pokemon, 0)
             drawSelectedMove(@pokemon, 0, @pokemon.moves[selmove].id)
             loop do
               Graphics.update
@@ -1646,21 +1646,37 @@ module Graphics
                   end
                 end
               end
+              
+              moving = false
               if Input.trigger?(Input::DOWN)
                 selmove = (selmove + 1) % 8
-                @sprites["movesel"].index = selmove
-                drawMoveSelection(@pokemon, 0)
-                m = @pokemon.moves[selmove]
-                drawSelectedMove(@pokemon, 0, m ? m.id : 0)
+                moving = true
               elsif Input.trigger?(Input::UP)
                 selmove = (selmove - 1) % 8
+                moving = true
+              elsif Input.trigger?(Input::LEFT) || Input.trigger?(Input::RIGHT)
+                # Saltar entre "Pestañas" (Pág 3 <-> Pág 4)
+                selmove = (selmove < 4) ? selmove + 4 : selmove - 4
+                moving = true
+              end
+
+              if moving
                 @sprites["movesel"].index = selmove
+                # Sincronizar @page según el move actual para que al salir estemos en la página correcta
+                @page = (selmove >= 4) ? 4 : 3
                 drawMoveSelection(@pokemon, 0)
                 m = @pokemon.moves[selmove]
                 drawSelectedMove(@pokemon, 0, m ? m.id : 0)
+                pbPlayCursorSE()
               end
             end
             @sprites["movesel"].visible = false
+            # Al salir, asegurar que el fondo y contenido coinciden con la página final
+            if @page == 3
+              drawPageMoves1(@pokemon)
+            else
+              drawPageMoves2(@pokemon)
+            end
           end
         end
       end
