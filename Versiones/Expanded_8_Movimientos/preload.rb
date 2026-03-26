@@ -1194,12 +1194,8 @@ module Graphics
       if defined?(PokemonSummaryScene)
         PokemonSummaryScene.class_eval do
           # Respaldar la página 4 original (probablemente Cintas) como página 5
-          unless method_defined?(:drawPageFive)
-            alias drawPageFive drawPageFour rescue nil
-          end
-
-          # Página de movimientos 1-4
-          def drawPageThree(pokemon)
+          # Página de movimientos 1-4 (NUEVA)
+          def drawPageMoves1(pokemon)
             return if !pokemon
             overlay = @sprites["overlay"].bitmap
             overlay.clear
@@ -1266,8 +1262,8 @@ module Graphics
             drawMarkings(overlay, 15, 291, 72, 20, pokemon.markings)
           end
 
-          # Página de movimientos 5-8
-          def drawPageFour(pokemon)
+          # Página de movimientos 5-8 (NUEVA)
+          def drawPageMoves2(pokemon)
             return if !pokemon
             overlay = @sprites["overlay"].bitmap
             overlay.clear
@@ -1346,7 +1342,7 @@ module Graphics
                 if @page == 1
                   Habilidades(@pokemon) rescue nil
                   dorefresh = true
-                elsif @page == 2 || @page == 3
+                elsif @page == 3 || @page == 4
                   pbMoveSelection
                   dorefresh = true
                 end
@@ -1397,8 +1393,8 @@ module Graphics
                 when 0; drawPageOne(@pokemon)
                 when 1; drawPageTwo(@pokemon)
                 when 2; drawPageThree(@pokemon)
-                when 3; drawPageFour(@pokemon)
-                when 4; drawPageFive(@pokemon) rescue nil
+                when 3; drawPageMoves1(@pokemon)
+                when 4; drawPageMoves2(@pokemon)
                 end
               end
             end
@@ -1523,12 +1519,12 @@ module Graphics
             v_idx = 0 # Indice dentro de valid_slots
             selmove = valid_slots[v_idx]
             
-            @page = 2 # Empezar siempre en la página de movimientos (página 3 real)
+            @page = 3 # Empezar siempre en la página de movimientos (página 4 real)
             
             # REFRESCO INICIAL PARA EVITAR PANTALLA NEGRA
             case @page
-            when 2; drawPageThree(@pokemon)
-            when 3; drawPageFour(@pokemon)
+            when 3; drawPageMoves1(@pokemon)
+            when 4; drawPageMoves2(@pokemon)
             end
             drawMoveSelection(@pokemon, moveToLearn)
             initial_moveid = (selmove == 8) ? moveToLearn : @pokemon.moves[selmove].id
@@ -1539,9 +1535,9 @@ module Graphics
               Input.update
               pbUpdate
               if Input.trigger?(Input::B); ret = 8; break; end
-              if Input.trigger?(Input::C) && (@page == 2 || @page == 3); break; end
+              if Input.trigger?(Input::C) && (@page == 3 || @page == 4); break; end
               
-              if Input.trigger?(Input::DOWN) && (@page == 2 || @page == 3)
+              if Input.trigger?(Input::DOWN) && (@page == 3 || @page == 4)
                 v_idx = (v_idx + 1) % valid_slots.length
                 selmove = valid_slots[v_idx]
                 
@@ -1558,7 +1554,7 @@ module Graphics
                 drawSelectedMove(@pokemon, moveToLearn, newmove)
                 pbPlayCursorSE()
                 
-              elsif Input.trigger?(Input::UP) && (@page == 2 || @page == 3)
+              elsif Input.trigger?(Input::UP) && (@page == 3 || @page == 4)
                 v_idx = (v_idx - 1) % valid_slots.length
                 selmove = valid_slots[v_idx]
 
@@ -1576,15 +1572,30 @@ module Graphics
                 pbPlayCursorSE()
                 
               elsif Input.trigger?(Input::LEFT) || Input.trigger?(Input::RIGHT)
-                if @pokemon.numMoves > 4
-                  @page = (@page == 2) ? 3 : 2
-                  pbPlayCursorSE()
-                  case @page
-                  when 2; drawPageThree(@pokemon); @move_scroll = 0
-                  when 3; drawPageFour(@pokemon); @move_scroll = 4
-                  end
+                # Cambiar de página (0:Info, 1:Memo, 2:Stats, 3:Moves1, 4:Moves2)
+                if Input.trigger?(Input::LEFT)
+                  @page = (@page - 1) % 5
+                else
+                  @page = (@page + 1) % 5
+                end
+                
+                pbPlayCursorSE()
+                case @page
+                when 0; drawPageOne(@pokemon)
+                when 1; drawPageTwo(@pokemon)
+                when 2; drawPageThree(@pokemon)
+                when 3; drawPageMoves1(@pokemon); @move_scroll = 0
+                when 4; drawPageMoves2(@pokemon); @move_scroll = 4
+                end
+                
+                # Sincronizar UI si estamos en páginas de movimientos
+                if @page >= 3
+                  @sprites["movesel"].visible = true
                   drawMoveSelection(@pokemon, moveToLearn)
-                  drawSelectedMove(@pokemon, moveToLearn, (selmove == 8 ? moveToLearn : @pokemon.moves[selmove].id))
+                  new_m_id = (selmove == 8) ? moveToLearn : @pokemon.moves[selmove].id
+                  drawSelectedMove(@pokemon, moveToLearn, new_m_id)
+                else
+                  @sprites["movesel"].visible = false
                 end
               end
             end
@@ -1594,7 +1605,7 @@ module Graphics
           def pbMoveSelection
             @sprites["movesel"].visible = true
             # Empezar en el primer move de la página actual
-            selmove = (@page == 3) ? 4 : 0
+            selmove = (@page == 4) ? 4 : 0
             @sprites["movesel"].index = selmove
             switching = false
             oldselmove = 0
