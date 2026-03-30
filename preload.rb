@@ -3341,3 +3341,69 @@ end
 def pbScreenCapture; end
 $_debug_pkmn = nil
 $mega_shiny_toggle = false if $mega_shiny_toggle.nil?
+
+# ==============================================================================
+# HOOKS DE MODO PORTABLE v4 - Hilo vigilante (sin depender de alias save_data)
+# ==============================================================================
+
+$pkmn_usb_dir = begin
+  _usb = File.join(Dir.pwd, "Partidas Guardadas")
+  Dir.mkdir(_usb) unless File.directory?(_usb)
+  _usb
+rescue
+  nil
+end
+
+begin
+  if $pkmn_usb_dir
+    # Calcular ruta PC nativa
+    $pkmn_pc_dir = if ENV['USERPROFILE'] && File.directory?(File.join(ENV['USERPROFILE'], "Saved Games"))
+      File.join(ENV['USERPROFILE'], "Saved Games", "Pokemon Z")
+    else
+      File.join(ENV['APPDATA'] || Dir.pwd, "Pokemon Z")
+    end
+    Dir.mkdir($pkmn_pc_dir) rescue nil
+
+    $pkmn_usb_save = File.join($pkmn_usb_dir, "Game.rxdata")
+    $pkmn_pc_save  = File.join($pkmn_pc_dir,  "Game.rxdata")
+
+    module System
+      def self.data_directory
+        $pkmn_pc_dir
+      end
+    end
+    module RTP
+      def self.getSaveFolder; $pkmn_pc_dir; end
+      def self.getSaveFileName(f); File.join($pkmn_pc_dir, f); end
+    end
+
+    # === ARRANQUE: USB siempre es la partida "porta" — se inyecta al PC ===
+    # Solo copiamos USB->PC si USB existe (es la fuente portable)
+    if File.exist?($pkmn_usb_save)
+      File.open($pkmn_pc_save, 'wb') { |w| File.open($pkmn_usb_save, 'rb') { |r| w.write(r.read) } } rescue nil
+    end
+
+    # === HILO VIGILANTE: detecta cuando el juego guarda en PC y lo copia al USB ===
+    Thread.new do
+      begin
+        _last_mtime = File.exist?($pkmn_pc_save) ? (File.mtime($pkmn_pc_save) rescue nil) : nil
+        loop do
+          sleep 2
+          next unless File.exist?($pkmn_pc_save)
+          _cur = File.mtime($pkmn_pc_save) rescue nil
+          next unless _cur
+          if _last_mtime.nil? || _cur > _last_mtime
+            _last_mtime = _cur
+            # PC guardo algo nuevo -> copiar al USB
+            File.open($pkmn_usb_save, 'wb') { |w|
+              File.open($pkmn_pc_save, 'rb') { |r| w.write(r.read) }
+            } rescue nil
+          end
+        end
+      rescue
+      end
+    end
+
+  end
+rescue
+end
