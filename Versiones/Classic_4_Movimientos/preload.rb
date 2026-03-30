@@ -1918,6 +1918,293 @@ module Graphics
   end
 end
 # ===============================================================================
+# SISTEMA DE FOLLOWING POKÉMON Y RECUERDA MOVIMIENTOS (VERSIÓN CLASSIC)
+# ===============================================================================
+
+# Hook para inyectar el código de Following Pokémon y Recuerda Movimientos
+if !defined?($Following_Moves_Injector_Hooked_Classic)
+  $Following_Moves_Injector_Hooked_Classic = true
+  Input.class_eval do
+    class << self
+      alias _follow_moves_injector_update update rescue nil
+      def update
+        _follow_moves_injector_update if respond_to?(:_follow_moves_injector_update)
+        if !@follow_moves_patch_applied && defined?(PokemonScreen) && PokemonScreen.method_defined?(:pbPokemonScreen)
+          @follow_moves_patch_applied = true
+          
+          eval <<-'RUBY_CODE'
+            # Extensión de Trainer para seguimiento independiente
+            class ::PokeBattle_Trainer
+              attr_accessor :follower_index
+              alias pc_sync_init_trainer initialize
+              def initialize(name, trainertype)
+                pc_sync_init_trainer(name, trainertype)
+                @follower_index = 0
+              end
+            end
+
+            # Modificación de DependentEvents
+            class ::DependentEvents
+              def pbGetFollower
+                idx = ($Trainer.follower_index || 0)
+                return nil if idx == -1
+                pkmn = $Trainer.party[idx]
+                return (pkmn && !pkmn.isEgg?) ? pkmn : ($Trainer.party[0] || nil)
+              end
+
+              unless method_defined?(:pc_sync_refresh_sprite)
+                alias pc_sync_refresh_sprite refresh_sprite
+              end
+              def refresh_sprite(animation=false)
+                return if defined?(NO_UPDATE_SWITCH) && $game_switches[NO_UPDATE_SWITCH]
+                pkmn = pbGetFollower
+                
+                if $scene.is_a?(Scene_Map)
+                  if !pkmn
+                    if respond_to?(:pbFollowingOpacity)
+                      pbFollowingOpacity(0)
+                    elsif $PokemonTemp.dependentEvents.respond_to?(:pbFollowingOpacity)
+                      $PokemonTemp.dependentEvents.pbFollowingOpacity(0)
+                    end
+                  elsif !pkmn.isEgg?
+                    if respond_to?(:pbFollowingOpacity)
+                      pbFollowingOpacity(255)
+                    elsif $PokemonTemp.dependentEvents.respond_to?(:pbFollowingOpacity)
+                      $PokemonTemp.dependentEvents.pbFollowingOpacity(255)
+                    end
+                    shiny = pkmn.isShiny?
+                    form = pkmn.form > 0 ? pkmn.form : nil
+                    shadow = defined?(pkmn.isShadow?) ? pkmn.isShadow? : false
+                    change_sprite(pkmn.species, shiny, false, form, pkmn.gender, shadow)
+                  else
+                    if respond_to?(:pbFollowingOpacity)
+                      pbFollowingOpacity(255)
+                    elsif $PokemonTemp.dependentEvents.respond_to?(:pbFollowingOpacity)
+                      $PokemonTemp.dependentEvents.pbFollowingOpacity(255)
+                    end
+                    setCustomSprite("egg")
+                  end
+                end
+                update_stepping
+              end
+            end
+
+            # Hook global para el grito e interacción
+            unless method_defined?(:pc_sync_pbFollowingChat)
+              alias pc_sync_pbFollowingChat pbFollowingChat
+            end
+            def pbFollowingChat
+              if $PokemonTemp && $PokemonTemp.dependentEvents
+                pkmn = $PokemonTemp.dependentEvents.pbGetFollower
+                if pkmn && !pkmn.isEgg?
+                  pbPlayCry(pkmn.species)
+                  if pkmn.hp <= 0
+                    Kernel.pbMessage(_INTL("{1} está debilitado.\nApenas puede tenerse en pie...", pkmn.name))
+                  else
+                    Kernel.pbMessage(_INTL("Sin duda, tienes el mejor {1} del mundo.", pkmn.name))
+                  end
+                  return
+                end
+              end
+              pc_sync_pbFollowingChat
+            end
+
+            # Modificación de PokemonScreen para añadir opciones
+            class ::PokemonScreen
+              unless method_defined?(:pc_sync_follow_pbSwitch)
+                alias pc_sync_follow_pbSwitch pbSwitch
+              end
+              def pbSwitch(oldid, newid)
+                pc_sync_follow_pbSwitch(oldid, newid)
+                if $Trainer.follower_index == oldid
+                  $Trainer.follower_index = newid
+                elsif $Trainer.follower_index == newid
+                  $Trainer.follower_index = oldid
+                end
+                if $PokemonTemp.dependentEvents.respond_to?(:refresh_sprite)
+                  $PokemonTemp.dependentEvents.refresh_sprite(false)
+                end
+              end
+
+              unless method_defined?(:pbPokemonScreen_orig_follow)
+                alias pbPokemonScreen_orig_follow pbPokemonScreen
+              end
+              def pbPokemonScreen
+                @scene.pbStartScene(@party,@party.length>1 ? _INTL("Elige un Pokémon.") : _INTL("Elige un Pokémon o cancela."),nil)
+                loop do
+                  @scene.pbSetHelpText(@party.length>1 ? _INTL("Elige un Pokémon.") : _INTL("Elige un Pokémon o cancela."))
+                  pkmnid=@scene.pbChoosePokemon
+                  break if pkmnid<0
+                  pkmn=@party[pkmnid]
+                  commands   = []
+                  cmdSummary = -1
+                  cmdDebug   = -1
+                  cmdExpShare= -1
+                  cmdFollow  = -1
+                  cmdMoves   = [-1,-1,-1,-1]
+                  cmdSwitch  = -1
+                  cmdName    = -1
+                  cmdMail    = -1
+                  cmdItem    = -1
+                  cmdPokedex = -1          
+                  cmdRelearn = -1
+                  
+                  # Build the commands
+                  commands[cmdSummary=commands.length]      = _INTL("Datos")
+                  
+                  # Opción para seguir (Personalizada para seguimiento independiente)
+                  if !pkmn.isEgg?
+                    if ($Trainer.follower_index || 0) == pkmnid
+                      commands[cmdFollow=commands.length]     = _INTL("Meter en la Poké Ball")
+                    else
+                      commands[cmdFollow=commands.length]     = _INTL("Sacar de la Poké Ball")
+                    end
+                  end
+                  
+                  commands[cmdExpShare = commands.length]     = _INTL("Repartir Exp")
+                  commands[cmdDebug=commands.length]        = _INTL("Depurador") if $DEBUG
+                  
+                  for i in 0...pkmn.moves.length
+                    move=pkmn.moves[i]
+                    if !pkmn.isEgg? && (isConst?(move.id,PBMoves,:MILKDRINK) ||
+                                        isConst?(move.id,PBMoves,:SOFTBOILED) ||
+                                        HiddenMoveHandlers.hasHandler(move.id))
+                      commands[cmdMoves[i]=commands.length] = PBMoves.getName(move.id)
+                    end
+                  end
+                  
+                  commands[cmdSwitch=commands.length]       = _INTL("Mover") if @party.length>1
+                  if !pkmn.isEgg?
+                    commands[cmdName=commands.length]       =  _INTL("Mote")
+                    if pkmn.mail
+                      commands[cmdMail=commands.length]     = _INTL("Carta")
+                    else
+                      commands[cmdItem=commands.length]     = _INTL("Objeto")
+                    end
+                  end
+                  commands[cmdPokedex=commands.length]      = _INTL("Pokedex")
+                  commands[cmdRelearn=commands.length]      = _INTL("Recordar Movimientos")
+                  commands[commands.length]                 = _INTL("Salir")
+                  
+                  command=@scene.pbShowCommands(_INTL("¿Qué hacer con {1}?",pkmn.name),commands)
+                  havecommand=false
+                  for i in 0...4
+                    if cmdMoves[i]>=0 && command==cmdMoves[i]
+                      havecommand=true
+                      if isConst?(pkmn.moves[i].id,PBMoves,:SOFTBOILED) ||
+                         isConst?(pkmn.moves[i].id,PBMoves,:MILKDRINK)
+                        amt=[(pkmn.totalhp/5).floor,1].max
+                        if pkmn.hp<=amt
+                          pbDisplay(_INTL("No tiene PS suficientes..."))
+                          break
+                        end
+                        @scene.pbSetHelpText(_INTL("¿En cuál Pokémon usarlo?"))
+                        oldpkmnid=pkmnid
+                        loop do
+                          @scene.pbPreSelect(oldpkmnid)
+                          pkmnid=@scene.pbChoosePokemon(true,pkmnid)
+                          break if pkmnid<0
+                          newpkmn=@party[pkmnid]
+                          if pkmnid==oldpkmnid
+                            pbDisplay(_INTL("¡{1} no puede usar {2} en sí mismo!",pkmn.name,PBMoves.getName(pkmn.moves[i].id)))
+                          elsif newpkmn.isEgg?
+                            pbDisplay(_INTL("¡{1} no puede usarse en un Huevo!",PBMoves.getName(pkmn.moves[i].id)))
+                          elsif newpkmn.hp==0 || newpkmn.hp==newpkmn.totalhp
+                            pbDisplay(_INTL("{1} no puede usarse en ese Pokémon.",PBMoves.getName(pkmn.moves[i].id)))
+                          else
+                            pkmn.hp-=amt
+                            hpgain=pbItemRestoreHP(newpkmn,amt)
+                            @scene.pbDisplay(_INTL("{1} recuperó {2} puntos de salud.",newpkmn.name,hpgain))
+                            pbRefresh
+                          end
+                          break if pkmn.hp<=amt
+                        end
+                        break
+                      elsif Kernel.pbCanUseHiddenMove?(pkmn,pkmn.moves[i].id)
+                        @scene.pbEndScene
+                        if isConst?(pkmn.moves[i].id,PBMoves,:FLY)
+                          scene=PokemonRegionMapScene.new(-1,false)
+                          screen=PokemonRegionMap.new(scene)
+                          ret=screen.pbStartFlyScreen
+                          if ret
+                            $PokemonTemp.flydata=ret
+                            return [pkmn,pkmn.moves[i].id]
+                          end
+                          @scene.pbStartScene(@party,
+                             @party.length>1 ? _INTL("Elige un Pokémon.") : _INTL("Elige un Pokémon o cancela."))
+                          break
+                        end
+                        return [pkmn,pkmn.moves[i].id]
+                      else
+                        break
+                      end
+                    end
+                  end
+                  next if havecommand
+                  
+                  if cmdSummary>=0 && command==cmdSummary
+                    @scene.pbSummary(pkmnid)
+                  elsif cmdFollow>=0 && command==cmdFollow
+                    if ($Trainer.follower_index || 0) == pkmnid
+                      $Trainer.follower_index = -1
+                      if $PokemonTemp.dependentEvents.respond_to?(:refresh_sprite)
+                        $PokemonTemp.dependentEvents.refresh_sprite(false)
+                      end
+                      pbDisplay(_INTL("¡Has guardado a {1}!", pkmn.name))
+                    else
+                      $Trainer.follower_index = pkmnid
+                      if $PokemonTemp.dependentEvents.respond_to?(:refresh_sprite)
+                        $PokemonTemp.dependentEvents.refresh_sprite(false)
+                      end
+                      pbDisplay(_INTL("¡{1} ahora te sigue!", pkmn.name))
+                    end
+                  elsif cmdDebug>=0 && command==cmdDebug
+                    pbPokemonDebug(pkmn,pkmnid)
+                  elsif cmdExpShare>=0 && command==cmdExpShare
+                    if pkmn.expshare
+                      if pbConfirm(_INTL("¿Quieres desactivar el Repartir Experiencia en este Pokémon?"))
+                        pkmn.expshare=false
+                      end
+                    else
+                      if pbConfirm(_INTL("¿Quieres activar el Repartir Experiencia en este Pokémon?"))
+                        pkmn.expshare=true
+                      end
+                    end
+                  elsif cmdSwitch>=0 && command==cmdSwitch
+                    @scene.pbSetHelpText(_INTL("¿A qué posición mover?"))
+                    oldpkmnid=pkmnid
+                    pkmnid=@scene.pbChoosePokemon(true)
+                    if pkmnid>=0 && pkmnid!=oldpkmnid
+                      pbSwitch(oldpkmnid,pkmnid)
+                    end
+                  elsif cmdName>=0 && command==cmdName
+                    speciesname=PBSpecies.getName(pkmn.species)
+                    oldname = (pkmn.name && pkmn.name!=speciesname) ? pkmn.name : ""
+                    newname = pbEnterPokemonName(_INTL("Mote de {1}"), 0, 10, oldname, pkmn)
+                    pkmn.name = (newname=="") ? speciesname : newname
+                    pbRefresh
+                  elsif cmdItem>=0 && command==cmdItem
+                    item=pbItemMenu(pkmnid)
+                  elsif cmdPokedex>=0 && command==cmdPokedex
+                    $Trainer.pokedex=true
+                    scene=PokemonPokedexScene.new
+                    screen=PokemonPokedex.new(scene)
+                    screen.pbDexEntry(pkmn.species)
+                  elsif cmdRelearn>=0 && command==cmdRelearn
+                    pbRelearnMoveScreen(pkmn)
+                  end
+                end
+                @scene.pbEndScene
+              end
+            end
+          RUBY_CODE
+        end
+      end
+    end
+  end
+end
+
+# ===============================================================================
 # BOTÓN DE PC EN PANTALLA DE EQUIPO (LATE-BINDING PATCH)
 # ===============================================================================
 
