@@ -3317,7 +3317,17 @@ if !defined?($PC_Button_Injector_Hooked)
                     pc_idx = @multiselect ? 7 : 6; exit_idx = @multiselect ? 8 : 7
                     if @activecmd == pc_idx
                       pbPlayDecisionSE()
+                      # Guardar posición actual del jugador
+                      old_x = $game_player.x rescue nil
+                      old_y = $game_player.y rescue nil
+                      old_dir = $game_player.direction rescue nil
                       pbFadeOutIn(99999) { screen = ::PokemonStorageScreen.new(::PokemonStorageScene.new, $PokemonStorage); screen.pbStartScreen(2) }
+                      # Resetear posición del jugador para evitar freeze
+                      if old_x && old_y && $game_player
+                        $game_player.moveto(old_x, old_y) rescue nil
+                        $game_player.set_direction(old_dir) rescue nil
+                        $game_player.straighten rescue nil
+                      end
                       pbRefresh; next
                     end
                     return -1 if @activecmd == exit_idx
