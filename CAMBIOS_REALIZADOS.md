@@ -47,6 +47,7 @@ He llevado el motor de batalla a un nuevo nivel de profundidad y comodidad:
 -   **Sistema de 8 Movimientos**: He roto la limitación clásica de 4 movimientos. Ahora los Pokémon pueden conocer y utilizar hasta 8 ataques simultáneamente.
     *   **Interfaz Paginada**: El menú de lucha en combate y la pantalla de Datos permiten navegar entre dos páginas de movimientos (`MOV 1` / `MOV 2`).
     *   **Puntero de Selección**: Implementación de un cursor intuitivo que gestiona la navegación entre páginas y destaca los movimientos aprendidos de forma dinámica.
+-   **Recuerda Movimientos (Move Relearner)**: Añadida la opción "Recordar Movimientos" al menú contextual del equipo, permitiendo reaprender movimientos olvidados por nivel, MT/MO o huevo directamente desde el equipo sin necesidad de visitar un NPC especial.
 -   **Sincronización Total PC-Combate ("Ironclad Sync")**: Integración real del PC dentro de las batallas:
     *   **Cambio Dinámico**: Puedes acceder al PC desde el menú de equipo en pleno combate para traer refuerzos o cambiar de estrategia.
     *   **Detección de Integridad**: Si sustituyes al Pokémon activo mediante el PC, el sistema detecta la desincronización, ejecuta automáticamente la animación de cambio y **consume el turno del jugador**, manteniendo el equilibrio y la estabilidad del combate.
