@@ -51,6 +51,16 @@ Este repositorio ofrece dos experiencias distintas para adaptarse a tu estilo de
 
 ---
 
+## 💾 ¡NUEVO!: Modo Portable (Sincronización Universal) 
+
+He implementado un **sistema de autoguardado inteligente** que detecta si estás jugando desde un dispositivo externo (pendrive o disco duro portable):
+
+- **Sincronización Automática**: El juego detecta si hay una partida más reciente en la carpeta `Partidas Guardadas` del disco duro y la "inyecta" al PC al iniciar.
+- **Respaldo en Vivo**: Mientras juegas, el mod vigila el archivo de guardado nativo de Windows. En cuanto guardas la partida, se hace una copia instantánea al disco duro portable.
+- **Sin Configuración**: No tienes que hacer nada. Solo asegúrate de que la carpeta `Partidas Guardadas` esté junto al ejecutable del juego.
+
+---
+
 ## ⚡ Instalación en 1 minuto (Copiar y Pegar)
 
 1. **Descarga el ZIP** de este repositorio (o clónalo).
