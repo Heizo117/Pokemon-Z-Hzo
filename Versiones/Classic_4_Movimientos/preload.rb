@@ -2421,17 +2421,20 @@ if !defined?($PC_Button_Injector_Hooked)
                     pc_idx = @multiselect ? 7 : 6; exit_idx = @multiselect ? 8 : 7
                     if @activecmd == pc_idx
                       pbPlayDecisionSE()
-                      # Guardar posición actual del jugador
-                      old_x = $game_player.x rescue nil
-                      old_y = $game_player.y rescue nil
-                      old_dir = $game_player.direction rescue nil
                       pbFadeOutIn(99999) { screen = ::PokemonStorageScreen.new(::PokemonStorageScene.new, $PokemonStorage); screen.pbStartScreen(2) }
-                      # Resetear posición del jugador para evitar freeze
-                      if old_x && old_y && $game_player
-                        $game_player.moveto(old_x, old_y) rescue nil
-                        $game_player.set_direction(old_dir) rescue nil
+                      # UNLOCK SYSTEM: Recuperar control al salir de la caja PC
+                      if $game_player
                         $game_player.straighten rescue nil
+                        $game_player.force_move_route(::RPG::MoveRoute.new) rescue nil
+                        $game_player.instance_variable_set(:@move_route_forcing, false) rescue nil
                       end
+                      if $game_map && $game_map.respond_to?(:interpreter)
+                        interp = $game_map.interpreter
+                        interp.instance_variable_set(:@list, nil) rescue nil
+                        interp.instance_variable_set(:@index, 0) rescue nil
+                        interp.instance_variable_set(:@move_route_waiting, false) rescue nil
+                      end
+                      $game_map.need_refresh = true rescue nil if $game_map
                       pbRefresh; next
                     end
                     return -1 if @activecmd == exit_idx

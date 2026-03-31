@@ -3372,6 +3372,19 @@ if !defined?($PC_Button_Injector_Hooked)
                     if @activecmd == pc_idx
                       pbPlayDecisionSE()
                       pbFadeOutIn(99999) { screen = ::PokemonStorageScreen.new(::PokemonStorageScene.new, $PokemonStorage); screen.pbStartScreen(2) }
+                      # UNLOCK SYSTEM: Recuperar control al salir de la caja PC
+                      if $game_player
+                        $game_player.straighten rescue nil
+                        $game_player.force_move_route(::RPG::MoveRoute.new) rescue nil
+                        $game_player.instance_variable_set(:@move_route_forcing, false) rescue nil
+                      end
+                      if $game_map && $game_map.respond_to?(:interpreter)
+                        interp = $game_map.interpreter
+                        interp.instance_variable_set(:@list, nil) rescue nil
+                        interp.instance_variable_set(:@index, 0) rescue nil
+                        interp.instance_variable_set(:@move_route_waiting, false) rescue nil
+                      end
+                      $game_map.need_refresh = true rescue nil if $game_map
                       pbRefresh; next
                     end
                     return -1 if @activecmd == exit_idx
