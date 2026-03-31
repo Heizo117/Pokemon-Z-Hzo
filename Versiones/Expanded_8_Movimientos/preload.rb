@@ -2447,6 +2447,29 @@ module Graphics
                       break
                     elsif Kernel.pbCanUseHiddenMove?(pkmn,pkmn.moves[i].id)
                       @scene.pbEndScene
+                      # UNLOCK SYSTEM: Desbloqueo total para recuperar el control al salir
+                      if $game_player
+                        $game_player.straighten rescue nil
+                        $game_player.force_move_route(RPG::MoveRoute.new) rescue nil
+                        $game_player.instance_variable_set(:@move_route_forcing, false) rescue nil
+                        $game_player.move_speed = 4 rescue nil
+                      end
+                      if $game_map && $game_map.respond_to?(:interpreter)
+                        interp = $game_map.interpreter
+                        interp.instance_variable_set(:@list, nil) rescue nil
+                        interp.instance_variable_set(:@index, 0) rescue nil
+                        interp.instance_variable_set(:@move_route_waiting, false) rescue nil
+                      end
+                      if $game_temp 
+                        $game_temp.in_menu = false rescue nil
+                        $game_temp.menu_calling = false rescue nil
+                        $game_temp.common_event_id = 0 rescue nil
+                        $game_temp.message_window_showing = false rescue nil
+                      end
+                      $game_map.need_refresh = true rescue nil if $game_map
+                      if $PokemonTemp && $PokemonTemp.dependentEvents.respond_to?(:refresh_sprite)
+                        $PokemonTemp.dependentEvents.refresh_sprite rescue nil 
+                      end
                       if isConst?(pkmn.moves[i].id,PBMoves,:FLY)
                         scene=PokemonRegionMapScene.new(-1,false)
                         screen=PokemonRegionMap.new(scene)
@@ -2488,6 +2511,8 @@ module Graphics
                   end
                 elsif cmdDebug>=0 && command==cmdDebug
                   pbPokemonDebug(pkmn,pkmnid)
+                  pbRefresh; @scene.pbRefresh rescue nil
+
                 elsif cmdExpShare>=0 && command==cmdExpShare
                   if pkmn.expshare
                     if pbConfirm(_INTL("¿Quieres desactivar el Repartir Experiencia en este Pokémon?"))
@@ -2523,7 +2548,32 @@ module Graphics
                 end
               end
               @scene.pbEndScene
+              # UNLOCK SYSTEM: Desbloqueo total para recuperar el control al salir
+              if $game_player
+                $game_player.straighten rescue nil
+                $game_player.force_move_route(RPG::MoveRoute.new) rescue nil
+                $game_player.instance_variable_set(:@move_route_forcing, false) rescue nil
+                $game_player.move_speed = 4 rescue nil
+              end
+              if $game_map && $game_map.respond_to?(:interpreter)
+                interp = $game_map.interpreter
+                interp.instance_variable_set(:@list, nil) rescue nil
+                interp.instance_variable_set(:@index, 0) rescue nil
+                interp.instance_variable_set(:@move_route_waiting, false) rescue nil
+              end
+              if $game_temp 
+                $game_temp.in_menu = false rescue nil
+                $game_temp.menu_calling = false rescue nil
+                $game_temp.common_event_id = 0 rescue nil
+                $game_temp.message_window_showing = false rescue nil
+              end
+              $game_map.need_refresh = true rescue nil if $game_map
+              if $PokemonTemp && $PokemonTemp.dependentEvents.respond_to?(:refresh_sprite)
+                $PokemonTemp.dependentEvents.refresh_sprite rescue nil 
+              end
+              return nil
             end
+
           end
           
           class PokeSelectionSprite
