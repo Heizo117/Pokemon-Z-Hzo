@@ -3470,3 +3470,86 @@ begin
   end
 rescue
 end
+
+# Heizo NPC - Integrado directamente
+$heizo_maps = [10, 18, 30, 45, 60, 82, 104, 114, 134, 142, 164]
+$heizo_last_map = 0
+$heizo_spawned = false
+
+module Graphics
+  class << self
+    alias heizo_upd_final update
+    def update
+      if Graphics.frame_count % 60 == 0
+        spawn_heizo_final
+      end
+      heizo_upd_final
+    end
+  end
+end
+
+def spawn_heizo_final
+  return if !$game_map
+  current_map = $game_map.map_id
+  
+  if current_map != $heizo_last_map
+    $heizo_last_map = current_map
+    $heizo_spawned = false
+  end
+  
+  return if !$heizo_maps.include?(current_map)
+  return if $heizo_spawned
+  return if $game_map.events[995]
+  
+  target = nil
+  $game_map.events.each do |id, e|
+    begin
+      name = e.character_name rescue nil
+      if name == "cazadorPetri"
+        target = e
+        break
+      end
+    rescue
+    end
+  end
+  
+  if target
+    x = target.x - 1
+    y = target.y
+  else
+    x, y = 7, 8
+  end
+  
+  begin
+    re = RPG::Event.new(x, y)
+    re.id = 995
+    re.name = "HeizoNPC"
+    
+    page = RPG::Event::Page.new
+    page.graphic.character_name = "cazadorow"
+    page.graphic.direction = 2
+    page.trigger = 0
+    page.list = [RPG::EventCommand.new(0, 0, [])]
+    
+    re.pages = [page]
+    
+    ge = Game_Event.new($game_map.map_id, re, $game_map)
+    $game_map.events[995] = ge
+    ge.refresh
+    
+    if $scene.is_a?(Scene_Map) && $scene.spriteset
+      begin
+        vp = $scene.spriteset.instance_variable_get(:@viewport1)
+        if vp
+          spr = Sprite_Character.new(vp, ge)
+          arr = $scene.spriteset.instance_variable_get(:@character_sprites)
+          arr.push(spr) if arr
+        end
+      rescue
+      end
+    end
+    
+    $heizo_spawned = true
+  rescue
+  end
+end
