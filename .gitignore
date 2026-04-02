@@ -16,3 +16,12 @@
 # --- PERMITIR CARPETA DE VERSIONES ---
 !Versiones/
 !Versiones/**
+# --- PERMITIR CARPETA DE DATOS ---
+!Data/
+!Data/**
+# --- PERMITIR CARPETA DE RECURSOS TECNICOS ---
+!_RECURSOS_TECNICOS/
+!_RECURSOS_TECNICOS/**
+# --- PERMITIR SCRIPTS TEMPORALES ---
+!extract_maps.ps1
+!maps_text.txt

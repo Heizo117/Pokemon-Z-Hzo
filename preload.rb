@@ -3480,10 +3480,9 @@ module Graphics
   class << self
     alias heizo_upd_final update
     def update
-      if Graphics.frame_count % 60 == 0
-        spawn_heizo_final
-      end
       heizo_upd_final
+      # Crear Heizo inmediatamente al cargar el mapa
+      spawn_heizo_final
     end
   end
 end
@@ -3501,24 +3500,8 @@ def spawn_heizo_final
   return if $heizo_spawned
   return if $game_map.events[995]
   
-  target = nil
-  $game_map.events.each do |id, e|
-    begin
-      name = e.character_name rescue nil
-      if name == "cazadorPetri"
-        target = e
-        break
-      end
-    rescue
-    end
-  end
-  
-  if target
-    x = target.x - 1
-    y = target.y
-  else
-    x, y = 7, 8
-  end
+  # Posición fija (3, 11) (5 más a la izquierda de la anterior (8,11))
+  x, y = 3, 11
   
   begin
     re = RPG::Event.new(x, y)
@@ -3529,7 +3512,10 @@ def spawn_heizo_final
     page.graphic.character_name = "cazadorow"
     page.graphic.direction = 2
     page.trigger = 0
-    page.list = [RPG::EventCommand.new(0, 0, [])]
+    page.list = [
+      RPG::EventCommand.new(355, 0, ["Kernel.pbHeizoDialog"]),
+      RPG::EventCommand.new(0, 0, [])
+    ]
     
     re.pages = [page]
     
@@ -3551,5 +3537,17 @@ def spawn_heizo_final
     
     $heizo_spawned = true
   rescue
+  end
+end
+
+# Funcion de dialogo para Heizo
+module Kernel
+  def self.pbHeizoDialog
+    if pbConfirmMessage(_INTL("Hola soy Heizo el creador del mod. ¿Quieres un combate?"))
+      pbMessage(_INTL("¡Perfecto! Prepárate..."))
+      # Aquí irá el combate mañana
+    else
+      pbMessage(_INTL("Vuelve cuando quieras."))
+    end
   end
 end

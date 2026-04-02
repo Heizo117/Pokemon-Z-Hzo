@@ -1,0 +1,512 @@
+=== Variables de PokemonSummaryScene ===
+@_itm_overlay = #<Sprite:0x25c9bcf0>
+@party = #<PokemonBox:0x261898e0 @name="Equipo", @pokemon=[#<PokeBattle_Pokemon:0x26189880 @belch=false, @iv=[30, 0, 12, 5, 15, 27], @name="Talonflame", @attack=66, @otgender=0, @hatchedMap=0, @item=169, @happiness=254, @totalhp=111, @species=663, @language=7, @obtainLevel=5, @itemInitial=0, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @personalID=2978332735, @ot="Heizo", @firstmoves=[303, 368], @markings=0, @defense=63, @spatk=67, @statusCount=0, @exp=34287, @form=nil, @obtainText=nil, @ballused=0, @ev=[49, 97, 69, 86, 90, 36], @expshare=true, @hypermode=false, @timeReceived=1773104149, @trainerID=1504007316, @mail=nil, @spdef=64, @moves=[#<PBMove:0x26189820 @id=145, @pp=20, @ppup=0>, #<PBMove:0x261897f0 @id=148, @pp=15, @ppup=0>, #<PBMove:0x261897c0 @id=172, @pp=5, @ppup=0>, #<PBMove:0x26189790 @id=166, @pp=25, @ppup=0>], @hp=111, @eggsteps=0, @fused=nil, @obtainMap=7, @status=0, @speed=108>, #<PokeBattle_Pokemon:0x26189658 @belch=false, @iv=[26, 26, 18, 27, 28, 8], @attack=30, @name="Feebas", @otgender=0, @hatchedMap=0, @item=0, @happiness=70, @totalhp=59, @species=349, @language=7, @obtainLevel=22, @itemInitial=0, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @markings=0, @firstmoves=[554, 555, 548, 330], @ot="Heizo", @personalID=3074443339, @defense=24, @spatk=37, @statusCount=0, @form=nil, @exp=16610, @obtainText=nil, @ballused=5, @expshare=true, @ev=[0, 0, 0, 0, 0, 0], @timeReceived=1773282548, @mail=nil, @trainerID=1504007316, @spdef=27, @moves=[#<PBMove:0x261895f8 @id=554, @pp=30, @ppup=0>, #<PBMove:0x261895c8 @id=555, @pp=20, @ppup=0>, #<PBMove:0x26189598 @id=548, @pp=20, @ppup=0>, #<PBMove:0x26189568 @id=330, @pp=15, @ppup=0>], @hp=59, @eggsteps=0, @obtainMap=36, @fused=nil, @status=0, @speed=45>, nil, nil, nil, nil, #<PokeBattle_Pokemon:0x26189478 @belch=false, @iv=[20, 13, 7, 21, 29, 19], @name="Kadabra", @attack=29, @otgender=0, @hatchedMap=0, @item=145, @happiness=219, @totalhp=56, @species=64, @language=7, @obtainLevel=10, @itemInitial=145, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @personalID=494017778, @ot="Heizo", @firstmoves=[464, 486, 462], @markings=0, @defense=22, @spatk=61, @statusCount=0, @form=nil, @exp=8959, @obtainText=nil, @ballused=0, @ev=[17, 54, 32, 31, 33, 15], @expshare=true, @timeReceived=1773109374, @trainerID=1504007316, @mail=nil, @spdef=42, @moves=[#<PBMove:0x26189418 @id=464, @pp=15, @ppup=0>, #<PBMove:0x261893e8 @id=486, @pp=40, @ppup=0>, #<PBMove:0x261893b8 @id=462, @pp=25, @ppup=0>, #<PBMove:0x26189388 @id=479, @pp=20, @ppup=0>], @hp=56, @eggsteps=0, @fused=nil, @obtainMap=19, @status=0, @speed=59>, #<PokeBattle_Pokemon:0x261892c8 @belch=true, @iv=[20, 9, 23, 10, 29, 15], @name="Growlithe", @attack=36, @otgender=0, @hatchedMap=0, @item=0, @happiness=70, @totalhp=58, @species=58, @language=7, @obtainLevel=21, @itemInitial=395, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=395, @markings=0, @personalID=1291450564, @ot="Heizo", @firstmoves=[372, 143, 118, 142], @defense=28, @spatk=40, @statusCount=0, @exp=11576, @form=nil, @obtainText=nil, @ballused=0, @ev=[0, 0, 0, 0, 0, 0], @expshare=true, @timeReceived=1773262794, @trainerID=1504007316, @mail=nil, @spdef=26, @moves=[#<PBMove:0x26189268 @id=372, @pp=20, @ppup=0>, #<PBMove:0x26189238 @id=143, @pp=25, @ppup=0>, #<PBMove:0x26189208 @id=118, @pp=15, @ppup=0>, #<PBMove:0x261891d8 @id=142, @pp=15, @ppup=0>], @hp=58, @eggsteps=0, @fused=nil, @obtainMap=58, @status=0, @speed=35>, #<PokeBattle_Pokemon:0x261890a0 @belch=false, @iv=[2, 11, 17, 22, 12, 23], @name="Onix", @attack=26, @otgender=0, @hatchedMap=0, @item=0, @happiness=90, @totalhp=44, @species=95, @language=7, @obtainLevel=8, @itemInitial=0, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @personalID=553384436, @ot="Heizo", @firstmoves=[370, 322, 185, 507], @markings=0, @defense=53, @spatk=16, @statusCount=0, @exp=4670, @form=nil, @obtainText=nil, @ballused=1, @ev=[4, 7, 6, 6, 5, 1], @expshare=true, @timeReceived=1773192420, @trainerID=1504007316, @mail=nil, @spdef=23, @moves=[#<PBMove:0x26189040 @id=370, @pp=30, @ppup=0>, #<PBMove:0x26189010 @id=322, @pp=20, @ppup=0>, #<PBMove:0x26188fe0 @id=316, @pp=20, @ppup=0>, #<PBMove:0x26188fb0 @id=508, @pp=10, @ppup=0>], @hp=44, @eggsteps=0, @fused=nil, @obtainMap=16, @status=0, @speed=34>, #<PokeBattle_Pokemon:0x26188ea8 @belch=false, @iv=[22, 29, 5, 3, 31, 2], @attack=59, @name="Kricketune", @otgender=0, @hatchedMap=0, @item=163, @happiness=180, @totalhp=73, @species=402, @language=7, @obtainLevel=14, @itemInitial=163, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @markings=0, @firstmoves=[303, 10, 8, 109], @ot="Heizo", @personalID=294545298, @defense=35, @spatk=34, @statusCount=0, @exp=10203, @form=nil, @obtainText=nil, @ballused=25, @expshare=true, @ev=[8, 34, 18, 15, 19, 5], @timeReceived=1773198723, @mail=nil, @trainerID=1504007316, @spdef=44, @moves=[#<PBMove:0x26188e48 @id=98, @pp=15, @ppup=0>, #<PBMove:0x26188e18 @id=603, @pp=10, @ppup=0>, #<PBMove:0x26188de8 @id=8, @pp=20, @ppup=0>, #<PBMove:0x26188db8 @id=109, @pp=15, @ppup=0>], @hp=73, @eggsteps=0, @obtainMap=28, @fused=nil, @status=0, @speed=36>, #<PokeBattle_Pokemon:0x26188cb0 @belch=false, @iv=[26, 12, 5, 22, 3, 17], @name="Mightyena", @attack=88, @otgender=0, @hatchedMap=0, @item=0, @happiness=184, @totalhp=95, @species=262, @language=7, @obtainLevel=6, @itemInitial=0, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @personalID=811764951, @ot="Heizo", @firstmoves=[303, 373], @markings=0, @defense=46, @spatk=45, @statusCount=0, @form=nil, @exp=32768, @obtainText=nil, @ballused=1, @ev=[10, 21, 17, 15, 17, 14], @expshare=true, @timeReceived=1773110349, @trainerID=1504007316, @mail=nil, @spdef=49, @moves=[#<PBMove:0x26188c50 @id=303, @pp=35, @ppup=0>, #<PBMove:0x26188c20 @id=397, @pp=20, @ppup=0>, #<PBMove:0x26188bf0 @id=435, @pp=15, @ppup=0>, #<PBMove:0x26188bc0 @id=24, @pp=15, @ppup=0>], @hp=95, @eggsteps=0, @fused=nil, @obtainMap=9, @status=0, @speed=70>, #<PokeBattle_Pokemon:0x26188ab8 @belch=false, @iv=[22, 18, 31, 14, 25, 15], @name="Loudred", @attack=47, @otgender=0, @hatchedMap=0, @item=0, @happiness=111, @totalhp=79, @species=294, @language=7, @obtainLevel=8, @itemInitial=0, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @personalID=2555425922, @ot="Heizo", @firstmoves=[309, 181], @markings=0, @defense=33, @spatk=49, @statusCount=0, @form=nil, @exp=10572, @obtainText=nil, @ballused=0, @ev=[0, 1, 5, 0, 6, 2], @expshare=true, @timeReceived=1773109682, @trainerID=1504007316, @mail=nil, @spdef=37, @moves=[#<PBMove:0x26188a58 @id=413, @pp=20, @ppup=0>, #<PBMove:0x26188a28 @id=181, @pp=15, @ppup=0>, #<PBMove:0x261889f8 @id=275, @pp=10, @ppup=0>, #<PBMove:0x261889c8 @id=28, @pp=25, @ppup=0>], @hp=79, @eggsteps=0, @fused=nil, @obtainMap=54, @status=0, @speed=27>, #<PokeBattle_Pokemon:0x26188890 @belch=false, @iv=[8, 29, 19, 15, 21, 6], @name="Haunter", @attack=39, @otgender=0, @hatchedMap=0, @item=0, @happiness=70, @totalhp=63, @species=93, @language=7, @obtainLevel=27, @itemInitial=745, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @markings=0, @personalID=116519016, @ot="Heizo", @firstmoves=[183, 184, 179, 178], @defense=30, @spatk=79, @statusCount=0, @form=nil, @exp=15244, @obtainText=nil, @ballused=1, @ev=[0, 0, 0, 0, 0, 0], @expshare=true, @timeReceived=1773317802, @trainerID=1504007316, @mail=nil, @spdef=36, @moves=[#<PBMove:0x26188830 @id=183, @pp=15, @ppup=0>, #<PBMove:0x26188800 @id=184, @pp=10, @ppup=0>, #<PBMove:0x261887d0 @id=179, @pp=10, @ppup=0>, #<PBMove:0x261887a0 @id=178, @pp=20, @ppup=0>], @hp=63, @eggsteps=0, @fused=nil, @obtainMap=43, @status=0, @speed=60>, #<PokeBattle_Pokemon:0x261886e0 @belch=false, @iv=[7, 25, 18, 28, 16, 14], @name="Gastly", @attack=23, @otgender=0, @hatchedMap=0, @item=0, @happiness=229, @totalhp=40, @species=92, @language=7, @obtainLevel=5, @itemInitial=0, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @personalID=720068699, @ot="Heizo", @firstmoves=[479, 182, 437], @markings=0, @defense=20, @spatk=44, @statusCount=0, @exp=4370, @form=nil, @obtainText=nil, @ballused=0, @ev=[13, 22, 25, 24, 18, 17], @expshare=true, @timeReceived=1773105014, @trainerID=1504007316, @mail=nil, @spdef=20, @moves=[#<PBMove:0x26188680 @id=479, @pp=20, @ppup=0>, #<PBMove:0x26188650 @id=182, @pp=30, @ppup=0>, #<PBMove:0x26188620 @id=437, @pp=30, @ppup=0>, #<PBMove:0x261885f0 @id=379, @pp=5, @ppup=0>], @hp=40, @eggsteps=0, @fused=nil, @obtainMap=47, @status=0, @speed=39>, #<PokeBattle_Pokemon:0x261884e8 @belch=false, @iv=[27, 0, 20, 17, 26, 16], @name="Magnemite", @attack=17, @otgender=0, @hatchedMap=0, @item=0, @happiness=73, @totalhp=45, @species=81, @language=7, @obtainLevel=20, @itemInitial=0, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @markings=0, @personalID=2415166183, @ot="Heizo", @firstmoves=[79, 338, 83, 523], @defense=37, @spatk=52, @statusCount=0, @exp=8000, @form=nil, @obtainText=nil, @natureflag=15, @ballused=0, @ev=[0, 0, 0, 0, 0, 0], @expshare=true, @timeReceived=1773271571, @trainerID=1504007316, @mail=nil, @spdef=30, @moves=[#<PBMove:0x26188488 @id=79, @pp=30, @ppup=0>, #<PBMove:0x26188458 @id=338, @pp=20, @ppup=0>, #<PBMove:0x26188428 @id=83, @pp=20, @ppup=0>, #<PBMove:0x261883f8 @id=523, @pp=20, @ppup=0>], @hp=45, @eggsteps=0, @fused=nil, @obtainMap=59, @status=0, @speed=26>, #<PokeBattle_Pokemon:0x261882a8 @belch=false, @iv=[30, 24, 3, 26, 26, 28], @attack=39, @name="Charcadet", @otgender=0, @hatchedMap=0, @item=0, @happiness=50, @totalhp=68, @species=982, @language=7, @obtainLevel=28, @itemInitial=738, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @markings=0, @firstmoves=[151, 183, 145, 148], @ot="Heizo", @personalID=1683020784, @defense=30, @spatk=40, @statusCount=0, @form=nil, @exp=27440, @obtainText=nil, @ballused=0, @expshare=true, @ev=[0, 0, 0, 0, 0, 0], @timeReceived=1773685139, @mail=nil, @trainerID=1504007316, @spdef=31, @moves=[#<PBMove:0x26188248 @id=151, @pp=15, @ppup=0>, #<PBMove:0x26188218 @id=183, @pp=15, @ppup=0>, #<PBMove:0x261881e8 @id=145, @pp=20, @ppup=0>, #<PBMove:0x261881b8 @id=148, @pp=15, @ppup=0>], @hp=68, @eggsteps=0, @obtainMap=76, @fused=nil, @status=0, @speed=31>, nil, nil, nil, nil, #<PokeBattle_Pokemon:0x261880c8 @belch=false, @iv=[11, 29, 18, 26, 9, 0], @attack=89, @name="Nidoking", @shinyflag=false, @otgender=0, @hatchedMap=0, @item=92, @happiness=254, @totalhp=104, @species=34, @language=7, @obtainLevel=5, @itemInitial=0, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @markings=0, @firstmoves=[374, 168], @ot="Heizo", @personalID=2478560534, @defense=72, @spatk=70, @statusCount=0, @form=10, @exp=35231, @obtainText=nil, @ballused=0, @expshare=true, @ev=[21, 60, 36, 51, 57, 11], @hypermode=false, @timeReceived=1773201254, @mail=nil, @trainerID=1504007316, @spdef=50, @moves=[#<PBMove:0x26188068 @id=435, @pp=15, @ppup=0>, #<PBMove:0x26188038 @id=508, @pp=10, @ppup=0>, #<PBMove:0x26188008 @id=433, @pp=10, @ppup=0>, #<PBMove:0x26187fd8 @id=176, @pp=15, @ppup=0>], @hp=104, @eggsteps=0, @obtainMap=14, @fused=nil, @status=0, @speed=75>, #<PokeBattle_Pokemon:0x26187e88 @belch=false, @iv=[17, 30, 29, 9, 25, 2], @attack=82, @name="Tangrowth", @otgender=0, @hatchedMap=0, @item=93, @happiness=242, @totalhp=119, @species=465, @language=7, @obtainLevel=19, @itemInitial=0, @ribbons=[], @obtainMode=0, @abilityflag=0, @heartgauge=0, @itemRecycle=0, @markings=0, @firstmoves=[208, 210, 445, 599], @ot="Heizo", @personalID=3073618760, @defense=100, @spatk=90, @statusCount=0, @exp=40983, @form=nil, @obtainText=nil, @natureflag=20, @ballused=0, @expshare=true, @ev=[25, 31, 11, 26, 29, 6], @hypermode=false, @timeReceived=1773262486, @mail=nil, @trainerID=1504007316, @spdef=44, @moves=[#<PBMove:0x26187e28 @id=207, @pp=15, @ppup=0>, #<PBMove:0x26187df8 @id=433, @pp=10, @ppup=0>, #<PBMove:0x26187dc8 @id=508, @pp=10, @ppup=0>, #<PBMove:0x26187d98 @id=217, @pp=10, @ppup=0>], @hp=119, @eggsteps=0, @obtainMap=55, @fused=nil, @status=0, @speed=37>, #<PokeBattle_Pokemon:0x26187c48 @belch=false, @iv=[31, 1, 22, 3, 9, 19], @name="Breloom", @attack=93, @otgender=0, @hatchedMap=0, @item=0, @happiness=78, @totalhp=95, @species=286, @language=7, @obtainLevel=16, @itemInitial=0, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @markings=0, @personalID=2132774234, @ot="Heizo", @firstmoves=[210, 303, 220, 217], @defense=72, @spatk=48, @statusCount=0, @exp=37994, @form=nil, @obtainText=nil, @ballused=25, @ev=[0, 2, 0, 0, 0, 0], @expshare=true, @hypermode=false, @timeReceived=1773244959, @trainerID=1504007316, @mail=nil, @spdef=46, @moves=[#<PBMove:0x26187be8 @id=207, @pp=15, @ppup=0>, #<PBMove:0x26187bb8 @id=96, @pp=15, @ppup=0>, #<PBMove:0x26187b88 @id=290, @pp=15, @ppup=0>, #<PBMove:0x26187b58 @id=217, @pp=10, @ppup=0>], @hp=95, @eggsteps=0, @fused=nil, @obtainMap=29, @status=0, @speed=53>, #<PokeBattle_Pokemon:0x26187a20 @belch=false, @iv=[26, 7, 16, 23, 21, 26], @attack=82, @name="Sandslash", @otgender=0, @hatchedMap=0, @item=0, @happiness=78, @totalhp=103, @species=28, @language=7, @obtainLevel=19, @itemInitial=0, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @markings=0, @firstmoves=[317, 299, 12, 236], @ot="Heizo", @personalID=4082960922, @defense=85, @spatk=42, @statusCount=0, @exp=39304, @form=nil, @obtainText=nil, @ballused=0, @expshare=true, @ev=[0, 0, 0, 0, 0, 0], @hypermode=false, @timeReceived=1773684563, @mail=nil, @trainerID=1504007316, @spdef=56, @moves=[#<PBMove:0x261879c0 @id=226, @pp=10, @ppup=0>, #<PBMove:0x26187990 @id=13, @pp=10, @ppup=0>, #<PBMove:0x26187960 @id=12, @pp=20, @ppup=0>, #<PBMove:0x26187930 @id=236, @pp=30, @ppup=0>], @hp=103, @eggsteps=0, @obtainMap=55, @fused=nil, @status=0, @speed=54>, #<PokeBattle_Pokemon:0x261877f8 @belch=false, @iv=[8, 9, 31, 20, 1, 12], @custom_type2=nil, @name="Luxray", @attack=102, @otgender=0, @hatchedMap=0, @item=171, @happiness=254, @totalhp=102, @species=405, @language=7, @custom_type1=nil, @obtainLevel=14, @itemInitial=0, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @personalID=3861162653, @ot="Heizo", @firstmoves=[303, 374, 81, 74], @markings=0, @defense=71, @spatk=60, @statusCount=0, @exp=34211, @form=nil, @obtainText=nil, @ballused=25, @ev=[17, 44, 31, 50, 48, 13], @expshare=true, @hypermode=false, @timeReceived=1773200124, @trainerID=1504007316, @mail=nil, @spdef=63, @moves=[#<PBMove:0x26187798 @id=28, @pp=25, @ppup=0>, #<PBMove:0x26187768 @id=397, @pp=20, @ppup=0>, #<PBMove:0x26187738 @id=76, @pp=20, @ppup=0>, #<PBMove:0x26187708 @id=75, @pp=15, @ppup=0>], @hp=102, @eggsteps=0, @fused=nil, @obtainMap=27, @status=0, @speed=70>, #<PokeBattle_Pokemon:0x261875a0 @belch=false, @iv=[11, 18, 13, 10, 5, 6], @attack=85, @name="Lucario", @otgender=0, @hatchedMap=0, @item=0, @happiness=254, @totalhp=94, @species=448, @language=7, @obtainLevel=14, @itemInitial=0, @ribbons=[], @obtainMode=0, @abilityflag=2, @heartgauge=0, @itemRecycle=0, @firstmoves=[361, 486, 107, 314], @ot="Heizo", @personalID=1729737698, @markings=0, @defense=56, @spatk=74, @statusCount=0, @form=0, @exp=29949, @obtainText=nil, @natureflag=13, @ballused=26, @expshare=true, @ev=[16, 21, 12, 18, 19, 8], @hypermode=false, @timeReceived=1773199651, @mail=nil, @trainerID=1504007316, @spdef=53, @moves=[#<PBMove:0x26187540 @id=102, @pp=10, @ppup=0>, #<PBMove:0x26187510 @id=525, @pp=35, @ppup=0>, #<PBMove:0x261874e0 @id=176, @pp=15, @ppup=0>, #<PBMove:0x261874b0 @id=233, @pp=10, @ppup=0>], @hp=94, @eggsteps=0, @obtainMap=27, @fused=nil, @status=0, @speed=75>, #<PokeBattle_Pokemon:0x26187378 @belch=false, @iv=[6, 14, 29, 18, 8, 17], @name="Frogadier", @attack=64, @otgender=0, @hatchedMap=0, @item=137, @happiness=254, @totalhp=103, @species=657, @language=7, @obtainLevel=5, @itemInitial=0, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @personalID=513223858, @ot="Heizo", @firstmoves=[309, 368, 554, 464], @markings=0, @defense=60, @spatk=72, @statusCount=0, @exp=34325, @form=nil, @obtainText=nil, @ballused=0, @ev=[48, 99, 67, 87, 89, 36], @expshare=true, @hypermode=false, @timeReceived=1773102836, @trainerID=1504007316, @mail=nil, @spdef=51, @moves=[#<PBMove:0x26187318 @id=452, @pp=10, @ppup=0>, #<PBMove:0x261872e8 @id=25, @pp=15, @ppup=0>, #<PBMove:0x261872b8 @id=393, @pp=5, @ppup=0>, #<PBMove:0x26187288 @id=243, @pp=10, @ppup=0>], @hp=103, @eggsteps=0, @fused=nil, @obtainMap=2, @status=0, @speed=84>, #<PokeBattle_Pokemon:0x26187180 @belch=false, @iv=[31, 25, 17, 8, 10, 0], @name="Pangoro", @attack=100, @otgender=0, @hatchedMap=0, @item=947, @happiness=229, @totalhp=121, @species=675, @language=7, @obtainLevel=11, @itemInitial=0, @ribbons=[], @obtainMode=0, @abilityflag=0, @heartgauge=0, @itemRecycle=0, @personalID=1512341711, @ot="Heizo", @firstmoves=[303, 374, 113, 425], @markings=0, @defense=57, @spatk=57, @statusCount=0, @exp=40405, @form=nil, @obtainText=nil, @ballused=0, @ev=[25, 29, 11, 27, 30, 10], @expshare=true, @hypermode=false, @timeReceived=1773178298, @trainerID=1504007316, @mail=nil, @spdef=53, @moves=[#<PBMove:0x26187120 @id=72, @pp=15, @ppup=0>, #<PBMove:0x261870f0 @id=293, @pp=20, @ppup=0>, #<PBMove:0x261870c0 @id=98, @pp=15, @ppup=0>, #<PBMove:0x26187090 @id=34, @pp=10, @ppup=0>], @hp=121, @eggsteps=0, @fused=nil, @obtainMap=24, @status=0, @speed=53>, #<PokeBattle_Pokemon:0x26186f58 @belch=false, @iv=[31, 31, 31, 31, 31, 31], @attack=122, @name="Trevenant", @otgender=0, @hatchedMap=0, @item=398, @happiness=97, @totalhp=133, @species=709, @language=7, @obtainLevel=17, @itemInitial=751, @ribbons=[], @obtainMode=0, @heartgauge=0, @abilityflag=139, @itemRecycle=0, @firstmoves=[217, 185, 151, 680], @ot="Heizo", @personalID=2134673285, @markings=0, @defense=77, @spatk=53, @statusCount=0, @form=nil, @exp=39304, @obtainText=nil, @natureflag=3, @ballused=0, @expshare=true, @ev=[252, 252, 4, 0, 0, 0], @timeReceived=1773201555, @mail=nil, @trainerID=1504007316, @spdef=74, @moves=[#<PBMove:0x26186ef8 @id=176, @pp=15, @ppup=0>, #<PBMove:0x26186ec8 @id=201, @pp=10, @ppup=0>, #<PBMove:0x26186e98 @id=217, @pp=10, @ppup=0>, #<PBMove:0x26186e68 @id=151, @pp=15, @ppup=0>], @hp=133, @eggsteps=0, @obtainMap=46, @fused=nil, @status=0, @speed=53>, #<PokeBattle_Pokemon:0x26186d30 @belch=false, @iv=[2, 0, 11, 4, 14, 6], @attack=93, @name="Mamoswine", @otgender=0, @hatchedMap=0, @item=736, @happiness=79, @totalhp=119, @species=473, @language=7, @obtainLevel=27, @itemInitial=0, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @markings=0, @firstmoves=[361, 228, 250, 252], @ot="Heizo", @personalID=935648159, @defense=69, @spatk=57, @statusCount=0, @exp=49393, @form=nil, @obtainText=nil, @ballused=0, @expshare=true, @ev=[0, 2, 0, 0, 0, 0], @hypermode=false, @timeReceived=1773684921, @mail=nil, @trainerID=1504007316, @spdef=42, @moves=[#<PBMove:0x26186cd0 @id=361, @pp=10, @ppup=0>, #<PBMove:0x26186ca0 @id=228, @pp=10, @ppup=0>, #<PBMove:0x26186c70 @id=250, @pp=15, @ppup=0>, #<PBMove:0x26186c40 @id=248, @pp=15, @ppup=0>], @hp=119, @eggsteps=0, @obtainMap=76, @fused=nil, @status=0, @speed=60>], @background="box17">
+@viewport = #<Viewport:0x25cdff58>
+@_itm_marquee_x = 0
+@typebitmap = #<AnimatedBitmap:0x25cdfdd8 @bitmap=#<GifBitmap:0x25cdfd60 @totalframes=1, @gifdelays=[1], @gifbitmaps=[#<BitmapWrapper:0x25e1db50>], @disposed=false, @currentIndex=0, @framecount=0>>
+@pokemon = #<PokeBattle_Pokemon:0x26189880 @belch=false, @iv=[30, 0, 12, 5, 15, 27], @name="Talonflame", @attack=66, @otgender=0, @hatchedMap=0, @item=169, @happiness=254, @totalhp=111, @species=663, @language=7, @obtainLevel=5, @itemInitial=0, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @personalID=2978332735, @ot="Heizo", @firstmoves=[303, 368], @markings=0, @defense=63, @spatk=67, @statusCount=0, @exp=34287, @form=nil, @obtainText=nil, @ballused=0, @ev=[49, 97, 69, 86, 90, 36], @expshare=true, @hypermode=false, @timeReceived=1773104149, @trainerID=1504007316, @mail=nil, @spdef=64, @moves=[#<PBMove:0x26189820 @id=145, @pp=20, @ppup=0>, #<PBMove:0x261897f0 @id=148, @pp=15, @ppup=0>, #<PBMove:0x261897c0 @id=172, @pp=5, @ppup=0>, #<PBMove:0x26189790 @id=166, @pp=25, @ppup=0>], @hp=111, @eggsteps=0, @fused=nil, @obtainMap=7, @status=0, @speed=108>
+@_itm_last_pkmn = nil
+@page = 0
+@sprites = {"movesel"=>#<MoveSelectionSprite:0x25cc1e98>, "movepresel"=>#<MoveSelectionSprite:0x25cc2588>, "pokeicon"=>#<PokemonBoxIcon:0x25cd0c10>, "overlay"=>#<BitmapSprite:0x25cdf7d8>, "background"=>#<IconSprite:0x25cdfd48>, "pokemon"=>#<PokemonSprite:0x25cdf5e0>}
+@_itm_pause_frames = 60
+@_itm_marquee = #<Sprite:0x25c9ba98>
+@partyindex = 0
+@_itm_box_vp = #<Viewport:0x25cdff58>
+@_itm_txt_w = 0
+--- INPUT 2969540 (C or B pressed) ---
+PAGE: 2
+@_itm_overlay = #<Sprite:0x25c0eb70>
+@party = #<PokemonBox:0x26157a68 @name="Equipo", @pokemon=[#<PokeBattle_Pokemon:0x26157a08 @ballused=0, @ev=[49, 97, 69, 86, 90, 36], @expshare=true, @hypermode=false, @timeReceived=1773104149, @name="Talonflame", @attack=66, @trainerID=1504007316, @mail=nil, @spdef=64, @moves=[#<PBMove:0x261579a8 @id=145, @pp=20, @ppup=0>, #<PBMove:0x26157978 @id=148, @pp=15, @ppup=0>, #<PBMove:0x26157948 @id=172, @pp=5, @ppup=0>, #<PBMove:0x26157918 @id=166, @pp=25, @ppup=0>], @eggsteps=0, @fused=nil, @obtainMap=7, @item=169, @status=0, @speed=108, @belch=false, @iv=[30, 0, 12, 5, 15, 27], @otgender=0, @hatchedMap=0, @happiness=254, @totalhp=111, @species=663, @language=7, @obtainLevel=5, @itemInitial=0, @exp=34287, @form=nil, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @personalID=2978332735, @ot="Heizo", @firstmoves=[303, 368], @markings=0, @defense=63, @hp=111, @spatk=67, @statusCount=0, @obtainText=nil>, #<PokeBattle_Pokemon:0x261577e0 @ballused=5, @expshare=true, @ev=[0, 0, 0, 0, 0, 0], @timeReceived=1773282548, @attack=30, @name="Feebas", @mail=nil, @trainerID=1504007316, @spdef=27, @moves=[#<PBMove:0x26157780 @id=554, @pp=30, @ppup=0>, #<PBMove:0x26157750 @id=555, @pp=20, @ppup=0>, #<PBMove:0x26157720 @id=548, @pp=20, @ppup=0>, #<PBMove:0x261576f0 @id=330, @pp=15, @ppup=0>], @eggsteps=0, @obtainMap=36, @fused=nil, @item=0, @status=0, @speed=45, @belch=false, @iv=[26, 26, 18, 27, 28, 8], @otgender=0, @hatchedMap=0, @happiness=70, @totalhp=59, @species=349, @language=7, @obtainLevel=22, @itemInitial=0, @form=nil, @exp=16610, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @markings=0, @firstmoves=[554, 555, 548, 330], @ot="Heizo", @personalID=3074443339, @defense=24, @hp=59, @spatk=37, @statusCount=0, @obtainText=nil>, nil, nil, nil, nil, #<PokeBattle_Pokemon:0x26157600 @ballused=0, @ev=[17, 54, 32, 31, 33, 15], @expshare=true, @timeReceived=1773109374, @name="Kadabra", @attack=29, @trainerID=1504007316, @mail=nil, @spdef=42, @moves=[#<PBMove:0x261575a0 @id=464, @pp=15, @ppup=0>, #<PBMove:0x26157570 @id=486, @pp=40, @ppup=0>, #<PBMove:0x26157540 @id=462, @pp=25, @ppup=0>, #<PBMove:0x26157510 @id=479, @pp=20, @ppup=0>], @eggsteps=0, @fused=nil, @obtainMap=19, @item=145, @status=0, @speed=59, @belch=false, @iv=[20, 13, 7, 21, 29, 19], @otgender=0, @hatchedMap=0, @happiness=219, @totalhp=56, @species=64, @language=7, @obtainLevel=10, @itemInitial=145, @form=nil, @exp=8959, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @personalID=494017778, @ot="Heizo", @firstmoves=[464, 486, 462], @markings=0, @defense=22, @hp=56, @spatk=61, @statusCount=0, @obtainText=nil>, #<PokeBattle_Pokemon:0x26157450 @ballused=0, @ev=[0, 0, 0, 0, 0, 0], @expshare=true, @timeReceived=1773262794, @name="Growlithe", @attack=36, @trainerID=1504007316, @mail=nil, @spdef=26, @moves=[#<PBMove:0x261573f0 @id=372, @pp=20, @ppup=0>, #<PBMove:0x261573c0 @id=143, @pp=25, @ppup=0>, #<PBMove:0x26157390 @id=118, @pp=15, @ppup=0>, #<PBMove:0x26157360 @id=142, @pp=15, @ppup=0>], @eggsteps=0, @fused=nil, @obtainMap=58, @item=0, @status=0, @speed=35, @belch=true, @iv=[20, 9, 23, 10, 29, 15], @otgender=0, @hatchedMap=0, @happiness=70, @totalhp=58, @species=58, @language=7, @obtainLevel=21, @itemInitial=395, @exp=11576, @form=nil, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=395, @markings=0, @personalID=1291450564, @ot="Heizo", @firstmoves=[372, 143, 118, 142], @defense=28, @hp=58, @spatk=40, @statusCount=0, @obtainText=nil>, #<PokeBattle_Pokemon:0x26157228 @ballused=1, @ev=[4, 7, 6, 6, 5, 1], @expshare=true, @timeReceived=1773192420, @name="Onix", @attack=26, @trainerID=1504007316, @mail=nil, @spdef=23, @moves=[#<PBMove:0x261571c8 @id=370, @pp=30, @ppup=0>, #<PBMove:0x26157198 @id=322, @pp=20, @ppup=0>, #<PBMove:0x26157168 @id=316, @pp=20, @ppup=0>, #<PBMove:0x26157138 @id=508, @pp=10, @ppup=0>], @eggsteps=0, @fused=nil, @obtainMap=16, @item=0, @status=0, @speed=34, @belch=false, @iv=[2, 11, 17, 22, 12, 23], @otgender=0, @hatchedMap=0, @happiness=90, @totalhp=44, @species=95, @language=7, @obtainLevel=8, @itemInitial=0, @exp=4670, @form=nil, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @personalID=553384436, @ot="Heizo", @firstmoves=[370, 322, 185, 507], @markings=0, @defense=53, @hp=44, @spatk=16, @statusCount=0, @obtainText=nil>, #<PokeBattle_Pokemon:0x26157030 @ballused=25, @expshare=true, @ev=[8, 34, 18, 15, 19, 5], @timeReceived=1773198723, @attack=59, @name="Kricketune", @mail=nil, @trainerID=1504007316, @spdef=44, @moves=[#<PBMove:0x26156fd0 @id=98, @pp=15, @ppup=0>, #<PBMove:0x26156fa0 @id=603, @pp=10, @ppup=0>, #<PBMove:0x26156f70 @id=8, @pp=20, @ppup=0>, #<PBMove:0x26156f40 @id=109, @pp=15, @ppup=0>], @eggsteps=0, @obtainMap=28, @fused=nil, @item=163, @status=0, @speed=36, @belch=false, @iv=[22, 29, 5, 3, 31, 2], @otgender=0, @hatchedMap=0, @happiness=180, @totalhp=73, @species=402, @language=7, @obtainLevel=14, @itemInitial=163, @exp=10203, @form=nil, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @markings=0, @firstmoves=[303, 10, 8, 109], @ot="Heizo", @personalID=294545298, @defense=35, @hp=73, @spatk=34, @statusCount=0, @obtainText=nil>, #<PokeBattle_Pokemon:0x26156e38 @ballused=1, @ev=[10, 21, 17, 15, 17, 14], @expshare=true, @timeReceived=1773110349, @name="Mightyena", @attack=88, @trainerID=1504007316, @mail=nil, @spdef=49, @moves=[#<PBMove:0x26156dd8 @id=303, @pp=35, @ppup=0>, #<PBMove:0x26156da8 @id=397, @pp=20, @ppup=0>, #<PBMove:0x26156d78 @id=435, @pp=15, @ppup=0>, #<PBMove:0x26156d48 @id=24, @pp=15, @ppup=0>], @eggsteps=0, @fused=nil, @obtainMap=9, @item=0, @status=0, @speed=70, @belch=false, @iv=[26, 12, 5, 22, 3, 17], @otgender=0, @hatchedMap=0, @happiness=184, @totalhp=95, @species=262, @language=7, @obtainLevel=6, @itemInitial=0, @form=nil, @exp=32768, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @personalID=811764951, @ot="Heizo", @firstmoves=[303, 373], @markings=0, @defense=46, @hp=95, @spatk=45, @statusCount=0, @obtainText=nil>, #<PokeBattle_Pokemon:0x26156c40 @ballused=0, @ev=[0, 1, 5, 0, 6, 2], @expshare=true, @timeReceived=1773109682, @name="Loudred", @attack=47, @trainerID=1504007316, @mail=nil, @spdef=37, @moves=[#<PBMove:0x26156be0 @id=413, @pp=20, @ppup=0>, #<PBMove:0x26156bb0 @id=181, @pp=15, @ppup=0>, #<PBMove:0x26156b80 @id=275, @pp=10, @ppup=0>, #<PBMove:0x26156b50 @id=28, @pp=25, @ppup=0>], @eggsteps=0, @fused=nil, @obtainMap=54, @item=0, @status=0, @speed=27, @belch=false, @iv=[22, 18, 31, 14, 25, 15], @otgender=0, @hatchedMap=0, @happiness=111, @totalhp=79, @species=294, @language=7, @obtainLevel=8, @itemInitial=0, @form=nil, @exp=10572, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @personalID=2555425922, @ot="Heizo", @firstmoves=[309, 181], @markings=0, @defense=33, @hp=79, @spatk=49, @statusCount=0, @obtainText=nil>, #<PokeBattle_Pokemon:0x26156a18 @ballused=1, @ev=[0, 0, 0, 0, 0, 0], @expshare=true, @timeReceived=1773317802, @name="Haunter", @attack=39, @trainerID=1504007316, @mail=nil, @spdef=36, @moves=[#<PBMove:0x261569b8 @id=183, @pp=15, @ppup=0>, #<PBMove:0x26156988 @id=184, @pp=10, @ppup=0>, #<PBMove:0x26156958 @id=179, @pp=10, @ppup=0>, #<PBMove:0x26156928 @id=178, @pp=20, @ppup=0>], @eggsteps=0, @fused=nil, @obtainMap=43, @item=0, @status=0, @speed=60, @belch=false, @iv=[8, 29, 19, 15, 21, 6], @otgender=0, @hatchedMap=0, @happiness=70, @totalhp=63, @species=93, @language=7, @obtainLevel=27, @itemInitial=745, @form=nil, @exp=15244, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @markings=0, @personalID=116519016, @ot="Heizo", @firstmoves=[183, 184, 179, 178], @defense=30, @hp=63, @spatk=79, @statusCount=0, @obtainText=nil>, #<PokeBattle_Pokemon:0x26156868 @ballused=0, @ev=[13, 22, 25, 24, 18, 17], @expshare=true, @timeReceived=1773105014, @name="Gastly", @attack=23, @trainerID=1504007316, @mail=nil, @spdef=20, @moves=[#<PBMove:0x26156808 @id=479, @pp=20, @ppup=0>, #<PBMove:0x261567d8 @id=182, @pp=30, @ppup=0>, #<PBMove:0x261567a8 @id=437, @pp=30, @ppup=0>, #<PBMove:0x26156778 @id=379, @pp=5, @ppup=0>], @eggsteps=0, @fused=nil, @obtainMap=47, @item=0, @status=0, @speed=39, @belch=false, @iv=[7, 25, 18, 28, 16, 14], @otgender=0, @hatchedMap=0, @happiness=229, @totalhp=40, @species=92, @language=7, @obtainLevel=5, @itemInitial=0, @exp=4370, @form=nil, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @personalID=720068699, @ot="Heizo", @firstmoves=[479, 182, 437], @markings=0, @defense=20, @hp=40, @spatk=44, @statusCount=0, @obtainText=nil>, #<PokeBattle_Pokemon:0x26156670 @ballused=0, @ev=[0, 0, 0, 0, 0, 0], @expshare=true, @timeReceived=1773271571, @name="Magnemite", @attack=17, @trainerID=1504007316, @mail=nil, @spdef=30, @moves=[#<PBMove:0x26156610 @id=79, @pp=30, @ppup=0>, #<PBMove:0x261565e0 @id=338, @pp=20, @ppup=0>, #<PBMove:0x261565b0 @id=83, @pp=20, @ppup=0>, #<PBMove:0x26156580 @id=523, @pp=20, @ppup=0>], @eggsteps=0, @fused=nil, @obtainMap=59, @item=0, @status=0, @speed=26, @belch=false, @iv=[27, 0, 20, 17, 26, 16], @otgender=0, @hatchedMap=0, @happiness=73, @totalhp=45, @species=81, @language=7, @obtainLevel=20, @itemInitial=0, @exp=8000, @form=nil, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @markings=0, @personalID=2415166183, @ot="Heizo", @firstmoves=[79, 338, 83, 523], @defense=37, @hp=45, @spatk=52, @statusCount=0, @obtainText=nil, @natureflag=15>, #<PokeBattle_Pokemon:0x26156430 @ballused=0, @expshare=true, @ev=[0, 0, 0, 0, 0, 0], @timeReceived=1773685139, @attack=39, @name="Charcadet", @mail=nil, @trainerID=1504007316, @spdef=31, @moves=[#<PBMove:0x261563d0 @id=151, @pp=15, @ppup=0>, #<PBMove:0x261563a0 @id=183, @pp=15, @ppup=0>, #<PBMove:0x26156370 @id=145, @pp=20, @ppup=0>, #<PBMove:0x26156340 @id=148, @pp=15, @ppup=0>], @eggsteps=0, @obtainMap=76, @fused=nil, @item=0, @status=0, @speed=31, @belch=false, @iv=[30, 24, 3, 26, 26, 28], @otgender=0, @hatchedMap=0, @happiness=50, @totalhp=68, @species=982, @language=7, @obtainLevel=28, @itemInitial=738, @form=nil, @exp=27440, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @markings=0, @firstmoves=[151, 183, 145, 148], @ot="Heizo", @personalID=1683020784, @defense=30, @hp=68, @spatk=40, @statusCount=0, @obtainText=nil>, nil, nil, nil, nil, #<PokeBattle_Pokemon:0x26156250 @ballused=0, @expshare=true, @ev=[21, 60, 36, 51, 57, 11], @hypermode=false, @timeReceived=1773201254, @attack=89, @name="Nidoking", @mail=nil, @trainerID=1504007316, @spdef=50, @moves=[#<PBMove:0x261561f0 @id=435, @pp=15, @ppup=0>, #<PBMove:0x261561c0 @id=508, @pp=10, @ppup=0>, #<PBMove:0x26156190 @id=433, @pp=10, @ppup=0>, #<PBMove:0x26156160 @id=176, @pp=15, @ppup=0>], @eggsteps=0, @obtainMap=14, @fused=nil, @item=92, @status=0, @speed=75, @belch=false, @iv=[11, 29, 18, 26, 9, 0], @shinyflag=false, @otgender=0, @hatchedMap=0, @happiness=254, @totalhp=104, @species=34, @language=7, @obtainLevel=5, @itemInitial=0, @form=10, @exp=35231, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @markings=0, @firstmoves=[374, 168], @ot="Heizo", @personalID=2478560534, @defense=72, @hp=104, @spatk=70, @statusCount=0, @obtainText=nil>, #<PokeBattle_Pokemon:0x26156010 @ballused=0, @expshare=true, @ev=[25, 31, 11, 26, 29, 6], @hypermode=false, @timeReceived=1773262486, @attack=82, @name="Tangrowth", @mail=nil, @trainerID=1504007316, @spdef=44, @moves=[#<PBMove:0x26155fb0 @id=207, @pp=15, @ppup=0>, #<PBMove:0x26155f80 @id=433, @pp=10, @ppup=0>, #<PBMove:0x26155f50 @id=508, @pp=10, @ppup=0>, #<PBMove:0x26155f20 @id=217, @pp=10, @ppup=0>], @eggsteps=0, @obtainMap=55, @fused=nil, @item=93, @status=0, @speed=37, @belch=false, @iv=[17, 30, 29, 9, 25, 2], @otgender=0, @hatchedMap=0, @happiness=242, @totalhp=119, @species=465, @language=7, @obtainLevel=19, @itemInitial=0, @exp=40983, @form=nil, @ribbons=[], @obtainMode=0, @abilityflag=0, @heartgauge=0, @itemRecycle=0, @markings=0, @firstmoves=[208, 210, 445, 599], @ot="Heizo", @personalID=3073618760, @defense=100, @hp=119, @spatk=90, @statusCount=0, @obtainText=nil, @natureflag=20>, #<PokeBattle_Pokemon:0x26155dd0 @ballused=25, @ev=[0, 2, 0, 0, 0, 0], @expshare=true, @hypermode=false, @timeReceived=1773244959, @name="Breloom", @attack=93, @trainerID=1504007316, @mail=nil, @spdef=46, @moves=[#<PBMove:0x26155d70 @id=207, @pp=15, @ppup=0>, #<PBMove:0x26155d40 @id=96, @pp=15, @ppup=0>, #<PBMove:0x26155d10 @id=290, @pp=15, @ppup=0>, #<PBMove:0x26155ce0 @id=217, @pp=10, @ppup=0>], @eggsteps=0, @fused=nil, @obtainMap=29, @item=0, @status=0, @speed=53, @belch=false, @iv=[31, 1, 22, 3, 9, 19], @otgender=0, @hatchedMap=0, @happiness=78, @totalhp=95, @species=286, @language=7, @obtainLevel=16, @itemInitial=0, @exp=37994, @form=nil, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @markings=0, @personalID=2132774234, @ot="Heizo", @firstmoves=[210, 303, 220, 217], @defense=72, @hp=95, @spatk=48, @statusCount=0, @obtainText=nil>, #<PokeBattle_Pokemon:0x26155ba8 @ballused=0, @expshare=true, @ev=[0, 0, 0, 0, 0, 0], @hypermode=false, @timeReceived=1773684563, @attack=82, @name="Sandslash", @mail=nil, @trainerID=1504007316, @spdef=56, @moves=[#<PBMove:0x26155b48 @id=226, @pp=10, @ppup=0>, #<PBMove:0x26155b18 @id=13, @pp=10, @ppup=0>, #<PBMove:0x26155ae8 @id=12, @pp=20, @ppup=0>, #<PBMove:0x26155ab8 @id=236, @pp=30, @ppup=0>], @eggsteps=0, @obtainMap=55, @fused=nil, @item=0, @status=0, @speed=54, @belch=false, @iv=[26, 7, 16, 23, 21, 26], @otgender=0, @hatchedMap=0, @happiness=78, @totalhp=103, @species=28, @language=7, @obtainLevel=19, @itemInitial=0, @exp=39304, @form=nil, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @markings=0, @firstmoves=[317, 299, 12, 236], @ot="Heizo", @personalID=4082960922, @defense=85, @hp=103, @spatk=42, @statusCount=0, @obtainText=nil>, #<PokeBattle_Pokemon:0x26155980 @ballused=25, @ev=[17, 44, 31, 50, 48, 13], @expshare=true, @hypermode=false, @timeReceived=1773200124, @custom_type2=nil, @name="Luxray", @attack=102, @trainerID=1504007316, @mail=nil, @spdef=63, @moves=[#<PBMove:0x26155920 @id=28, @pp=25, @ppup=0>, #<PBMove:0x261558f0 @id=397, @pp=20, @ppup=0>, #<PBMove:0x261558c0 @id=76, @pp=20, @ppup=0>, #<PBMove:0x26155890 @id=75, @pp=15, @ppup=0>], @eggsteps=0, @fused=nil, @obtainMap=27, @item=171, @status=0, @speed=70, @belch=false, @custom_type1=nil, @iv=[8, 9, 31, 20, 1, 12], @otgender=0, @hatchedMap=0, @happiness=254, @totalhp=102, @species=405, @language=7, @obtainLevel=14, @itemInitial=0, @exp=34211, @form=nil, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @personalID=3861162653, @ot="Heizo", @firstmoves=[303, 374, 81, 74], @markings=0, @defense=71, @hp=102, @spatk=60, @statusCount=0, @obtainText=nil>, #<PokeBattle_Pokemon:0x26155728 @ballused=26, @expshare=true, @ev=[16, 21, 12, 18, 19, 8], @hypermode=false, @timeReceived=1773199651, @attack=85, @name="Lucario", @mail=nil, @trainerID=1504007316, @spdef=53, @moves=[#<PBMove:0x261556c8 @id=102, @pp=10, @ppup=0>, #<PBMove:0x26155698 @id=525, @pp=35, @ppup=0>, #<PBMove:0x26155668 @id=176, @pp=15, @ppup=0>, #<PBMove:0x26155638 @id=233, @pp=10, @ppup=0>], @eggsteps=0, @obtainMap=27, @fused=nil, @item=0, @status=0, @speed=75, @belch=false, @iv=[11, 18, 13, 10, 5, 6], @otgender=0, @hatchedMap=0, @happiness=254, @totalhp=94, @species=448, @language=7, @obtainLevel=14, @itemInitial=0, @form=0, @exp=29949, @ribbons=[], @obtainMode=0, @abilityflag=2, @heartgauge=0, @itemRecycle=0, @firstmoves=[361, 486, 107, 314], @ot="Heizo", @personalID=1729737698, @markings=0, @defense=56, @hp=94, @spatk=74, @statusCount=0, @obtainText=nil, @natureflag=13>, #<PokeBattle_Pokemon:0x26155500 @ballused=0, @ev=[48, 99, 67, 87, 89, 36], @expshare=true, @hypermode=false, @timeReceived=1773102836, @name="Frogadier", @attack=64, @trainerID=1504007316, @mail=nil, @spdef=51, @moves=[#<PBMove:0x261554a0 @id=452, @pp=10, @ppup=0>, #<PBMove:0x26155470 @id=25, @pp=15, @ppup=0>, #<PBMove:0x26155440 @id=393, @pp=5, @ppup=0>, #<PBMove:0x26155410 @id=243, @pp=10, @ppup=0>], @eggsteps=0, @fused=nil, @obtainMap=2, @item=137, @status=0, @speed=84, @belch=false, @iv=[6, 14, 29, 18, 8, 17], @otgender=0, @hatchedMap=0, @happiness=254, @totalhp=103, @species=657, @language=7, @obtainLevel=5, @itemInitial=0, @exp=34325, @form=nil, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @personalID=513223858, @ot="Heizo", @firstmoves=[309, 368, 554, 464], @markings=0, @defense=60, @hp=103, @spatk=72, @statusCount=0, @obtainText=nil>, #<PokeBattle_Pokemon:0x26155308 @ballused=0, @ev=[25, 29, 11, 27, 30, 10], @expshare=true, @hypermode=false, @timeReceived=1773178298, @name="Pangoro", @attack=100, @trainerID=1504007316, @mail=nil, @spdef=53, @moves=[#<PBMove:0x261552a8 @id=72, @pp=15, @ppup=0>, #<PBMove:0x26155278 @id=293, @pp=20, @ppup=0>, #<PBMove:0x26155248 @id=98, @pp=15, @ppup=0>, #<PBMove:0x26155218 @id=34, @pp=10, @ppup=0>], @eggsteps=0, @fused=nil, @obtainMap=24, @item=947, @status=0, @speed=53, @belch=false, @iv=[31, 25, 17, 8, 10, 0], @otgender=0, @hatchedMap=0, @happiness=229, @totalhp=121, @species=675, @language=7, @obtainLevel=11, @itemInitial=0, @exp=40405, @form=nil, @ribbons=[], @obtainMode=0, @abilityflag=0, @heartgauge=0, @itemRecycle=0, @personalID=1512341711, @ot="Heizo", @firstmoves=[303, 374, 113, 425], @markings=0, @defense=57, @hp=121, @spatk=57, @statusCount=0, @obtainText=nil>, #<PokeBattle_Pokemon:0x261550e0 @ballused=0, @expshare=true, @ev=[252, 252, 4, 0, 0, 0], @timeReceived=1773201555, @attack=122, @name="Trevenant", @mail=nil, @trainerID=1504007316, @spdef=74, @moves=[#<PBMove:0x26155080 @id=176, @pp=15, @ppup=0>, #<PBMove:0x26155050 @id=201, @pp=10, @ppup=0>, #<PBMove:0x26155020 @id=217, @pp=10, @ppup=0>, #<PBMove:0x26154ff0 @id=151, @pp=15, @ppup=0>], @eggsteps=0, @obtainMap=46, @fused=nil, @item=398, @status=0, @speed=53, @belch=false, @iv=[31, 31, 31, 31, 31, 31], @otgender=0, @hatchedMap=0, @happiness=97, @totalhp=133, @species=709, @language=7, @obtainLevel=17, @itemInitial=751, @form=nil, @exp=39304, @ribbons=[], @obtainMode=0, @heartgauge=0, @abilityflag=139, @itemRecycle=0, @firstmoves=[217, 185, 151, 680], @ot="Heizo", @personalID=2134673285, @markings=0, @defense=77, @hp=133, @spatk=53, @statusCount=0, @obtainText=nil, @natureflag=3>, #<PokeBattle_Pokemon:0x26154eb8 @ballused=0, @expshare=true, @ev=[0, 2, 0, 0, 0, 0], @hypermode=false, @timeReceived=1773684921, @attack=93, @name="Mamoswine", @mail=nil, @trainerID=1504007316, @spdef=42, @moves=[#<PBMove:0x26154e58 @id=361, @pp=10, @ppup=0>, #<PBMove:0x26154e28 @id=228, @pp=10, @ppup=0>, #<PBMove:0x26154df8 @id=250, @pp=15, @ppup=0>, #<PBMove:0x26154dc8 @id=248, @pp=15, @ppup=0>], @eggsteps=0, @obtainMap=76, @fused=nil, @item=736, @status=0, @speed=60, @belch=false, @iv=[2, 0, 11, 4, 14, 6], @otgender=0, @hatchedMap=0, @happiness=79, @totalhp=119, @species=473, @language=7, @obtainLevel=27, @itemInitial=0, @exp=49393, @form=nil, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @markings=0, @firstmoves=[361, 228, 250, 252], @ot="Heizo", @personalID=935648159, @defense=69, @hp=119, @spatk=57, @statusCount=0, @obtainText=nil>], @background="box17">
+@viewport = #<Viewport:0x25c52dd8>
+@_itm_marquee_x = 70
+@pokemon = #<PokeBattle_Pokemon:0x26157a08 @ballused=0, @ev=[49, 97, 69, 86, 90, 36], @expshare=true, @hypermode=false, @timeReceived=1773104149, @name="Talonflame", @attack=66, @trainerID=1504007316, @mail=nil, @spdef=64, @moves=[#<PBMove:0x261579a8 @id=145, @pp=20, @ppup=0>, #<PBMove:0x26157978 @id=148, @pp=15, @ppup=0>, #<PBMove:0x26157948 @id=172, @pp=5, @ppup=0>, #<PBMove:0x26157918 @id=166, @pp=25, @ppup=0>], @eggsteps=0, @fused=nil, @obtainMap=7, @item=169, @status=0, @speed=108, @belch=false, @iv=[30, 0, 12, 5, 15, 27], @otgender=0, @hatchedMap=0, @happiness=254, @totalhp=111, @species=663, @language=7, @obtainLevel=5, @itemInitial=0, @exp=34287, @form=nil, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @personalID=2978332735, @ot="Heizo", @firstmoves=[303, 368], @markings=0, @defense=63, @hp=111, @spatk=67, @statusCount=0, @obtainText=nil>
+@_itm_last_pkmn = #<PokeBattle_Pokemon:0x26157a08 @ballused=0, @ev=[49, 97, 69, 86, 90, 36], @expshare=true, @hypermode=false, @timeReceived=1773104149, @name="Talonflame", @attack=66, @trainerID=1504007316, @mail=nil, @spdef=64, @moves=[#<PBMove:0x261579a8 @id=145, @pp=20, @ppup=0>, #<PBMove:0x26157978 @id=148, @pp=15, @ppup=0>, #<PBMove:0x26157948 @id=172, @pp=5, @ppup=0>, #<PBMove:0x26157918 @id=166, @pp=25, @ppup=0>], @eggsteps=0, @fused=nil, @obtainMap=7, @item=169, @status=0, @speed=108, @belch=false, @iv=[30, 0, 12, 5, 15, 27], @otgender=0, @hatchedMap=0, @happiness=254, @totalhp=111, @species=663, @language=7, @obtainLevel=5, @itemInitial=0, @exp=34287, @form=nil, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @personalID=2978332735, @ot="Heizo", @firstmoves=[303, 368], @markings=0, @defense=63, @hp=111, @spatk=67, @statusCount=0, @obtainText=nil>
+@typebitmap = #<AnimatedBitmap:0x25c52c58 @bitmap=#<GifBitmap:0x25c52be0 @currentIndex=0, @framecount=0, @totalframes=1, @gifdelays=[1], @gifbitmaps=[#<BitmapWrapper:0x25d8e990>], @disposed=false>>
+@page = 2
+@sprites = {"movesel"=>#<MoveSelectionSprite:0x25c34d18>, "overlay"=>#<BitmapSprite:0x25c52658>, "background"=>#<IconSprite:0x25c52bc8>, "pokemon"=>#<PokemonSprite:0x25c52460>, "pokeicon"=>#<PokemonBoxIcon:0x25c43a90>, "movepresel"=>#<MoveSelectionSprite:0x25c35408>}
+@_itm_pause_frames = 0
+@_itm_marquee = #<Sprite:0x25c0e918>
+@partyindex = 0
+@_itm_box_vp = #<Viewport:0x25c52dd8>
+@_itm_txt_w = 365
+--- INPUT 2971106 (C or B pressed) ---
+PAGE: 2
+@_itm_overlay = #<Sprite:0x25c0eb70>
+@party = #<PokemonBox:0x26157a68 @name="Equipo", @pokemon=[#<PokeBattle_Pokemon:0x26157a08 @ballused=0, @ev=[49, 97, 69, 86, 90, 36], @expshare=true, @hypermode=false, @timeReceived=1773104149, @name="Talonflame", @attack=66, @trainerID=1504007316, @mail=nil, @spdef=64, @moves=[#<PBMove:0x261579a8 @id=145, @pp=20, @ppup=0>, #<PBMove:0x26157978 @id=148, @pp=15, @ppup=0>, #<PBMove:0x26157948 @id=172, @pp=5, @ppup=0>, #<PBMove:0x26157918 @id=166, @pp=25, @ppup=0>], @eggsteps=0, @fused=nil, @obtainMap=7, @item=169, @status=0, @speed=108, @belch=false, @iv=[30, 0, 12, 5, 15, 27], @otgender=0, @hatchedMap=0, @happiness=254, @totalhp=111, @species=663, @language=7, @obtainLevel=5, @itemInitial=0, @exp=34287, @form=nil, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @personalID=2978332735, @ot="Heizo", @firstmoves=[303, 368], @markings=0, @defense=63, @hp=111, @spatk=67, @statusCount=0, @obtainText=nil>, #<PokeBattle_Pokemon:0x261577e0 @ballused=5, @expshare=true, @ev=[0, 0, 0, 0, 0, 0], @timeReceived=1773282548, @attack=30, @name="Feebas", @mail=nil, @trainerID=1504007316, @spdef=27, @moves=[#<PBMove:0x26157780 @id=554, @pp=30, @ppup=0>, #<PBMove:0x26157750 @id=555, @pp=20, @ppup=0>, #<PBMove:0x26157720 @id=548, @pp=20, @ppup=0>, #<PBMove:0x261576f0 @id=330, @pp=15, @ppup=0>], @eggsteps=0, @obtainMap=36, @fused=nil, @item=0, @status=0, @speed=45, @belch=false, @iv=[26, 26, 18, 27, 28, 8], @otgender=0, @hatchedMap=0, @happiness=70, @totalhp=59, @species=349, @language=7, @obtainLevel=22, @itemInitial=0, @form=nil, @exp=16610, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @markings=0, @firstmoves=[554, 555, 548, 330], @ot="Heizo", @personalID=3074443339, @defense=24, @hp=59, @spatk=37, @statusCount=0, @obtainText=nil>, nil, nil, nil, nil, #<PokeBattle_Pokemon:0x26157600 @ballused=0, @ev=[17, 54, 32, 31, 33, 15], @expshare=true, @timeReceived=1773109374, @name="Kadabra", @attack=29, @trainerID=1504007316, @mail=nil, @spdef=42, @moves=[#<PBMove:0x261575a0 @id=464, @pp=15, @ppup=0>, #<PBMove:0x26157570 @id=486, @pp=40, @ppup=0>, #<PBMove:0x26157540 @id=462, @pp=25, @ppup=0>, #<PBMove:0x26157510 @id=479, @pp=20, @ppup=0>], @eggsteps=0, @fused=nil, @obtainMap=19, @item=145, @status=0, @speed=59, @belch=false, @iv=[20, 13, 7, 21, 29, 19], @otgender=0, @hatchedMap=0, @happiness=219, @totalhp=56, @species=64, @language=7, @obtainLevel=10, @itemInitial=145, @form=nil, @exp=8959, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @personalID=494017778, @ot="Heizo", @firstmoves=[464, 486, 462], @markings=0, @defense=22, @hp=56, @spatk=61, @statusCount=0, @obtainText=nil>, #<PokeBattle_Pokemon:0x26157450 @ballused=0, @ev=[0, 0, 0, 0, 0, 0], @expshare=true, @timeReceived=1773262794, @name="Growlithe", @attack=36, @trainerID=1504007316, @mail=nil, @spdef=26, @moves=[#<PBMove:0x261573f0 @id=372, @pp=20, @ppup=0>, #<PBMove:0x261573c0 @id=143, @pp=25, @ppup=0>, #<PBMove:0x26157390 @id=118, @pp=15, @ppup=0>, #<PBMove:0x26157360 @id=142, @pp=15, @ppup=0>], @eggsteps=0, @fused=nil, @obtainMap=58, @item=0, @status=0, @speed=35, @belch=true, @iv=[20, 9, 23, 10, 29, 15], @otgender=0, @hatchedMap=0, @happiness=70, @totalhp=58, @species=58, @language=7, @obtainLevel=21, @itemInitial=395, @exp=11576, @form=nil, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=395, @markings=0, @personalID=1291450564, @ot="Heizo", @firstmoves=[372, 143, 118, 142], @defense=28, @hp=58, @spatk=40, @statusCount=0, @obtainText=nil>, #<PokeBattle_Pokemon:0x26157228 @ballused=1, @ev=[4, 7, 6, 6, 5, 1], @expshare=true, @timeReceived=1773192420, @name="Onix", @attack=26, @trainerID=1504007316, @mail=nil, @spdef=23, @moves=[#<PBMove:0x261571c8 @id=370, @pp=30, @ppup=0>, #<PBMove:0x26157198 @id=322, @pp=20, @ppup=0>, #<PBMove:0x26157168 @id=316, @pp=20, @ppup=0>, #<PBMove:0x26157138 @id=508, @pp=10, @ppup=0>], @eggsteps=0, @fused=nil, @obtainMap=16, @item=0, @status=0, @speed=34, @belch=false, @iv=[2, 11, 17, 22, 12, 23], @otgender=0, @hatchedMap=0, @happiness=90, @totalhp=44, @species=95, @language=7, @obtainLevel=8, @itemInitial=0, @exp=4670, @form=nil, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @personalID=553384436, @ot="Heizo", @firstmoves=[370, 322, 185, 507], @markings=0, @defense=53, @hp=44, @spatk=16, @statusCount=0, @obtainText=nil>, #<PokeBattle_Pokemon:0x26157030 @ballused=25, @expshare=true, @ev=[8, 34, 18, 15, 19, 5], @timeReceived=1773198723, @attack=59, @name="Kricketune", @mail=nil, @trainerID=1504007316, @spdef=44, @moves=[#<PBMove:0x26156fd0 @id=98, @pp=15, @ppup=0>, #<PBMove:0x26156fa0 @id=603, @pp=10, @ppup=0>, #<PBMove:0x26156f70 @id=8, @pp=20, @ppup=0>, #<PBMove:0x26156f40 @id=109, @pp=15, @ppup=0>], @eggsteps=0, @obtainMap=28, @fused=nil, @item=163, @status=0, @speed=36, @belch=false, @iv=[22, 29, 5, 3, 31, 2], @otgender=0, @hatchedMap=0, @happiness=180, @totalhp=73, @species=402, @language=7, @obtainLevel=14, @itemInitial=163, @exp=10203, @form=nil, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @markings=0, @firstmoves=[303, 10, 8, 109], @ot="Heizo", @personalID=294545298, @defense=35, @hp=73, @spatk=34, @statusCount=0, @obtainText=nil>, #<PokeBattle_Pokemon:0x26156e38 @ballused=1, @ev=[10, 21, 17, 15, 17, 14], @expshare=true, @timeReceived=1773110349, @name="Mightyena", @attack=88, @trainerID=1504007316, @mail=nil, @spdef=49, @moves=[#<PBMove:0x26156dd8 @id=303, @pp=35, @ppup=0>, #<PBMove:0x26156da8 @id=397, @pp=20, @ppup=0>, #<PBMove:0x26156d78 @id=435, @pp=15, @ppup=0>, #<PBMove:0x26156d48 @id=24, @pp=15, @ppup=0>], @eggsteps=0, @fused=nil, @obtainMap=9, @item=0, @status=0, @speed=70, @belch=false, @iv=[26, 12, 5, 22, 3, 17], @otgender=0, @hatchedMap=0, @happiness=184, @totalhp=95, @species=262, @language=7, @obtainLevel=6, @itemInitial=0, @form=nil, @exp=32768, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @personalID=811764951, @ot="Heizo", @firstmoves=[303, 373], @markings=0, @defense=46, @hp=95, @spatk=45, @statusCount=0, @obtainText=nil>, #<PokeBattle_Pokemon:0x26156c40 @ballused=0, @ev=[0, 1, 5, 0, 6, 2], @expshare=true, @timeReceived=1773109682, @name="Loudred", @attack=47, @trainerID=1504007316, @mail=nil, @spdef=37, @moves=[#<PBMove:0x26156be0 @id=413, @pp=20, @ppup=0>, #<PBMove:0x26156bb0 @id=181, @pp=15, @ppup=0>, #<PBMove:0x26156b80 @id=275, @pp=10, @ppup=0>, #<PBMove:0x26156b50 @id=28, @pp=25, @ppup=0>], @eggsteps=0, @fused=nil, @obtainMap=54, @item=0, @status=0, @speed=27, @belch=false, @iv=[22, 18, 31, 14, 25, 15], @otgender=0, @hatchedMap=0, @happiness=111, @totalhp=79, @species=294, @language=7, @obtainLevel=8, @itemInitial=0, @form=nil, @exp=10572, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @personalID=2555425922, @ot="Heizo", @firstmoves=[309, 181], @markings=0, @defense=33, @hp=79, @spatk=49, @statusCount=0, @obtainText=nil>, #<PokeBattle_Pokemon:0x26156a18 @ballused=1, @ev=[0, 0, 0, 0, 0, 0], @expshare=true, @timeReceived=1773317802, @name="Haunter", @attack=39, @trainerID=1504007316, @mail=nil, @spdef=36, @moves=[#<PBMove:0x261569b8 @id=183, @pp=15, @ppup=0>, #<PBMove:0x26156988 @id=184, @pp=10, @ppup=0>, #<PBMove:0x26156958 @id=179, @pp=10, @ppup=0>, #<PBMove:0x26156928 @id=178, @pp=20, @ppup=0>], @eggsteps=0, @fused=nil, @obtainMap=43, @item=0, @status=0, @speed=60, @belch=false, @iv=[8, 29, 19, 15, 21, 6], @otgender=0, @hatchedMap=0, @happiness=70, @totalhp=63, @species=93, @language=7, @obtainLevel=27, @itemInitial=745, @form=nil, @exp=15244, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @markings=0, @personalID=116519016, @ot="Heizo", @firstmoves=[183, 184, 179, 178], @defense=30, @hp=63, @spatk=79, @statusCount=0, @obtainText=nil>, #<PokeBattle_Pokemon:0x26156868 @ballused=0, @ev=[13, 22, 25, 24, 18, 17], @expshare=true, @timeReceived=1773105014, @name="Gastly", @attack=23, @trainerID=1504007316, @mail=nil, @spdef=20, @moves=[#<PBMove:0x26156808 @id=479, @pp=20, @ppup=0>, #<PBMove:0x261567d8 @id=182, @pp=30, @ppup=0>, #<PBMove:0x261567a8 @id=437, @pp=30, @ppup=0>, #<PBMove:0x26156778 @id=379, @pp=5, @ppup=0>], @eggsteps=0, @fused=nil, @obtainMap=47, @item=0, @status=0, @speed=39, @belch=false, @iv=[7, 25, 18, 28, 16, 14], @otgender=0, @hatchedMap=0, @happiness=229, @totalhp=40, @species=92, @language=7, @obtainLevel=5, @itemInitial=0, @exp=4370, @form=nil, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @personalID=720068699, @ot="Heizo", @firstmoves=[479, 182, 437], @markings=0, @defense=20, @hp=40, @spatk=44, @statusCount=0, @obtainText=nil>, #<PokeBattle_Pokemon:0x26156670 @ballused=0, @ev=[0, 0, 0, 0, 0, 0], @expshare=true, @timeReceived=1773271571, @name="Magnemite", @attack=17, @trainerID=1504007316, @mail=nil, @spdef=30, @moves=[#<PBMove:0x26156610 @id=79, @pp=30, @ppup=0>, #<PBMove:0x261565e0 @id=338, @pp=20, @ppup=0>, #<PBMove:0x261565b0 @id=83, @pp=20, @ppup=0>, #<PBMove:0x26156580 @id=523, @pp=20, @ppup=0>], @eggsteps=0, @fused=nil, @obtainMap=59, @item=0, @status=0, @speed=26, @belch=false, @iv=[27, 0, 20, 17, 26, 16], @otgender=0, @hatchedMap=0, @happiness=73, @totalhp=45, @species=81, @language=7, @obtainLevel=20, @itemInitial=0, @exp=8000, @form=nil, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @markings=0, @personalID=2415166183, @ot="Heizo", @firstmoves=[79, 338, 83, 523], @defense=37, @hp=45, @spatk=52, @statusCount=0, @obtainText=nil, @natureflag=15>, #<PokeBattle_Pokemon:0x26156430 @ballused=0, @expshare=true, @ev=[0, 0, 0, 0, 0, 0], @timeReceived=1773685139, @attack=39, @name="Charcadet", @mail=nil, @trainerID=1504007316, @spdef=31, @moves=[#<PBMove:0x261563d0 @id=151, @pp=15, @ppup=0>, #<PBMove:0x261563a0 @id=183, @pp=15, @ppup=0>, #<PBMove:0x26156370 @id=145, @pp=20, @ppup=0>, #<PBMove:0x26156340 @id=148, @pp=15, @ppup=0>], @eggsteps=0, @obtainMap=76, @fused=nil, @item=0, @status=0, @speed=31, @belch=false, @iv=[30, 24, 3, 26, 26, 28], @otgender=0, @hatchedMap=0, @happiness=50, @totalhp=68, @species=982, @language=7, @obtainLevel=28, @itemInitial=738, @form=nil, @exp=27440, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @markings=0, @firstmoves=[151, 183, 145, 148], @ot="Heizo", @personalID=1683020784, @defense=30, @hp=68, @spatk=40, @statusCount=0, @obtainText=nil>, nil, nil, nil, nil, #<PokeBattle_Pokemon:0x26156250 @ballused=0, @expshare=true, @ev=[21, 60, 36, 51, 57, 11], @hypermode=false, @timeReceived=1773201254, @attack=89, @name="Nidoking", @mail=nil, @trainerID=1504007316, @spdef=50, @moves=[#<PBMove:0x261561f0 @id=435, @pp=15, @ppup=0>, #<PBMove:0x261561c0 @id=508, @pp=10, @ppup=0>, #<PBMove:0x26156190 @id=433, @pp=10, @ppup=0>, #<PBMove:0x26156160 @id=176, @pp=15, @ppup=0>], @eggsteps=0, @obtainMap=14, @fused=nil, @item=92, @status=0, @speed=75, @belch=false, @iv=[11, 29, 18, 26, 9, 0], @shinyflag=false, @otgender=0, @hatchedMap=0, @happiness=254, @totalhp=104, @species=34, @language=7, @obtainLevel=5, @itemInitial=0, @form=10, @exp=35231, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @markings=0, @firstmoves=[374, 168], @ot="Heizo", @personalID=2478560534, @defense=72, @hp=104, @spatk=70, @statusCount=0, @obtainText=nil>, #<PokeBattle_Pokemon:0x26156010 @ballused=0, @expshare=true, @ev=[25, 31, 11, 26, 29, 6], @hypermode=false, @timeReceived=1773262486, @attack=82, @name="Tangrowth", @mail=nil, @trainerID=1504007316, @spdef=44, @moves=[#<PBMove:0x26155fb0 @id=207, @pp=15, @ppup=0>, #<PBMove:0x26155f80 @id=433, @pp=10, @ppup=0>, #<PBMove:0x26155f50 @id=508, @pp=10, @ppup=0>, #<PBMove:0x26155f20 @id=217, @pp=10, @ppup=0>], @eggsteps=0, @obtainMap=55, @fused=nil, @item=93, @status=0, @speed=37, @belch=false, @iv=[17, 30, 29, 9, 25, 2], @otgender=0, @hatchedMap=0, @happiness=242, @totalhp=119, @species=465, @language=7, @obtainLevel=19, @itemInitial=0, @exp=40983, @form=nil, @ribbons=[], @obtainMode=0, @abilityflag=0, @heartgauge=0, @itemRecycle=0, @markings=0, @firstmoves=[208, 210, 445, 599], @ot="Heizo", @personalID=3073618760, @defense=100, @hp=119, @spatk=90, @statusCount=0, @obtainText=nil, @natureflag=20>, #<PokeBattle_Pokemon:0x26155dd0 @ballused=25, @ev=[0, 2, 0, 0, 0, 0], @expshare=true, @hypermode=false, @timeReceived=1773244959, @name="Breloom", @attack=93, @trainerID=1504007316, @mail=nil, @spdef=46, @moves=[#<PBMove:0x26155d70 @id=207, @pp=15, @ppup=0>, #<PBMove:0x26155d40 @id=96, @pp=15, @ppup=0>, #<PBMove:0x26155d10 @id=290, @pp=15, @ppup=0>, #<PBMove:0x26155ce0 @id=217, @pp=10, @ppup=0>], @eggsteps=0, @fused=nil, @obtainMap=29, @item=0, @status=0, @speed=53, @belch=false, @iv=[31, 1, 22, 3, 9, 19], @otgender=0, @hatchedMap=0, @happiness=78, @totalhp=95, @species=286, @language=7, @obtainLevel=16, @itemInitial=0, @exp=37994, @form=nil, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @markings=0, @personalID=2132774234, @ot="Heizo", @firstmoves=[210, 303, 220, 217], @defense=72, @hp=95, @spatk=48, @statusCount=0, @obtainText=nil>, #<PokeBattle_Pokemon:0x26155ba8 @ballused=0, @expshare=true, @ev=[0, 0, 0, 0, 0, 0], @hypermode=false, @timeReceived=1773684563, @attack=82, @name="Sandslash", @mail=nil, @trainerID=1504007316, @spdef=56, @moves=[#<PBMove:0x26155b48 @id=226, @pp=10, @ppup=0>, #<PBMove:0x26155b18 @id=13, @pp=10, @ppup=0>, #<PBMove:0x26155ae8 @id=12, @pp=20, @ppup=0>, #<PBMove:0x26155ab8 @id=236, @pp=30, @ppup=0>], @eggsteps=0, @obtainMap=55, @fused=nil, @item=0, @status=0, @speed=54, @belch=false, @iv=[26, 7, 16, 23, 21, 26], @otgender=0, @hatchedMap=0, @happiness=78, @totalhp=103, @species=28, @language=7, @obtainLevel=19, @itemInitial=0, @exp=39304, @form=nil, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @markings=0, @firstmoves=[317, 299, 12, 236], @ot="Heizo", @personalID=4082960922, @defense=85, @hp=103, @spatk=42, @statusCount=0, @obtainText=nil>, #<PokeBattle_Pokemon:0x26155980 @ballused=25, @ev=[17, 44, 31, 50, 48, 13], @expshare=true, @hypermode=false, @timeReceived=1773200124, @custom_type2=nil, @name="Luxray", @attack=102, @trainerID=1504007316, @mail=nil, @spdef=63, @moves=[#<PBMove:0x26155920 @id=28, @pp=25, @ppup=0>, #<PBMove:0x261558f0 @id=397, @pp=20, @ppup=0>, #<PBMove:0x261558c0 @id=76, @pp=20, @ppup=0>, #<PBMove:0x26155890 @id=75, @pp=15, @ppup=0>], @eggsteps=0, @fused=nil, @obtainMap=27, @item=171, @status=0, @speed=70, @belch=false, @custom_type1=nil, @iv=[8, 9, 31, 20, 1, 12], @otgender=0, @hatchedMap=0, @happiness=254, @totalhp=102, @species=405, @language=7, @obtainLevel=14, @itemInitial=0, @exp=34211, @form=nil, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @personalID=3861162653, @ot="Heizo", @firstmoves=[303, 374, 81, 74], @markings=0, @defense=71, @hp=102, @spatk=60, @statusCount=0, @obtainText=nil>, #<PokeBattle_Pokemon:0x26155728 @ballused=26, @expshare=true, @ev=[16, 21, 12, 18, 19, 8], @hypermode=false, @timeReceived=1773199651, @attack=85, @name="Lucario", @mail=nil, @trainerID=1504007316, @spdef=53, @moves=[#<PBMove:0x261556c8 @id=102, @pp=10, @ppup=0>, #<PBMove:0x26155698 @id=525, @pp=35, @ppup=0>, #<PBMove:0x26155668 @id=176, @pp=15, @ppup=0>, #<PBMove:0x26155638 @id=233, @pp=10, @ppup=0>], @eggsteps=0, @obtainMap=27, @fused=nil, @item=0, @status=0, @speed=75, @belch=false, @iv=[11, 18, 13, 10, 5, 6], @otgender=0, @hatchedMap=0, @happiness=254, @totalhp=94, @species=448, @language=7, @obtainLevel=14, @itemInitial=0, @form=0, @exp=29949, @ribbons=[], @obtainMode=0, @abilityflag=2, @heartgauge=0, @itemRecycle=0, @firstmoves=[361, 486, 107, 314], @ot="Heizo", @personalID=1729737698, @markings=0, @defense=56, @hp=94, @spatk=74, @statusCount=0, @obtainText=nil, @natureflag=13>, #<PokeBattle_Pokemon:0x26155500 @ballused=0, @ev=[48, 99, 67, 87, 89, 36], @expshare=true, @hypermode=false, @timeReceived=1773102836, @name="Frogadier", @attack=64, @trainerID=1504007316, @mail=nil, @spdef=51, @moves=[#<PBMove:0x261554a0 @id=452, @pp=10, @ppup=0>, #<PBMove:0x26155470 @id=25, @pp=15, @ppup=0>, #<PBMove:0x26155440 @id=393, @pp=5, @ppup=0>, #<PBMove:0x26155410 @id=243, @pp=10, @ppup=0>], @eggsteps=0, @fused=nil, @obtainMap=2, @item=137, @status=0, @speed=84, @belch=false, @iv=[6, 14, 29, 18, 8, 17], @otgender=0, @hatchedMap=0, @happiness=254, @totalhp=103, @species=657, @language=7, @obtainLevel=5, @itemInitial=0, @exp=34325, @form=nil, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @personalID=513223858, @ot="Heizo", @firstmoves=[309, 368, 554, 464], @markings=0, @defense=60, @hp=103, @spatk=72, @statusCount=0, @obtainText=nil>, #<PokeBattle_Pokemon:0x26155308 @ballused=0, @ev=[25, 29, 11, 27, 30, 10], @expshare=true, @hypermode=false, @timeReceived=1773178298, @name="Pangoro", @attack=100, @trainerID=1504007316, @mail=nil, @spdef=53, @moves=[#<PBMove:0x261552a8 @id=72, @pp=15, @ppup=0>, #<PBMove:0x26155278 @id=293, @pp=20, @ppup=0>, #<PBMove:0x26155248 @id=98, @pp=15, @ppup=0>, #<PBMove:0x26155218 @id=34, @pp=10, @ppup=0>], @eggsteps=0, @fused=nil, @obtainMap=24, @item=947, @status=0, @speed=53, @belch=false, @iv=[31, 25, 17, 8, 10, 0], @otgender=0, @hatchedMap=0, @happiness=229, @totalhp=121, @species=675, @language=7, @obtainLevel=11, @itemInitial=0, @exp=40405, @form=nil, @ribbons=[], @obtainMode=0, @abilityflag=0, @heartgauge=0, @itemRecycle=0, @personalID=1512341711, @ot="Heizo", @firstmoves=[303, 374, 113, 425], @markings=0, @defense=57, @hp=121, @spatk=57, @statusCount=0, @obtainText=nil>, #<PokeBattle_Pokemon:0x261550e0 @ballused=0, @expshare=true, @ev=[252, 252, 4, 0, 0, 0], @timeReceived=1773201555, @attack=122, @name="Trevenant", @mail=nil, @trainerID=1504007316, @spdef=74, @moves=[#<PBMove:0x26155080 @id=176, @pp=15, @ppup=0>, #<PBMove:0x26155050 @id=201, @pp=10, @ppup=0>, #<PBMove:0x26155020 @id=217, @pp=10, @ppup=0>, #<PBMove:0x26154ff0 @id=151, @pp=15, @ppup=0>], @eggsteps=0, @obtainMap=46, @fused=nil, @item=398, @status=0, @speed=53, @belch=false, @iv=[31, 31, 31, 31, 31, 31], @otgender=0, @hatchedMap=0, @happiness=97, @totalhp=133, @species=709, @language=7, @obtainLevel=17, @itemInitial=751, @form=nil, @exp=39304, @ribbons=[], @obtainMode=0, @heartgauge=0, @abilityflag=139, @itemRecycle=0, @firstmoves=[217, 185, 151, 680], @ot="Heizo", @personalID=2134673285, @markings=0, @defense=77, @hp=133, @spatk=53, @statusCount=0, @obtainText=nil, @natureflag=3>, #<PokeBattle_Pokemon:0x26154eb8 @ballused=0, @expshare=true, @ev=[0, 2, 0, 0, 0, 0], @hypermode=false, @timeReceived=1773684921, @attack=93, @name="Mamoswine", @mail=nil, @trainerID=1504007316, @spdef=42, @moves=[#<PBMove:0x26154e58 @id=361, @pp=10, @ppup=0>, #<PBMove:0x26154e28 @id=228, @pp=10, @ppup=0>, #<PBMove:0x26154df8 @id=250, @pp=15, @ppup=0>, #<PBMove:0x26154dc8 @id=248, @pp=15, @ppup=0>], @eggsteps=0, @obtainMap=76, @fused=nil, @item=736, @status=0, @speed=60, @belch=false, @iv=[2, 0, 11, 4, 14, 6], @otgender=0, @hatchedMap=0, @happiness=79, @totalhp=119, @species=473, @language=7, @obtainLevel=27, @itemInitial=0, @exp=49393, @form=nil, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @markings=0, @firstmoves=[361, 228, 250, 252], @ot="Heizo", @personalID=935648159, @defense=69, @hp=119, @spatk=57, @statusCount=0, @obtainText=nil>], @background="box17">
+@viewport = #<Viewport:0x25c52dd8>
+@_itm_marquee_x = 136
+@pokemon = #<PokeBattle_Pokemon:0x26157a08 @ballused=0, @ev=[49, 97, 69, 86, 90, 36], @expshare=true, @hypermode=false, @timeReceived=1773104149, @name="Talonflame", @attack=66, @trainerID=1504007316, @mail=nil, @spdef=64, @moves=[#<PBMove:0x261579a8 @id=145, @pp=20, @ppup=0>, #<PBMove:0x26157978 @id=148, @pp=15, @ppup=0>, #<PBMove:0x26157948 @id=172, @pp=5, @ppup=0>, #<PBMove:0x26157918 @id=166, @pp=25, @ppup=0>], @eggsteps=0, @fused=nil, @obtainMap=7, @item=169, @status=0, @speed=108, @belch=false, @iv=[30, 0, 12, 5, 15, 27], @otgender=0, @hatchedMap=0, @happiness=254, @totalhp=111, @species=663, @language=7, @obtainLevel=5, @itemInitial=0, @exp=34287, @form=nil, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @personalID=2978332735, @ot="Heizo", @firstmoves=[303, 368], @markings=0, @defense=63, @hp=111, @spatk=67, @statusCount=0, @obtainText=nil>
+@_itm_last_pkmn = #<PokeBattle_Pokemon:0x26157a08 @ballused=0, @ev=[49, 97, 69, 86, 90, 36], @expshare=true, @hypermode=false, @timeReceived=1773104149, @name="Talonflame", @attack=66, @trainerID=1504007316, @mail=nil, @spdef=64, @moves=[#<PBMove:0x261579a8 @id=145, @pp=20, @ppup=0>, #<PBMove:0x26157978 @id=148, @pp=15, @ppup=0>, #<PBMove:0x26157948 @id=172, @pp=5, @ppup=0>, #<PBMove:0x26157918 @id=166, @pp=25, @ppup=0>], @eggsteps=0, @fused=nil, @obtainMap=7, @item=169, @status=0, @speed=108, @belch=false, @iv=[30, 0, 12, 5, 15, 27], @otgender=0, @hatchedMap=0, @happiness=254, @totalhp=111, @species=663, @language=7, @obtainLevel=5, @itemInitial=0, @exp=34287, @form=nil, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @personalID=2978332735, @ot="Heizo", @firstmoves=[303, 368], @markings=0, @defense=63, @hp=111, @spatk=67, @statusCount=0, @obtainText=nil>
+@typebitmap = #<AnimatedBitmap:0x25c52c58 @bitmap=#<GifBitmap:0x25c52be0 @currentIndex=0, @framecount=0, @totalframes=1, @gifdelays=[1], @gifbitmaps=[#<BitmapWrapper:0x25d8e990>], @disposed=false>>
+@page = 2
+@sprites = {"movesel"=>#<MoveSelectionSprite:0x25c34d18>, "overlay"=>#<BitmapSprite:0x25c52658>, "background"=>#<IconSprite:0x25c52bc8>, "pokemon"=>#<PokemonSprite:0x25c52460>, "pokeicon"=>#<PokemonBoxIcon:0x25c43a90>, "movepresel"=>#<MoveSelectionSprite:0x25c35408>}
+@_itm_pause_frames = 0
+@_itm_marquee = #<Sprite:0x25c0e918>
+@partyindex = 0
+@_itm_box_vp = #<Viewport:0x25c52dd8>
+@_itm_txt_w = 365
+--- INPUT 2971829 (C or B pressed) ---
+PAGE: 2
+@_itm_overlay = #<Sprite:0x25c0eb70>
+@party = #<PokemonBox:0x26157a68 @name="Equipo", @pokemon=[#<PokeBattle_Pokemon:0x26157a08 @ballused=0, @ev=[49, 97, 69, 86, 90, 36], @expshare=true, @hypermode=false, @timeReceived=1773104149, @name="Talonflame", @attack=66, @trainerID=1504007316, @mail=nil, @spdef=64, @moves=[#<PBMove:0x261579a8 @id=145, @pp=20, @ppup=0>, #<PBMove:0x26157978 @id=148, @pp=15, @ppup=0>, #<PBMove:0x26157948 @id=172, @pp=5, @ppup=0>, #<PBMove:0x26157918 @id=166, @pp=25, @ppup=0>], @eggsteps=0, @fused=nil, @obtainMap=7, @item=169, @status=0, @speed=108, @belch=false, @iv=[30, 0, 12, 5, 15, 27], @otgender=0, @hatchedMap=0, @happiness=254, @totalhp=111, @species=663, @language=7, @obtainLevel=5, @itemInitial=0, @exp=34287, @form=nil, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @personalID=2978332735, @ot="Heizo", @firstmoves=[303, 368], @markings=0, @defense=63, @hp=111, @spatk=67, @statusCount=0, @obtainText=nil>, #<PokeBattle_Pokemon:0x261577e0 @ballused=5, @expshare=true, @ev=[0, 0, 0, 0, 0, 0], @timeReceived=1773282548, @attack=30, @name="Feebas", @mail=nil, @trainerID=1504007316, @spdef=27, @moves=[#<PBMove:0x26157780 @id=554, @pp=30, @ppup=0>, #<PBMove:0x26157750 @id=555, @pp=20, @ppup=0>, #<PBMove:0x26157720 @id=548, @pp=20, @ppup=0>, #<PBMove:0x261576f0 @id=330, @pp=15, @ppup=0>], @eggsteps=0, @obtainMap=36, @fused=nil, @item=0, @status=0, @speed=45, @belch=false, @iv=[26, 26, 18, 27, 28, 8], @otgender=0, @hatchedMap=0, @happiness=70, @totalhp=59, @species=349, @language=7, @obtainLevel=22, @itemInitial=0, @form=nil, @exp=16610, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @markings=0, @firstmoves=[554, 555, 548, 330], @ot="Heizo", @personalID=3074443339, @defense=24, @hp=59, @spatk=37, @statusCount=0, @obtainText=nil>, nil, nil, nil, nil, #<PokeBattle_Pokemon:0x26157600 @ballused=0, @ev=[17, 54, 32, 31, 33, 15], @expshare=true, @timeReceived=1773109374, @name="Kadabra", @attack=29, @trainerID=1504007316, @mail=nil, @spdef=42, @moves=[#<PBMove:0x261575a0 @id=464, @pp=15, @ppup=0>, #<PBMove:0x26157570 @id=486, @pp=40, @ppup=0>, #<PBMove:0x26157540 @id=462, @pp=25, @ppup=0>, #<PBMove:0x26157510 @id=479, @pp=20, @ppup=0>], @eggsteps=0, @fused=nil, @obtainMap=19, @item=145, @status=0, @speed=59, @belch=false, @iv=[20, 13, 7, 21, 29, 19], @otgender=0, @hatchedMap=0, @happiness=219, @totalhp=56, @species=64, @language=7, @obtainLevel=10, @itemInitial=145, @form=nil, @exp=8959, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @personalID=494017778, @ot="Heizo", @firstmoves=[464, 486, 462], @markings=0, @defense=22, @hp=56, @spatk=61, @statusCount=0, @obtainText=nil>, #<PokeBattle_Pokemon:0x26157450 @ballused=0, @ev=[0, 0, 0, 0, 0, 0], @expshare=true, @timeReceived=1773262794, @name="Growlithe", @attack=36, @trainerID=1504007316, @mail=nil, @spdef=26, @moves=[#<PBMove:0x261573f0 @id=372, @pp=20, @ppup=0>, #<PBMove:0x261573c0 @id=143, @pp=25, @ppup=0>, #<PBMove:0x26157390 @id=118, @pp=15, @ppup=0>, #<PBMove:0x26157360 @id=142, @pp=15, @ppup=0>], @eggsteps=0, @fused=nil, @obtainMap=58, @item=0, @status=0, @speed=35, @belch=true, @iv=[20, 9, 23, 10, 29, 15], @otgender=0, @hatchedMap=0, @happiness=70, @totalhp=58, @species=58, @language=7, @obtainLevel=21, @itemInitial=395, @exp=11576, @form=nil, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=395, @markings=0, @personalID=1291450564, @ot="Heizo", @firstmoves=[372, 143, 118, 142], @defense=28, @hp=58, @spatk=40, @statusCount=0, @obtainText=nil>, #<PokeBattle_Pokemon:0x26157228 @ballused=1, @ev=[4, 7, 6, 6, 5, 1], @expshare=true, @timeReceived=1773192420, @name="Onix", @attack=26, @trainerID=1504007316, @mail=nil, @spdef=23, @moves=[#<PBMove:0x261571c8 @id=370, @pp=30, @ppup=0>, #<PBMove:0x26157198 @id=322, @pp=20, @ppup=0>, #<PBMove:0x26157168 @id=316, @pp=20, @ppup=0>, #<PBMove:0x26157138 @id=508, @pp=10, @ppup=0>], @eggsteps=0, @fused=nil, @obtainMap=16, @item=0, @status=0, @speed=34, @belch=false, @iv=[2, 11, 17, 22, 12, 23], @otgender=0, @hatchedMap=0, @happiness=90, @totalhp=44, @species=95, @language=7, @obtainLevel=8, @itemInitial=0, @exp=4670, @form=nil, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @personalID=553384436, @ot="Heizo", @firstmoves=[370, 322, 185, 507], @markings=0, @defense=53, @hp=44, @spatk=16, @statusCount=0, @obtainText=nil>, #<PokeBattle_Pokemon:0x26157030 @ballused=25, @expshare=true, @ev=[8, 34, 18, 15, 19, 5], @timeReceived=1773198723, @attack=59, @name="Kricketune", @mail=nil, @trainerID=1504007316, @spdef=44, @moves=[#<PBMove:0x26156fd0 @id=98, @pp=15, @ppup=0>, #<PBMove:0x26156fa0 @id=603, @pp=10, @ppup=0>, #<PBMove:0x26156f70 @id=8, @pp=20, @ppup=0>, #<PBMove:0x26156f40 @id=109, @pp=15, @ppup=0>], @eggsteps=0, @obtainMap=28, @fused=nil, @item=163, @status=0, @speed=36, @belch=false, @iv=[22, 29, 5, 3, 31, 2], @otgender=0, @hatchedMap=0, @happiness=180, @totalhp=73, @species=402, @language=7, @obtainLevel=14, @itemInitial=163, @exp=10203, @form=nil, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @markings=0, @firstmoves=[303, 10, 8, 109], @ot="Heizo", @personalID=294545298, @defense=35, @hp=73, @spatk=34, @statusCount=0, @obtainText=nil>, #<PokeBattle_Pokemon:0x26156e38 @ballused=1, @ev=[10, 21, 17, 15, 17, 14], @expshare=true, @timeReceived=1773110349, @name="Mightyena", @attack=88, @trainerID=1504007316, @mail=nil, @spdef=49, @moves=[#<PBMove:0x26156dd8 @id=303, @pp=35, @ppup=0>, #<PBMove:0x26156da8 @id=397, @pp=20, @ppup=0>, #<PBMove:0x26156d78 @id=435, @pp=15, @ppup=0>, #<PBMove:0x26156d48 @id=24, @pp=15, @ppup=0>], @eggsteps=0, @fused=nil, @obtainMap=9, @item=0, @status=0, @speed=70, @belch=false, @iv=[26, 12, 5, 22, 3, 17], @otgender=0, @hatchedMap=0, @happiness=184, @totalhp=95, @species=262, @language=7, @obtainLevel=6, @itemInitial=0, @form=nil, @exp=32768, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @personalID=811764951, @ot="Heizo", @firstmoves=[303, 373], @markings=0, @defense=46, @hp=95, @spatk=45, @statusCount=0, @obtainText=nil>, #<PokeBattle_Pokemon:0x26156c40 @ballused=0, @ev=[0, 1, 5, 0, 6, 2], @expshare=true, @timeReceived=1773109682, @name="Loudred", @attack=47, @trainerID=1504007316, @mail=nil, @spdef=37, @moves=[#<PBMove:0x26156be0 @id=413, @pp=20, @ppup=0>, #<PBMove:0x26156bb0 @id=181, @pp=15, @ppup=0>, #<PBMove:0x26156b80 @id=275, @pp=10, @ppup=0>, #<PBMove:0x26156b50 @id=28, @pp=25, @ppup=0>], @eggsteps=0, @fused=nil, @obtainMap=54, @item=0, @status=0, @speed=27, @belch=false, @iv=[22, 18, 31, 14, 25, 15], @otgender=0, @hatchedMap=0, @happiness=111, @totalhp=79, @species=294, @language=7, @obtainLevel=8, @itemInitial=0, @form=nil, @exp=10572, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @personalID=2555425922, @ot="Heizo", @firstmoves=[309, 181], @markings=0, @defense=33, @hp=79, @spatk=49, @statusCount=0, @obtainText=nil>, #<PokeBattle_Pokemon:0x26156a18 @ballused=1, @ev=[0, 0, 0, 0, 0, 0], @expshare=true, @timeReceived=1773317802, @name="Haunter", @attack=39, @trainerID=1504007316, @mail=nil, @spdef=36, @moves=[#<PBMove:0x261569b8 @id=183, @pp=15, @ppup=0>, #<PBMove:0x26156988 @id=184, @pp=10, @ppup=0>, #<PBMove:0x26156958 @id=179, @pp=10, @ppup=0>, #<PBMove:0x26156928 @id=178, @pp=20, @ppup=0>], @eggsteps=0, @fused=nil, @obtainMap=43, @item=0, @status=0, @speed=60, @belch=false, @iv=[8, 29, 19, 15, 21, 6], @otgender=0, @hatchedMap=0, @happiness=70, @totalhp=63, @species=93, @language=7, @obtainLevel=27, @itemInitial=745, @form=nil, @exp=15244, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @markings=0, @personalID=116519016, @ot="Heizo", @firstmoves=[183, 184, 179, 178], @defense=30, @hp=63, @spatk=79, @statusCount=0, @obtainText=nil>, #<PokeBattle_Pokemon:0x26156868 @ballused=0, @ev=[13, 22, 25, 24, 18, 17], @expshare=true, @timeReceived=1773105014, @name="Gastly", @attack=23, @trainerID=1504007316, @mail=nil, @spdef=20, @moves=[#<PBMove:0x26156808 @id=479, @pp=20, @ppup=0>, #<PBMove:0x261567d8 @id=182, @pp=30, @ppup=0>, #<PBMove:0x261567a8 @id=437, @pp=30, @ppup=0>, #<PBMove:0x26156778 @id=379, @pp=5, @ppup=0>], @eggsteps=0, @fused=nil, @obtainMap=47, @item=0, @status=0, @speed=39, @belch=false, @iv=[7, 25, 18, 28, 16, 14], @otgender=0, @hatchedMap=0, @happiness=229, @totalhp=40, @species=92, @language=7, @obtainLevel=5, @itemInitial=0, @exp=4370, @form=nil, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @personalID=720068699, @ot="Heizo", @firstmoves=[479, 182, 437], @markings=0, @defense=20, @hp=40, @spatk=44, @statusCount=0, @obtainText=nil>, #<PokeBattle_Pokemon:0x26156670 @ballused=0, @ev=[0, 0, 0, 0, 0, 0], @expshare=true, @timeReceived=1773271571, @name="Magnemite", @attack=17, @trainerID=1504007316, @mail=nil, @spdef=30, @moves=[#<PBMove:0x26156610 @id=79, @pp=30, @ppup=0>, #<PBMove:0x261565e0 @id=338, @pp=20, @ppup=0>, #<PBMove:0x261565b0 @id=83, @pp=20, @ppup=0>, #<PBMove:0x26156580 @id=523, @pp=20, @ppup=0>], @eggsteps=0, @fused=nil, @obtainMap=59, @item=0, @status=0, @speed=26, @belch=false, @iv=[27, 0, 20, 17, 26, 16], @otgender=0, @hatchedMap=0, @happiness=73, @totalhp=45, @species=81, @language=7, @obtainLevel=20, @itemInitial=0, @exp=8000, @form=nil, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @markings=0, @personalID=2415166183, @ot="Heizo", @firstmoves=[79, 338, 83, 523], @defense=37, @hp=45, @spatk=52, @statusCount=0, @obtainText=nil, @natureflag=15>, #<PokeBattle_Pokemon:0x26156430 @ballused=0, @expshare=true, @ev=[0, 0, 0, 0, 0, 0], @timeReceived=1773685139, @attack=39, @name="Charcadet", @mail=nil, @trainerID=1504007316, @spdef=31, @moves=[#<PBMove:0x261563d0 @id=151, @pp=15, @ppup=0>, #<PBMove:0x261563a0 @id=183, @pp=15, @ppup=0>, #<PBMove:0x26156370 @id=145, @pp=20, @ppup=0>, #<PBMove:0x26156340 @id=148, @pp=15, @ppup=0>], @eggsteps=0, @obtainMap=76, @fused=nil, @item=0, @status=0, @speed=31, @belch=false, @iv=[30, 24, 3, 26, 26, 28], @otgender=0, @hatchedMap=0, @happiness=50, @totalhp=68, @species=982, @language=7, @obtainLevel=28, @itemInitial=738, @form=nil, @exp=27440, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @markings=0, @firstmoves=[151, 183, 145, 148], @ot="Heizo", @personalID=1683020784, @defense=30, @hp=68, @spatk=40, @statusCount=0, @obtainText=nil>, nil, nil, nil, nil, #<PokeBattle_Pokemon:0x26156250 @ballused=0, @expshare=true, @ev=[21, 60, 36, 51, 57, 11], @hypermode=false, @timeReceived=1773201254, @attack=89, @name="Nidoking", @mail=nil, @trainerID=1504007316, @spdef=50, @moves=[#<PBMove:0x261561f0 @id=435, @pp=15, @ppup=0>, #<PBMove:0x261561c0 @id=508, @pp=10, @ppup=0>, #<PBMove:0x26156190 @id=433, @pp=10, @ppup=0>, #<PBMove:0x26156160 @id=176, @pp=15, @ppup=0>], @eggsteps=0, @obtainMap=14, @fused=nil, @item=92, @status=0, @speed=75, @belch=false, @iv=[11, 29, 18, 26, 9, 0], @shinyflag=false, @otgender=0, @hatchedMap=0, @happiness=254, @totalhp=104, @species=34, @language=7, @obtainLevel=5, @itemInitial=0, @form=10, @exp=35231, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @markings=0, @firstmoves=[374, 168], @ot="Heizo", @personalID=2478560534, @defense=72, @hp=104, @spatk=70, @statusCount=0, @obtainText=nil>, #<PokeBattle_Pokemon:0x26156010 @ballused=0, @expshare=true, @ev=[25, 31, 11, 26, 29, 6], @hypermode=false, @timeReceived=1773262486, @attack=82, @name="Tangrowth", @mail=nil, @trainerID=1504007316, @spdef=44, @moves=[#<PBMove:0x26155fb0 @id=207, @pp=15, @ppup=0>, #<PBMove:0x26155f80 @id=433, @pp=10, @ppup=0>, #<PBMove:0x26155f50 @id=508, @pp=10, @ppup=0>, #<PBMove:0x26155f20 @id=217, @pp=10, @ppup=0>], @eggsteps=0, @obtainMap=55, @fused=nil, @item=93, @status=0, @speed=37, @belch=false, @iv=[17, 30, 29, 9, 25, 2], @otgender=0, @hatchedMap=0, @happiness=242, @totalhp=119, @species=465, @language=7, @obtainLevel=19, @itemInitial=0, @exp=40983, @form=nil, @ribbons=[], @obtainMode=0, @abilityflag=0, @heartgauge=0, @itemRecycle=0, @markings=0, @firstmoves=[208, 210, 445, 599], @ot="Heizo", @personalID=3073618760, @defense=100, @hp=119, @spatk=90, @statusCount=0, @obtainText=nil, @natureflag=20>, #<PokeBattle_Pokemon:0x26155dd0 @ballused=25, @ev=[0, 2, 0, 0, 0, 0], @expshare=true, @hypermode=false, @timeReceived=1773244959, @name="Breloom", @attack=93, @trainerID=1504007316, @mail=nil, @spdef=46, @moves=[#<PBMove:0x26155d70 @id=207, @pp=15, @ppup=0>, #<PBMove:0x26155d40 @id=96, @pp=15, @ppup=0>, #<PBMove:0x26155d10 @id=290, @pp=15, @ppup=0>, #<PBMove:0x26155ce0 @id=217, @pp=10, @ppup=0>], @eggsteps=0, @fused=nil, @obtainMap=29, @item=0, @status=0, @speed=53, @belch=false, @iv=[31, 1, 22, 3, 9, 19], @otgender=0, @hatchedMap=0, @happiness=78, @totalhp=95, @species=286, @language=7, @obtainLevel=16, @itemInitial=0, @exp=37994, @form=nil, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @markings=0, @personalID=2132774234, @ot="Heizo", @firstmoves=[210, 303, 220, 217], @defense=72, @hp=95, @spatk=48, @statusCount=0, @obtainText=nil>, #<PokeBattle_Pokemon:0x26155ba8 @ballused=0, @expshare=true, @ev=[0, 0, 0, 0, 0, 0], @hypermode=false, @timeReceived=1773684563, @attack=82, @name="Sandslash", @mail=nil, @trainerID=1504007316, @spdef=56, @moves=[#<PBMove:0x26155b48 @id=226, @pp=10, @ppup=0>, #<PBMove:0x26155b18 @id=13, @pp=10, @ppup=0>, #<PBMove:0x26155ae8 @id=12, @pp=20, @ppup=0>, #<PBMove:0x26155ab8 @id=236, @pp=30, @ppup=0>], @eggsteps=0, @obtainMap=55, @fused=nil, @item=0, @status=0, @speed=54, @belch=false, @iv=[26, 7, 16, 23, 21, 26], @otgender=0, @hatchedMap=0, @happiness=78, @totalhp=103, @species=28, @language=7, @obtainLevel=19, @itemInitial=0, @exp=39304, @form=nil, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @markings=0, @firstmoves=[317, 299, 12, 236], @ot="Heizo", @personalID=4082960922, @defense=85, @hp=103, @spatk=42, @statusCount=0, @obtainText=nil>, #<PokeBattle_Pokemon:0x26155980 @ballused=25, @ev=[17, 44, 31, 50, 48, 13], @expshare=true, @hypermode=false, @timeReceived=1773200124, @custom_type2=nil, @name="Luxray", @attack=102, @trainerID=1504007316, @mail=nil, @spdef=63, @moves=[#<PBMove:0x26155920 @id=28, @pp=25, @ppup=0>, #<PBMove:0x261558f0 @id=397, @pp=20, @ppup=0>, #<PBMove:0x261558c0 @id=76, @pp=20, @ppup=0>, #<PBMove:0x26155890 @id=75, @pp=15, @ppup=0>], @eggsteps=0, @fused=nil, @obtainMap=27, @item=171, @status=0, @speed=70, @belch=false, @custom_type1=nil, @iv=[8, 9, 31, 20, 1, 12], @otgender=0, @hatchedMap=0, @happiness=254, @totalhp=102, @species=405, @language=7, @obtainLevel=14, @itemInitial=0, @exp=34211, @form=nil, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @personalID=3861162653, @ot="Heizo", @firstmoves=[303, 374, 81, 74], @markings=0, @defense=71, @hp=102, @spatk=60, @statusCount=0, @obtainText=nil>, #<PokeBattle_Pokemon:0x26155728 @ballused=26, @expshare=true, @ev=[16, 21, 12, 18, 19, 8], @hypermode=false, @timeReceived=1773199651, @attack=85, @name="Lucario", @mail=nil, @trainerID=1504007316, @spdef=53, @moves=[#<PBMove:0x261556c8 @id=102, @pp=10, @ppup=0>, #<PBMove:0x26155698 @id=525, @pp=35, @ppup=0>, #<PBMove:0x26155668 @id=176, @pp=15, @ppup=0>, #<PBMove:0x26155638 @id=233, @pp=10, @ppup=0>], @eggsteps=0, @obtainMap=27, @fused=nil, @item=0, @status=0, @speed=75, @belch=false, @iv=[11, 18, 13, 10, 5, 6], @otgender=0, @hatchedMap=0, @happiness=254, @totalhp=94, @species=448, @language=7, @obtainLevel=14, @itemInitial=0, @form=0, @exp=29949, @ribbons=[], @obtainMode=0, @abilityflag=2, @heartgauge=0, @itemRecycle=0, @firstmoves=[361, 486, 107, 314], @ot="Heizo", @personalID=1729737698, @markings=0, @defense=56, @hp=94, @spatk=74, @statusCount=0, @obtainText=nil, @natureflag=13>, #<PokeBattle_Pokemon:0x26155500 @ballused=0, @ev=[48, 99, 67, 87, 89, 36], @expshare=true, @hypermode=false, @timeReceived=1773102836, @name="Frogadier", @attack=64, @trainerID=1504007316, @mail=nil, @spdef=51, @moves=[#<PBMove:0x261554a0 @id=452, @pp=10, @ppup=0>, #<PBMove:0x26155470 @id=25, @pp=15, @ppup=0>, #<PBMove:0x26155440 @id=393, @pp=5, @ppup=0>, #<PBMove:0x26155410 @id=243, @pp=10, @ppup=0>], @eggsteps=0, @fused=nil, @obtainMap=2, @item=137, @status=0, @speed=84, @belch=false, @iv=[6, 14, 29, 18, 8, 17], @otgender=0, @hatchedMap=0, @happiness=254, @totalhp=103, @species=657, @language=7, @obtainLevel=5, @itemInitial=0, @exp=34325, @form=nil, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @personalID=513223858, @ot="Heizo", @firstmoves=[309, 368, 554, 464], @markings=0, @defense=60, @hp=103, @spatk=72, @statusCount=0, @obtainText=nil>, #<PokeBattle_Pokemon:0x26155308 @ballused=0, @ev=[25, 29, 11, 27, 30, 10], @expshare=true, @hypermode=false, @timeReceived=1773178298, @name="Pangoro", @attack=100, @trainerID=1504007316, @mail=nil, @spdef=53, @moves=[#<PBMove:0x261552a8 @id=72, @pp=15, @ppup=0>, #<PBMove:0x26155278 @id=293, @pp=20, @ppup=0>, #<PBMove:0x26155248 @id=98, @pp=15, @ppup=0>, #<PBMove:0x26155218 @id=34, @pp=10, @ppup=0>], @eggsteps=0, @fused=nil, @obtainMap=24, @item=947, @status=0, @speed=53, @belch=false, @iv=[31, 25, 17, 8, 10, 0], @otgender=0, @hatchedMap=0, @happiness=229, @totalhp=121, @species=675, @language=7, @obtainLevel=11, @itemInitial=0, @exp=40405, @form=nil, @ribbons=[], @obtainMode=0, @abilityflag=0, @heartgauge=0, @itemRecycle=0, @personalID=1512341711, @ot="Heizo", @firstmoves=[303, 374, 113, 425], @markings=0, @defense=57, @hp=121, @spatk=57, @statusCount=0, @obtainText=nil>, #<PokeBattle_Pokemon:0x261550e0 @ballused=0, @expshare=true, @ev=[252, 252, 4, 0, 0, 0], @timeReceived=1773201555, @attack=122, @name="Trevenant", @mail=nil, @trainerID=1504007316, @spdef=74, @moves=[#<PBMove:0x26155080 @id=176, @pp=15, @ppup=0>, #<PBMove:0x26155050 @id=201, @pp=10, @ppup=0>, #<PBMove:0x26155020 @id=217, @pp=10, @ppup=0>, #<PBMove:0x26154ff0 @id=151, @pp=15, @ppup=0>], @eggsteps=0, @obtainMap=46, @fused=nil, @item=398, @status=0, @speed=53, @belch=false, @iv=[31, 31, 31, 31, 31, 31], @otgender=0, @hatchedMap=0, @happiness=97, @totalhp=133, @species=709, @language=7, @obtainLevel=17, @itemInitial=751, @form=nil, @exp=39304, @ribbons=[], @obtainMode=0, @heartgauge=0, @abilityflag=139, @itemRecycle=0, @firstmoves=[217, 185, 151, 680], @ot="Heizo", @personalID=2134673285, @markings=0, @defense=77, @hp=133, @spatk=53, @statusCount=0, @obtainText=nil, @natureflag=3>, #<PokeBattle_Pokemon:0x26154eb8 @ballused=0, @expshare=true, @ev=[0, 2, 0, 0, 0, 0], @hypermode=false, @timeReceived=1773684921, @attack=93, @name="Mamoswine", @mail=nil, @trainerID=1504007316, @spdef=42, @moves=[#<PBMove:0x26154e58 @id=361, @pp=10, @ppup=0>, #<PBMove:0x26154e28 @id=228, @pp=10, @ppup=0>, #<PBMove:0x26154df8 @id=250, @pp=15, @ppup=0>, #<PBMove:0x26154dc8 @id=248, @pp=15, @ppup=0>], @eggsteps=0, @obtainMap=76, @fused=nil, @item=736, @status=0, @speed=60, @belch=false, @iv=[2, 0, 11, 4, 14, 6], @otgender=0, @hatchedMap=0, @happiness=79, @totalhp=119, @species=473, @language=7, @obtainLevel=27, @itemInitial=0, @exp=49393, @form=nil, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @markings=0, @firstmoves=[361, 228, 250, 252], @ot="Heizo", @personalID=935648159, @defense=69, @hp=119, @spatk=57, @statusCount=0, @obtainText=nil>], @background="box17">
+@viewport = #<Viewport:0x25c52dd8>
+@_itm_marquee_x = 0
+@pokemon = #<PokeBattle_Pokemon:0x26157a08 @ballused=0, @ev=[49, 97, 69, 86, 90, 36], @expshare=true, @hypermode=false, @timeReceived=1773104149, @name="Talonflame", @attack=66, @trainerID=1504007316, @mail=nil, @spdef=64, @moves=[#<PBMove:0x261579a8 @id=145, @pp=20, @ppup=0>, #<PBMove:0x26157978 @id=148, @pp=15, @ppup=0>, #<PBMove:0x26157948 @id=172, @pp=5, @ppup=0>, #<PBMove:0x26157918 @id=166, @pp=25, @ppup=0>], @eggsteps=0, @fused=nil, @obtainMap=7, @item=169, @status=0, @speed=108, @belch=false, @iv=[30, 0, 12, 5, 15, 27], @otgender=0, @hatchedMap=0, @happiness=254, @totalhp=111, @species=663, @language=7, @obtainLevel=5, @itemInitial=0, @exp=34287, @form=nil, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @personalID=2978332735, @ot="Heizo", @firstmoves=[303, 368], @markings=0, @defense=63, @hp=111, @spatk=67, @statusCount=0, @obtainText=nil>
+@_itm_last_pkmn = #<PokeBattle_Pokemon:0x26157a08 @ballused=0, @ev=[49, 97, 69, 86, 90, 36], @expshare=true, @hypermode=false, @timeReceived=1773104149, @name="Talonflame", @attack=66, @trainerID=1504007316, @mail=nil, @spdef=64, @moves=[#<PBMove:0x261579a8 @id=145, @pp=20, @ppup=0>, #<PBMove:0x26157978 @id=148, @pp=15, @ppup=0>, #<PBMove:0x26157948 @id=172, @pp=5, @ppup=0>, #<PBMove:0x26157918 @id=166, @pp=25, @ppup=0>], @eggsteps=0, @fused=nil, @obtainMap=7, @item=169, @status=0, @speed=108, @belch=false, @iv=[30, 0, 12, 5, 15, 27], @otgender=0, @hatchedMap=0, @happiness=254, @totalhp=111, @species=663, @language=7, @obtainLevel=5, @itemInitial=0, @exp=34287, @form=nil, @ribbons=[], @obtainMode=0, @heartgauge=0, @itemRecycle=0, @personalID=2978332735, @ot="Heizo", @firstmoves=[303, 368], @markings=0, @defense=63, @hp=111, @spatk=67, @statusCount=0, @obtainText=nil>
+@typebitmap = #<AnimatedBitmap:0x25c52c58 @bitmap=#<GifBitmap:0x25c52be0 @currentIndex=0, @framecount=0, @totalframes=1, @gifdelays=[1], @gifbitmaps=[#<BitmapWrapper:0x25d8e990>], @disposed=false>>
+@page = 2
+@sprites = {"movesel"=>#<MoveSelectionSprite:0x25c34d18>, "overlay"=>#<BitmapSprite:0x25c52658>, "background"=>#<IconSprite:0x25c52bc8>, "pokemon"=>#<PokemonSprite:0x25c52460>, "pokeicon"=>#<PokemonBoxIcon:0x25c43a90>, "movepresel"=>#<MoveSelectionSprite:0x25c35408>}
+@_itm_pause_frames = 41
+@_itm_marquee = #<Sprite:0x25c0e918>
+@partyindex = 0
+@_itm_box_vp = #<Viewport:0x25c52dd8>
+@_itm_txt_w = 365
+--- SHOT 2969547 ---
+@page = 2
+@partyindex = 0
+--------------------
+--- SHOT 2969598 ---
+@page = 2
+@partyindex = 0
+--------------------
+--- SHOT 2969623 ---
+@page = 2
+@partyindex = 0
+--------------------
+--- SHOT 2969951 ---
+@page = 2
+@partyindex = 0
+--------------------
+--- SHOT 2969987 ---
+@page = 2
+@partyindex = 0
+--------------------
+--- SHOT 2970007 ---
+@page = 2
+@partyindex = 0
+--------------------
+--- SHOT 2970016 ---
+@page = 2
+@partyindex = 0
+--------------------
+--- SHOT 2970027 ---
+@page = 2
+@partyindex = 0
+--------------------
+--- SHOT 2970038 ---
+@page = 2
+@partyindex = 0
+--------------------
+--- SHOT 2970048 ---
+@page = 2
+@partyindex = 0
+--------------------
+--- SHOT 2970057 ---
+@page = 2
+@partyindex = 0
+--------------------
+--- SHOT 2970088 ---
+@page = 2
+@partyindex = 0
+--------------------
+--- SHOT 2970107 ---
+@page = 2
+@partyindex = 0
+--------------------
+--- SHOT 2970198 ---
+@page = 2
+@partyindex = 0
+--------------------
+--- SHOT 2970211 ---
+@page = 2
+@partyindex = 0
+--------------------
+--- SHOT 2970222 ---
+@page = 2
+@partyindex = 0
+--------------------
+--- SHOT 2970254 ---
+@page = 2
+@partyindex = 0
+--------------------
+--- SHOT 2970355 ---
+@page = 2
+@partyindex = 0
+--------------------
+--- SHOT 2970389 ---
+@page = 2
+@partyindex = 0
+--------------------
+--- SHOT 2970430 ---
+@page = 2
+@partyindex = 0
+--------------------
+--- SHOT 2970441 ---
+@page = 2
+@partyindex = 0
+--------------------
+--- SHOT 2970736 ---
+@page = 2
+@partyindex = 0
+--------------------
+--- SHOT 2970759 ---
+@page = 2
+@partyindex = 0
+--------------------
+--- SHOT 2970788 ---
+@page = 2
+@partyindex = 0
+--------------------
+--- SHOT 2970807 ---
+@page = 2
+@partyindex = 0
+--------------------
+--- SHOT 2970818 ---
+@page = 2
+@partyindex = 0
+--------------------
+--- SHOT 2970830 ---
+@page = 2
+@partyindex = 0
+--------------------
+--- SHOT 2970838 ---
+@page = 2
+@partyindex = 0
+--------------------
+--- SHOT 2970849 ---
+@page = 2
+@partyindex = 0
+--------------------
+--- SHOT 2970861 ---
+@page = 2
+@partyindex = 0
+--------------------
+--- SHOT 2970872 ---
+@page = 2
+@partyindex = 0
+--------------------
+--- SHOT 2970885 ---
+@page = 2
+@partyindex = 0
+--------------------
+--- SHOT 2970906 ---
+@page = 2
+@partyindex = 0
+--------------------
+--- SHOT 2970915 ---
+@page = 2
+@partyindex = 0
+--------------------
+--- SHOT 2970924 ---
+@page = 2
+@partyindex = 0
+--------------------
+--- SHOT 2970934 ---
+@page = 2
+@partyindex = 0
+--------------------
+--- SHOT 2970944 ---
+@page = 2
+@partyindex = 0
+--------------------
+--- SHOT 2970955 ---
+@page = 2
+@partyindex = 0
+--------------------
+--- SHOT 2970964 ---
+@page = 2
+@partyindex = 0
+--------------------
+--- SHOT 2970977 ---
+@page = 2
+@partyindex = 0
+--------------------
+--- SHOT 2971030 ---
+@page = 2
+@partyindex = 0
+--------------------
+--- SHOT 2971053 ---
+@page = 2
+@partyindex = 0
+--------------------
+--- SHOT 2971072 ---
+@page = 2
+@partyindex = 0
+--------------------
+--- SHOT 2971095 ---
+@page = 2
+@partyindex = 0
+--------------------
+--- SHOT 2972183 ---
+@page = 2
+@partyindex = 0
+--------------------
+--- SHOT 2972244 ---
+@page = 2
+@partyindex = 0
+--------------------
+--- SHOT 2978149 ---
+@page = 0
+@partyindex = 0
+--------------------
+--- CAMBIO frame 2969523 ---
+@page: 0 -> 1
+--- CAMBIO frame 2969574 ---
+@page: 1 -> 2
+--- CAMBIO frame 2969895 ---
+@page: 0 -> 1
+--- CAMBIO frame 2969908 ---
+@page: 1 -> 2
+--- CAMBIO frame 2970088 ---
+@page: 0 -> 1
+--- CAMBIO frame 2970096 ---
+@page: 1 -> 2
+--- CAMBIO frame 2970264 ---
+@page: 2 -> 3
+--- CAMBIO frame 2970340 ---
+@page: 3 -> 2
+--- CAMBIO frame 2970530 ---
+@page: 2 -> 3
+--- CAMBIO frame 2970566 ---
+@page: 3 -> 2
+--- CAMBIO frame 2970622 ---
+@page: 2 -> 3
+--- CAMBIO frame 2970667 ---
+@page: 3 -> 2
+--- CAMBIO frame 2970682 ---
+@page: 2 -> 1
+--- CAMBIO frame 2970699 ---
+@page: 1 -> 2
+--- CAMBIO frame 2970710 ---
+@page: 2 -> 3
+--- CAMBIO frame 2970932 ---
+@page: 0 -> 1
+--- CAMBIO frame 2970971 ---
+@page: 1 -> 2
+--- CAMBIO frame 2971018 ---
+@page: 2 -> 3
+--- CAMBIO frame 2971049 ---
+@page: 3 -> 2
+--- CAMBIO frame 2971312 ---
+@pokemon: #<PokeBattle_Pokemon:0x26290098 @otgender=0, @hatchedMap=0, @name="Corviknight", @attack=77, @happiness=254, @totalhp=116, @species=823, @language=7, @item=137, @obtainLevel=5, @itemInitial=0, @ribbons=[], @obtainMode=0, @abilityflag=11, @heartgauge=0, @itemRecycle=0, @personalID=513223858, @ot="Heizo", @firstmoves=[162, 49, 158, 399], @markings=0, @defense=100, @spatk=45, @statusCount=0, @obtainText="a", @ballused=0, @form=0, @exp=34325, @ev=[48, 99, 67, 87, 89, 36], @expshare=true, @hypermode=false, @timeReceived=1773102836, @trainerID=1504007316, @mail=nil, @spdef=71, @moves=[#<PBMove:0x2628ffc0 @id=162, @pp=20, @ppup=0>, #<PBMove:0x2628ff60 @id=49, @pp=20, @ppup=0>, #<PBMove:0x2628ff30 @id=158, @pp=20, @ppup=0>, #<PBMove:0x2628ff00 @id=399, @pp=10, @ppup=0>], @eggsteps=0, @fused=nil, @obtainMap=2, @status=0, @speed=63, @hp=116, @belch=false, @iv=[6, 14, 29, 18, 8, 17]> -> #<PokeBattle_Pokemon:0x2628fa68 @otgender=0, @hatchedMap=0, @name="Venusaur", @attack=62, @happiness=207, @totalhp=122, @species=3, @language=7, @item=91, @obtainLevel=25, @itemInitial=0, @ribbons=[], @obtainMode=0, @abilityflag=38, @heartgauge=0, @itemRecycle=0, @personalID=1451825591, @ot="Heizo", @firstmoves=[218, 205, 432, 369], @markings=0, @defense=77, @spatk=99, @statusCount=0, @obtainText=nil, @natureflag=15, @ballused=0, @exp=36435, @form=nil, @ev=[47, 19, 43, 16, 53, 39], @expshare=true, @hypermode=false, @timeReceived=1773275565, @trainerID=1504007316, @mail=nil, @spdef=89, @moves=[#<PBMove:0x2628fa08 @id=429, @pp=10, @ppup=0>, #<PBMove:0x2628f9d8 @id=200, @pp=10, @ppup=0>, #<PBMove:0x2628f9a8 @id=433, @pp=10, @ppup=0>, #<PBMove:0x2628f978 @id=217, @pp=10, @ppup=0>], @eggsteps=0, @fused=nil, @obtainMap=63, @status=0, @speed=66, @hp=122, @belch=false, @iv=[31, 16, 31, 12, 31, 31]>
+@partyindex: 0 -> 1
+--- CAMBIO frame 2971340 ---
+@pokemon: #<PokeBattle_Pokemon:0x2628fa68 @otgender=0, @hatchedMap=0, @name="Venusaur", @attack=62, @happiness=207, @totalhp=122, @species=3, @language=7, @item=91, @obtainLevel=25, @itemInitial=0, @ribbons=[], @obtainMode=0, @abilityflag=38, @heartgauge=0, @itemRecycle=0, @personalID=1451825591, @ot="Heizo", @firstmoves=[218, 205, 432, 369], @markings=0, @defense=77, @spatk=99, @statusCount=0, @obtainText=nil, @natureflag=15, @ballused=0, @exp=36435, @form=nil, @ev=[47, 19, 43, 16, 53, 39], @expshare=true, @hypermode=false, @timeReceived=1773275565, @trainerID=1504007316, @mail=nil, @spdef=89, @moves=[#<PBMove:0x2628fa08 @id=429, @pp=10, @ppup=0>, #<PBMove:0x2628f9d8 @id=200, @pp=10, @ppup=0>, #<PBMove:0x2628f9a8 @id=433, @pp=10, @ppup=0>, #<PBMove:0x2628f978 @id=217, @pp=10, @ppup=0>], @eggsteps=0, @fused=nil, @obtainMap=63, @status=0, @speed=66, @hp=122, @belch=false, @iv=[31, 16, 31, 12, 31, 31]> -> #<PokeBattle_Pokemon:0x26290098 @otgender=0, @hatchedMap=0, @name="Corviknight", @attack=77, @happiness=254, @totalhp=116, @species=823, @language=7, @item=137, @obtainLevel=5, @itemInitial=0, @ribbons=[], @obtainMode=0, @abilityflag=11, @heartgauge=0, @itemRecycle=0, @personalID=513223858, @ot="Heizo", @firstmoves=[162, 49, 158, 399], @markings=0, @defense=100, @spatk=45, @statusCount=0, @obtainText="a", @ballused=0, @form=0, @exp=34325, @ev=[48, 99, 67, 87, 89, 36], @expshare=true, @hypermode=false, @timeReceived=1773102836, @trainerID=1504007316, @mail=nil, @spdef=71, @moves=[#<PBMove:0x2628ffc0 @id=162, @pp=20, @ppup=0>, #<PBMove:0x2628ff60 @id=49, @pp=20, @ppup=0>, #<PBMove:0x2628ff30 @id=158, @pp=20, @ppup=0>, #<PBMove:0x2628ff00 @id=399, @pp=10, @ppup=0>], @eggsteps=0, @fused=nil, @obtainMap=2, @status=0, @speed=63, @hp=116, @belch=false, @iv=[6, 14, 29, 18, 8, 17]>
+@partyindex: 1 -> 0
+--- CAMBIO frame 2971357 ---
+@page: 2 -> 3
+--- CAMBIO frame 2971397 ---
+@page: 3 -> 2
+--- CAMBIO frame 2971497 ---
+@page: 2 -> 1
+--- CAMBIO frame 2971516 ---
+@page: 1 -> 2
+--- CAMBIO frame 2974482 ---
+@page: 2 -> 3
+--- CAMBIO frame 2974529 ---
+@page: 3 -> 2
+--- CAMBIO frame 2974549 ---
+@page: 2 -> 1
+--- CAMBIO frame 2974576 ---
+@page: 1 -> 2
+--- CAMBIO frame 2975127 ---
+@page: 2 -> 3
+--- CAMBIO frame 2975462 ---
+@page: 3 -> 2
+--- CAMBIO frame 2975477 ---
+@page: 2 -> 1
+--- SPRITES frame 2969545 ---
+PAGE: 2
+  movesel: visible=false, opacity=255, x=240, y=92
+  pokeicon: visible=false, opacity=255, x=14, y=52
+  background: visible=true, opacity=255, x=0, y=0
+  pokemon: visible=true, opacity=255, x=8, y=112
+  movepresel: visible=false, opacity=255, x=240, y=92
+  overlay: visible=true, opacity=255, x=0, y=0
+  VAR: @_itm_marquee_x = 84
+  VAR: @page = 2
+  VAR: @_itm_in_subview = false
+  VAR: @_itm_pause_frames = 0
+  VAR: @_itm_txt_w = 407
+  VAR: @partyindex = 0
+--------------------
+--- SPRITES frame 2969595 ---
+PAGE: 2
+  movesel: visible=false, opacity=255, x=240, y=92
+  pokeicon: visible=false, opacity=255, x=14, y=52
+  background: visible=true, opacity=255, x=0, y=0
+  pokemon: visible=true, opacity=255, x=8, y=112
+  movepresel: visible=false, opacity=255, x=240, y=92
+  overlay: visible=true, opacity=255, x=0, y=0
+  VAR: @_itm_marquee_x = 134
+  VAR: @page = 2
+  VAR: @_itm_in_subview = true
+  VAR: @_itm_pause_frames = 0
+  VAR: @_itm_txt_w = 407
+  VAR: @partyindex = 0
+--------------------
+--- SPRITES frame 2969668 ---
+PAGE: 2
+  movesel: visible=false, opacity=255, x=240, y=92
+  pokeicon: visible=false, opacity=255, x=14, y=52
+  background: visible=true, opacity=255, x=0, y=0
+  pokemon: visible=true, opacity=255, x=8, y=112
+  movepresel: visible=false, opacity=255, x=240, y=92
+  overlay: visible=true, opacity=255, x=0, y=0
+  VAR: @_itm_marquee_x = 181
+  VAR: @page = 2
+  VAR: @_itm_in_subview = false
+  VAR: @_itm_pause_frames = 34
+  VAR: @_itm_txt_w = 407
+  VAR: @partyindex = 0
+--------------------
+--- SPRITES frame 2969701 ---
+PAGE: 2
+  movesel: visible=false, opacity=255, x=240, y=92
+  pokeicon: visible=false, opacity=255, x=14, y=52
+  background: visible=true, opacity=255, x=0, y=0
+  pokemon: visible=true, opacity=255, x=8, y=112
+  movepresel: visible=false, opacity=255, x=240, y=92
+  overlay: visible=true, opacity=255, x=0, y=0
+  VAR: @_itm_marquee_x = 181
+  VAR: @page = 2
+  VAR: @_itm_in_subview = true
+  VAR: @_itm_pause_frames = 1
+  VAR: @_itm_txt_w = 407
+  VAR: @partyindex = 0
+--------------------
+--- SPRITES frame 2969739 ---
+PAGE: 2
+  movesel: visible=false, opacity=255, x=240, y=92
+  pokeicon: visible=false, opacity=255, x=14, y=52
+  background: visible=true, opacity=255, x=0, y=0
+  pokemon: visible=true, opacity=255, x=8, y=112
+  movepresel: visible=false, opacity=255, x=240, y=92
+  overlay: visible=true, opacity=255, x=0, y=0
+  VAR: @_itm_marquee_x = 0
+  VAR: @page = 2
+  VAR: @_itm_in_subview = false
+  VAR: @_itm_pause_frames = 64
+  VAR: @_itm_txt_w = 407
+  VAR: @partyindex = 0
+--------------------
+--- SPRITES frame 2969751 ---
+PAGE: 2
+  movesel: visible=false, opacity=255, x=240, y=92
+  pokeicon: visible=false, opacity=255, x=14, y=52
+  background: visible=true, opacity=255, x=0, y=0
+  pokemon: visible=true, opacity=255, x=8, y=112
+  movepresel: visible=false, opacity=255, x=240, y=92
+  overlay: visible=true, opacity=255, x=0, y=0
+  VAR: @_itm_marquee_x = 0
+  VAR: @page = 2
+  VAR: @_itm_in_subview = true
+  VAR: @_itm_pause_frames = 52
+  VAR: @_itm_txt_w = 407
+  VAR: @partyindex = 0
+--------------------
+--- SPRITES frame 2969803 ---
+PAGE: 2
+  movesel: visible=false, opacity=255, x=240, y=92
+  pokeicon: visible=false, opacity=255, x=14, y=52
+  background: visible=true, opacity=255, x=0, y=0
+  pokemon: visible=true, opacity=255, x=8, y=112
+  movepresel: visible=false, opacity=255, x=240, y=92
+  overlay: visible=true, opacity=255, x=0, y=0
+  VAR: @_itm_marquee_x = 0
+  VAR: @page = 2
+  VAR: @_itm_in_subview = true
+  VAR: @_itm_pause_frames = 0
+  VAR: @_itm_txt_w = 407
+  VAR: @partyindex = 0
+--------------------
+--- SPRITES frame 2969976 ---
+PAGE: 2
+  movesel: visible=false, opacity=255, x=240, y=92
+  pokeicon: visible=false, opacity=255, x=14, y=52
+  background: visible=true, opacity=255, x=0, y=0
+  pokemon: visible=true, opacity=255, x=8, y=112
+  movepresel: visible=false, opacity=255, x=240, y=92
+  overlay: visible=true, opacity=255, x=0, y=0
+  VAR: @_itm_marquee_x = 16
+  VAR: @page = 2
+  VAR: @_itm_in_subview = false
+  VAR: @_itm_pause_frames = 0
+  VAR: @_itm_txt_w = 407
+  VAR: @partyindex = 0
+--------------------
+--- SPRITES frame 2970045 ---
+PAGE: 2
+  movesel: visible=false, opacity=255, x=240, y=92
+  pokeicon: visible=false, opacity=255, x=14, y=52
+  background: visible=true, opacity=255, x=0, y=0
+  pokemon: visible=true, opacity=255, x=8, y=112
+  movepresel: visible=false, opacity=255, x=240, y=92
+  overlay: visible=true, opacity=255, x=0, y=0
+  VAR: @_itm_marquee_x = 85
+  VAR: @page = 2
+  VAR: @_itm_in_subview = true
+  VAR: @_itm_pause_frames = 0
+  VAR: @_itm_txt_w = 407
+  VAR: @partyindex = 0
+--------------------
+--- SPRITES frame 2970098 ---
+PAGE: 2
+  movesel: visible=false, opacity=255, x=240, y=92
+  pokeicon: visible=false, opacity=255, x=14, y=52
+  background: visible=true, opacity=255, x=0, y=0
+  pokemon: visible=true, opacity=255, x=8, y=112
+  movepresel: visible=false, opacity=255, x=240, y=92
+  overlay: visible=true, opacity=255, x=0, y=0
+  VAR: @_itm_marquee_x = 138
+  VAR: @page = 2
+  VAR: @_itm_in_subview = true
+  VAR: @_itm_pause_frames = 0
+  VAR: @_itm_txt_w = 407
+  VAR: @partyindex = 0
+--------------------
+--- SPRITES frame 2970123 ---
+PAGE: 2
+  movesel: visible=false, opacity=255, x=240, y=92
+  pokeicon: visible=false, opacity=255, x=14, y=52
+  background: visible=true, opacity=255, x=0, y=0
+  pokemon: visible=true, opacity=255, x=8, y=112
+  movepresel: visible=false, opacity=255, x=240, y=92
+  overlay: visible=true, opacity=255, x=0, y=0
+  VAR: @_itm_marquee_x = 163
+  VAR: @page = 2
+  VAR: @_itm_in_subview = true
+  VAR: @_itm_pause_frames = 0
+  VAR: @_itm_txt_w = 407
+  VAR: @partyindex = 0
+--------------------
+--- SPRITES frame 2970200 ---
+PAGE: 2
+  movesel: visible=false, opacity=255, x=240, y=92
+  pokeicon: visible=false, opacity=255, x=14, y=52
+  background: visible=true, opacity=255, x=0, y=0
+  pokemon: visible=true, opacity=255, x=8, y=112
+  movepresel: visible=false, opacity=255, x=240, y=92
+  overlay: visible=true, opacity=255, x=0, y=0
+  VAR: @_itm_marquee_x = 181
+  VAR: @page = 2
+  VAR: @_itm_in_subview = true
+  VAR: @_itm_pause_frames = 1
+  VAR: @_itm_txt_w = 407
+  VAR: @partyindex = 0
+--------------------
+--- SPRITES frame 2970218 ---
+PAGE: 2
+  movesel: visible=false, opacity=255, x=240, y=92
+  pokeicon: visible=false, opacity=255, x=14, y=52
+  background: visible=true, opacity=255, x=0, y=0
+  pokemon: visible=true, opacity=255, x=8, y=112
+  movepresel: visible=false, opacity=255, x=240, y=92
+  overlay: visible=true, opacity=255, x=0, y=0
+  VAR: @_itm_marquee_x = 0
+  VAR: @page = 2
+  VAR: @_itm_in_subview = true
+  VAR: @_itm_pause_frames = 84
+  VAR: @_itm_txt_w = 407
+  VAR: @partyindex = 0
+--------------------

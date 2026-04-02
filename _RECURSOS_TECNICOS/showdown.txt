@@ -1,0 +1,71 @@
+Froakie (M) @ Mystic Water
+Ability: Torrent
+Level: 17
+Happiness: 223
+EVs: 13 HP / 16 Atk / 21 Def / 14 SpA / 13 SpD / 21 Spe
+Impish Nature
+IVs: 25 HP / 17 Atk / 2 Def / 23 SpA / 14 SpD / 13 Spe
+- Echoed Voice
+- Lick
+- Water Pulse
+- Confusion
+
+Gastly (F) @ Focus Sash
+Ability: Levitate
+Level: 17
+Happiness: 215
+EVs: 12 HP / 16 Atk / 21 Def / 11 SpA / 13 SpD / 21 Spe
+Quirky Nature
+IVs: 24 HP / 6 Atk / 13 Def / 15 SpA / 17 SpD / 3 Spe
+- Hypnosis
+- Lick
+- Acid
+- Mean Look
+
+Kadabra (M) @ Wise Glasses
+Ability: Synchronize
+Level: 16
+Happiness: 154
+EVs: 10 HP / 14 Atk / 12 Def / 9 SpA / 9 SpD / 13 Spe
+Adamant Nature
+IVs: 11 HP / 18 Atk / 24 Def / 2 SpA / 12 SpD / 10 Spe
+- Psywave
+- Meditate
+- Confusion
+- Hypnosis
+
+Fletchinder (F) @ Oran Berry
+Ability: Flame Body
+Level: 17
+Happiness: 193
+EVs: 12 HP / 18 Atk / 21 Def / 12 SpA / 13 SpD / 21 Spe
+Timid Nature
+IVs: 1 HP / 31 Atk / 19 Def / 16 SpA / 4 SpD / 26 Spe
+- Ember
+- Agility
+- Quick Attack
+- Peck
+
+Poochyena (M) @ 
+Ability: Poison Puppeteer
+Level: 15
+Happiness: 143
+EVs: 9 HP / 15 Atk / 11 Def / 9 SpA / 9 SpD / 12 Spe
+Lonely Nature
+IVs: 5 HP / 19 Atk / 26 Def / 28 SpA / 14 SpD / 9 Spe
+- Tackle
+- Howl
+- Poison Fang
+- Bite
+
+Pawmi (F) @ Oran Berry
+Ability: Natural Cure
+Level: 15
+Happiness: 151
+EVs: 11 HP / 16 Atk / 13 Def / 9 SpA / 11 SpD / 14 Spe
+Bashful Nature
+IVs: 13 HP / 2 Atk / 28 Def / 9 SpA / 19 SpD / 5 Spe
+- Karate Chop
+- U-turn
+- Thunder Shock
+- Bulldoze

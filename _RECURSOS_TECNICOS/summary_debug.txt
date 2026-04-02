@@ -1,0 +1,4 @@
+=== Summary methods encontrados en Kernel ===
+=== Clases definidas con 'Summary' ===
+PokemonSummary
+PokemonSummaryScene
