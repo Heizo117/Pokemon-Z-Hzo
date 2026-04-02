@@ -3511,7 +3511,22 @@ def spawn_heizo_final
     page = RPG::Event::Page.new
     page.graphic.character_name = "cazadorow"
     page.graphic.direction = 2
+    page.graphic.opacity = 255
     page.trigger = 0
+    
+    # Configuración de movimiento (comentado)
+    # page.move_type = 1        # 0=fijo, 1=aleatorio, 2=hacia jugador, 3=custom
+    # page.move_speed = 2       # Velocidad: 1=lento, 2=normal, 3=rapido, 4=muy rápido
+    # page.move_frequency = 2    # Frecuencia: 1=baja, 2=normal, 3=alta
+    # page.walk_anime = true   # Animación al caminar
+    # page.step_anime = false  # Animación al detenerse
+    # page.direction_fix = false # Fijar dirección
+    # page.through = false     # Atravesar
+    # page.always_on_top = false # Siempre encima
+    
+    # Configuración de sombra (comentado - para añadir sombra)
+    # page.graphic.character_name = "cazadorow/noShadow"  # Para quitar sombra
+    
     page.list = [
       RPG::EventCommand.new(355, 0, ["Kernel.pbHeizoDialog"]),
       RPG::EventCommand.new(0, 0, [])
@@ -3523,15 +3538,23 @@ def spawn_heizo_final
     $game_map.events[995] = ge
     ge.refresh
     
+    # Añadir sombra específica para Heizo
     if $scene.is_a?(Scene_Map) && $scene.spriteset
       begin
         vp = $scene.spriteset.instance_variable_get(:@viewport1)
         if vp
+          # Crear sprite y sombra al mismo tiempo
           spr = Sprite_Character.new(vp, ge)
           arr = $scene.spriteset.instance_variable_get(:@character_sprites)
           arr.push(spr) if arr
+          
+          # Crear sombra para Heizo inmediatamente
+          heizo_shadow = ShadowSprite.new(spr, ge, vp, $game_map, "HeizoNPC", true)
+          shadow_sprites = $scene.spriteset.instance_variable_get(:@shadowSprites) rescue []
+          shadow_sprites.push(heizo_shadow) if shadow_sprites
         end
-      rescue
+      rescue => e
+        Kernel.pbMessage("Error al crear sombra para Heizo: #{e.message}")
       end
     end
     
