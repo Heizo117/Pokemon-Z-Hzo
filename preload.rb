@@ -3208,171 +3208,162 @@ if !defined?($PC_Button_Injector_Hooked)
         if !@pc_patch_applied && defined?(PokemonScreen_Scene) && PokemonScreen_Scene.method_defined?(:pbStartScene)
           @pc_patch_applied = true
           
-          # Evaluar dinámicamente para evitar SyntaxError (class en método)
-          eval <<-'RUBY_CODE'
-            class ::PokeSelectionPCSprite < ::PokeSelectionConfirmCancelSprite
-              def initialize(viewport=nil, x=270, y=328)
-                super("PKM's", x, y, false, viewport)
+          [::PokemonScreen_Scene].each do |scene_class|
+            next unless scene_class.method_defined?(:pbStartScene)
+            scene_class.class_eval do
+              
+              # 1. Start Scene: Inyectar PC (6) y bajar SALIR (7)
+              unless method_defined?(:_pc_orig_pbStartScene)
+                alias _pc_orig_pbStartScene pbStartScene
+                alias _pc_orig_pbChangeSelection pbChangeSelection
+                alias _pc_orig_pbChoosePokemon pbChoosePokemon
+                alias _pc_orig_pbSetHelpText pbSetHelpText
               end
-            end
-
-            class ::PokemonScreen_Scene
-              def pbRefresh
-                @party = $Trainer.party
-                (0...6).each do |i|
-                  pkmn = @party[i]
-                  sprite = @sprites["pokemon#{i}"]
-                  if pkmn
-                    if !sprite.is_a?(PokeSelectionSprite)
-                      sprite.dispose if sprite
-                      @sprites["pokemon#{i}"] = PokeSelectionSprite.new(pkmn, i, @viewport)
-                    else
-                      sprite.pokemon = pkmn
-                    end
-                  else
-                    if !sprite.is_a?(PokeSelectionPlaceholderSprite)
-                      sprite.dispose if sprite
-                      @sprites["pokemon#{i}"] = PokeSelectionPlaceholderSprite.new(nil, i, @viewport)
-                    else
-                      # Placeholder simple
-                    end
-                  end
-                end
-              end
-
+              
+              # ACORTAR LA CAJA DE TEXTO PARA QUE QUEPA EL BOTON PC
               def pbSetHelpText(helptext)
+                _pc_orig_pbSetHelpText(helptext)
                 if @sprites["helpwindow"]
-                  @sprites["helpwindow"].text = helptext
                   @sprites["helpwindow"].width = 260
-                  @sprites["helpwindow"].visible = true
+                end
+              end
+              
+              def pbStartScene(party, *args)
+                _pc_orig_pbStartScene(party, *args)
+                
+                # Essentials Originalmente pone SALIR en "pokemon6" si no es multiselect
+                if !@multiselect
+                  @sprites["pokemon6"].dispose if @sprites["pokemon6"]
+                  
+                  # Botón PC (Posición 6) - restaurada posición y forma ancha original
+                  @sprites["pokemon6"] = ::PokeSelectionConfirmCancelSprite.new("PKM's", 270, 328, false, @viewport) rescue nil
+                  
+                  # Botón Salir (Posición 7) se queda en su sitio nativo a la derecha
+                  @sprites["pokemon7"] = ::PokeSelectionCancelSprite.new(@viewport) rescue nil
+                  
+                  @sprites["pokemon6"].selected = false if @sprites["pokemon6"].respond_to?(:selected=)
+                  @sprites["pokemon7"].selected = false if @sprites["pokemon7"].respond_to?(:selected=)
                 end
               end
 
-              def pbStartScene(party, starthelptext, annotations=nil, multiselect=false)
-                @sprites = {}
-                @party = party
-                @viewport = ::Viewport.new(0, 0, ::Graphics.width, ::Graphics.height)
-                @viewport.z = 99999
-                @multiselect = multiselect
-                addBackgroundPlane(@sprites, "partybg", "partybg", @viewport)
-                @sprites["messagebox"] = ::Window_AdvancedTextPokemon.new("")
-                @sprites["helpwindow"] = ::Window_UnformattedTextPokemon.new(starthelptext)
-                @sprites["messagebox"].viewport = @viewport
-                @sprites["messagebox"].visible = false
-                @sprites["messagebox"].letterbyletter = true
-                @sprites["helpwindow"].viewport = @viewport
-                @sprites["helpwindow"].visible = true
-                pbBottomLeftLines(@sprites["messagebox"], 2)
-                pbBottomLeftLines(@sprites["helpwindow"], 1)
-                pbSetHelpText(starthelptext)
-                (0...6).each do |i|
-                  if @party[i]
-                    @sprites["pokemon#{i}"] = PokeSelectionSprite.new(@party[i], i, @viewport)
-                  else
-                    @sprites["pokemon#{i}"] = PokeSelectionPlaceholderSprite.new(@party[i], i, @viewport)
-                  end
-                  @sprites["pokemon#{i}"].text = annotations[i] if annotations
-                end
-                
-                # Botón PC (Añadido antes del fade)
-                @sprites["pokemon_pc"] = ::PokeSelectionPCSprite.new(@viewport, 280, 328)
-                @sprites["pokemon_pc"].selected = false
-                @sprites["pokemon_pc"].visible = !multiselect
-                
-                if @multiselect
-                  @sprites["pokemon6"] = PokeSelectionConfirmSprite.new(@viewport)
-                  @sprites["pokemon7"] = PokeSelectionCancelSprite2.new(@viewport)
-                else
-                  @sprites["pokemon6"] = PokeSelectionCancelSprite.new(@viewport)
-                  @sprites["pokemon6"].selected = false
-                end
-                @activecmd = 0
-                @sprites["pokemon0"].selected = true
-                pbFadeInAndShow(@sprites) { update }
-              end
-
+              # 2. Navegación en Rejilla 2-Columnas Adaptada (7 botones -> 8 botones)
               def pbChangeSelection(key, currentsel)
+                return _pc_orig_pbChangeSelection(key, currentsel) if @multiselect
+                
+                # Manual overrides for PC (6) and Salir (7) to make navigation pixel-perfect
+                pkmn_count = @party.length
                 res = currentsel
+                
                 case key
                 when ::Input::LEFT
-                  if currentsel == (@multiselect ? 8 : 7)
-                    res = @multiselect ? 7 : 6
+                  if res == 7; res = 6
+                  elsif res == 6; res = 7
                   else
-                    res -= 1
+                    begin; res -= 1; end while res > 0 && res < 6 && !@party[res]
+                    res = 7 if res < 0
                   end
                 when ::Input::RIGHT
-                  if currentsel == (@multiselect ? 7 : 6)
-                    res = @multiselect ? 8 : 7
+                  if res == 6; res = 7
+                  elsif res == 7; res = 6
                   else
-                    res += 1
+                    begin; res += 1; end while res < 6 && !@party[res]
+                    res = 6 if res >= pkmn_count && res < 6
                   end
                 when ::Input::UP
-                  if currentsel == (@multiselect ? 7 : 6)
+                  if res == 6
                     res = 4
-                  elsif currentsel == (@multiselect ? 8 : 7)
+                    res = 2 if !@party[res]
+                    res = 0 if !@party[res]
+                  elsif res == 7
                     res = 5
+                    res = 3 if !@party[res]
+                    res = 1 if !@party[res]
+                    res = 0 if !@party[res]
                   else
-                    res -= 2
+                    begin; res -= 2; end while res > 0 && res < 6 && !@party[res]
+                    res = 6 if res < 0 && currentsel % 2 == 0
+                    res = 7 if res < 0 && currentsel % 2 != 0
                   end
                 when ::Input::DOWN
-                  if currentsel == 4 || currentsel == 5
-                    res = @multiselect ? 7 : 6
+                  if res == 6
+                    res = 0
+                  elsif res == 7
+                    res = 1
+                    res = 0 if !@party[res]
                   else
                     res += 2
+                    if res >= 6 || !@party[res]
+                      res = (currentsel % 2 == 0) ? 6 : 7
+                    end
                   end
                 end
                 
-                # Saltar huecos vacíos
-                max_pkmn = ($Trainer.party.length - 1)
-                if res >= 0 && res < 6 && res > max_pkmn
-                  if key == ::Input::RIGHT || key == ::Input::DOWN
-                    res = 6 # Salto al PC
-                  elsif key == ::Input::LEFT || key == ::Input::UP
-                    res = max_pkmn # Vuelta al último mon
-                  end
-                end
-
-                # Límites estrictos
-                max_idx = @multiselect ? 8 : 7
-                res = 0 if res < 0
-                res = max_idx if res > max_idx
                 return res
               end
 
-              alias _pc_pbChoosePokemon pbChoosePokemon rescue nil
-              def pbChoosePokemon(switching=false, initialsel=-1)
-                (0...6).each do |idx|
-                  present = @sprites["pokemon#{idx}"]
-                  present.preselected = (switching && idx==@activecmd) if present
-                  present.switching = switching if present
+              # 3. Bucle de Elección de Combate y Fuera de él
+              def pbChoosePokemon(switching=false,initialsel=-1)
+                return _pc_orig_pbChoosePokemon(switching, initialsel) if @multiselect
+                
+                for i in 0...6
+                  @sprites["pokemon#{i}"].preselected=(switching && i==@activecmd) if @sprites["pokemon#{i}"]
+                  @sprites["pokemon#{i}"].switching=switching if @sprites["pokemon#{i}"]
                 end
-                @activecmd = initialsel if initialsel >= 0
+                @activecmd=initialsel if initialsel>=0
                 pbRefresh
                 loop do
-                  ::Graphics.update; ::Input.update; self.update
-                  oldsel = @activecmd
-                  key = -1; key = ::Input::DOWN if ::Input.repeat?(::Input::DOWN); key = ::Input::RIGHT if ::Input::repeat?(::Input::RIGHT)
-                  key = ::Input::LEFT if ::Input::repeat?(::Input::LEFT); key = ::Input::UP if ::Input::repeat?(::Input::UP)
-                  @activecmd = pbChangeSelection(key, @activecmd) if key >= 0
-                  if @activecmd != oldsel
+                  ::Graphics.update
+                  ::Input.update
+                  self.update
+                  oldsel=@activecmd
+                  key=-1
+                  key=::Input::DOWN if ::Input.repeat?(::Input::DOWN)
+                  key=::Input::RIGHT if ::Input.repeat?(::Input::RIGHT)
+                  key=::Input::LEFT if ::Input.repeat?(::Input::LEFT)
+                  key=::Input::UP if ::Input.repeat?(::Input::UP)
+                  if key>=0
+                    @activecmd=pbChangeSelection(key,@activecmd)
+                  end
+                  if @activecmd!=oldsel # Changing selection
                     pbPlayCursorSE()
-                    (0...6).each { |idx| @sprites["pokemon#{idx}"].selected = (idx == @activecmd) if @sprites["pokemon#{idx}"] }
-                    if @multiselect
-                      @sprites["pokemon6"].selected = (@activecmd == 6) if @sprites["pokemon6"]
-                      @sprites["pokemon7"].selected = (@activecmd == 7) if @sprites["pokemon7"]
-                      @sprites["pokemon8"].selected = (@activecmd == 8) if @sprites["pokemon8"]
-                    else
-                      @sprites["pokemon_pc"].selected = (@activecmd == 6) if @sprites["pokemon_pc"]
-                      @sprites["pokemon6"].selected = (@activecmd == 7) if @sprites["pokemon6"]
+                    for i in 0...8
+                      @sprites["pokemon#{i}"].selected=(i==@activecmd) if @sprites["pokemon#{i}"]
                     end
                   end
-                  return -1 if ::Input.trigger?(::Input::B)
+                  if ::Input.trigger?(::Input::B)
+                    return -1
+                  end
                   if ::Input.trigger?(::Input::C)
-                    pc_idx = @multiselect ? 7 : 6; exit_idx = @multiselect ? 8 : 7
-                    if @activecmd == pc_idx
+                    if @activecmd == 6 # BOTÓN PC
                       pbPlayDecisionSE()
-                      pbFadeOutIn(99999) { screen = ::PokemonStorageScreen.new(::PokemonStorageScene.new, $PokemonStorage); screen.pbStartScreen(2) }
-                      # UNLOCK SYSTEM: Recuperar control al salir de la caja PC
+                      pbFadeOutIn(99999) { 
+                        screen = ::PokemonStorageScreen.new(::PokemonStorageScene.new, $PokemonStorage)
+                        screen.pbStartScreen(2) 
+                      }
+                      # Sincronizar el party de la batalla si venimos de un combate
+                      if $current_battle_for_ui && $current_battle_for_ui.respond_to?(:pbParty)
+                        bp = $current_battle_for_ui.pbParty(0)
+                        for i in 0...6; bp[i] = $Trainer.party[i] if $Trainer.party[i]; end
+                      end
+                      @party = $Trainer.party
+                      
+                      # REFRESCADO SEGURO: Destruir y rehacer los sprites del equipo 
+                      # para evitar el bug de texturas fantasmas (ej. sale un Alakazam pero es un Venusaur)
+                      (0...6).each do |i|
+                        if @sprites["pokemon#{i}"]
+                          @sprites["pokemon#{i}"].dispose
+                        end
+                        if @party[i]
+                          # Generar el sprite nativo con todos sus datos frescos
+                          @sprites["pokemon#{i}"] = ::PokeSelectionSprite.new(@party[i], i, @viewport) rescue nil
+                        else
+                          @sprites["pokemon#{i}"] = ::PokeSelectionPlaceholderSprite.new(@party[i], i, @viewport) rescue nil
+                        end
+                        # Mantener el estado de selección o inactividad si aplica
+                        @sprites["pokemon#{i}"].selected = (i == @activecmd) if @sprites["pokemon#{i}"]
+                      end
+                      
+                      # Unlock safety
                       if $game_player
                         $game_player.straighten rescue nil
                         $game_player.force_move_route(::RPG::MoveRoute.new) rescue nil
@@ -3385,16 +3376,18 @@ if !defined?($PC_Button_Injector_Hooked)
                         interp.instance_variable_set(:@move_route_waiting, false) rescue nil
                       end
                       $game_map.need_refresh = true rescue nil if $game_map
+                      
                       pbRefresh; next
                     end
-                    return -1 if @activecmd == exit_idx
+                    
                     pbPlayDecisionSE()
-                    return @activecmd if @party[@activecmd]
+                    return (@activecmd==7) ? -1 : @activecmd
                   end
                 end
               end
+              
             end
-          RUBY_CODE
+          end
         end
       end
     end
