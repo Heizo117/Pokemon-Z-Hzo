@@ -3566,11 +3566,122 @@ end
 # Funcion de dialogo para Heizo
 module Kernel
   def self.pbHeizoDialog
-    if pbConfirmMessage(_INTL("Hola soy Heizo el creador del mod. ¿Quieres un combate?"))
-      pbMessage(_INTL("¡Perfecto! Prepárate..."))
-      # Aquí irá el combate mañana
+    # Presentación seria y cruda
+    pbMessage(_INTL("..."))
+    pbMessage(_INTL("Soy Heizo. El creador de este Mod."))
+    pbMessage(_INTL("No vine a hacer amigos. Vine a desafiar."))
+    pbMessage(_INTL("Tengo acceso al mercado negro... objetos que tú nunca verás."))
+    pbMessage(_INTL("¿Te atreves a enfrentarte a mí, o tienes miedo de fracasar?"))
+    
+    if pbConfirmMessage(_INTL("Acepto el desafío"))
+      pbMessage(_INTL("Bien. Veremos si tienes lo que hace falta."))
+      pbMessage(_INTL("Prepárate. Esto no será un combate amistoso."))
+      
+      # Iniciar combate real con Charizard custom
+      pbMessage(_INTL("¡Heizo envía a su Charizard legendario!"))
+      pbMessage(_INTL("¡Charizard, ve y demuestra tu poder!"))
+      
+      # Calcular el nivel más alto del equipo del jugador
+      max_level = $Trainer.party.map { |p| p.level }.max || 5
+      
+      # Crear Charizard personalizado para Heizo con el nivel dinámico
+      heizo_charizard = PokeBattle_Pokemon.new(:CHARIZARD, max_level, $Trainer)
+      
+      # Establecer tipos personalizados (Fuego / Dragón)
+      fire_type = getID(PBTypes, :FIRE)
+      dragon_type = getID(PBTypes, :DRAGON)
+      heizo_charizard.instance_variable_set(:@type1, fire_type)
+      heizo_charizard.instance_variable_set(:@type2, dragon_type)
+      heizo_charizard.instance_variable_set(:@custom_type1, fire_type)
+      heizo_charizard.instance_variable_set(:@custom_type2, dragon_type)
+      
+      heizo_charizard.setItem(:CHARIZARDITEY)  # Mega Stone Y
+      heizo_charizard.form = 2  # Forma Mega Charizard Y
+      
+      # Establecer los ataques específicos (8 movimientos en total):
+      
+      heizo_charizard.moves[0] = PBMove.new(getConst(PBMoves,:FIREFANG))
+      heizo_charizard.moves[1] = PBMove.new(getConst(PBMoves,:FLAMETHROWER))
+      heizo_charizard.moves[2] = PBMove.new(getConst(PBMoves,:DRAGONCLAW))
+      heizo_charizard.moves[3] = PBMove.new(getConst(PBMoves,:DRAGONPULSE))
+      
+      # Movimientos 5-8 (adicionales):
+      heizo_charizard.moves[4] = PBMove.new(getConst(PBMoves,:FLAMETHROWER))
+      heizo_charizard.moves[5] = PBMove.new(getConst(PBMoves,:DRAGONTAIL))
+      heizo_charizard.moves[6] = PBMove.new(getConst(PBMoves,:FIRESPIN))
+      heizo_charizard.moves[7] = PBMove.new(getConst(PBMoves,:HEATWAVE))
+      
+      # Establecer PP máximos
+      heizo_charizard.moves[0].pp = 15   # Fire Fang - 15 PP
+      heizo_charizard.moves[1].pp = 15   # Flamethrower - 15 PP
+      heizo_charizard.moves[2].pp = 15   # Dragon Claw - 15 PP
+      heizo_charizard.moves[3].pp = 10   # Dragon Pulse - 10 PP
+      heizo_charizard.moves[4].pp = 15   # Flamethrower - 15 PP
+      heizo_charizard.moves[5].pp = 10   # Dragon Tail - 10 PP
+      heizo_charizard.moves[6].pp = 15   # Fire Spin - 15 PP
+      heizo_charizard.moves[7].pp = 10   # Heat Wave - 10 PP
+      
+      # Estadísticas competitivas
+      heizo_charizard.iv[0] = 31  # HP
+      heizo_charizard.iv[1] = 31  # Attack
+      heizo_charizard.iv[2] = 31  # Defense
+      heizo_charizard.iv[3] = 31  # Special Attack
+      heizo_charizard.iv[4] = 31  # Special Defense
+      heizo_charizard.iv[5] = 31  # Speed
+      
+      heizo_charizard.ev[0] = 0   # HP
+      heizo_charizard.ev[1] = 252 # Attack (máximo)
+      heizo_charizard.ev[2] = 0   # Defense
+      heizo_charizard.ev[3] = 252 # Special Attack (máximo)
+      heizo_charizard.ev[4] = 0   # Special Defense
+      heizo_charizard.ev[5] = 6   # Speed (restante)
+      
+      heizo_charizard.setNature(getID(PBNatures,:ADAMANT))
+      heizo_charizard.setAbility(0)
+      heizo_charizard.calcStats
+      
+      # Iniciar combate contra Heizo (Entrenador Custom)
+      heizo_opponent = PokeBattle_Trainer.new("Heizo", 0) 
+      heizo_opponent.party = [heizo_charizard]
+      
+      decision = 0
+      # Intentar obtener música de combate; si falla usar una genérica
+      bgm = (pbGetWildBattleBGM(:CHARIZARD) rescue nil) || "Battle Trainer"
+      
+      pbBattleAnimation(bgm) { 
+        scene = pbNewBattleScene
+        battle = PokeBattle_Battle.new(scene, $Trainer.party, heizo_opponent.party, $Trainer, heizo_opponent)
+        battle.internalbattle = true
+        pbPrepareBattle(battle)
+        pbSceneStandby {
+          decision = battle.pbStartBattle
+        }
+      }
+      
+      # Después del combate
+      if decision == 1 # Victoria
+        pbMessage(_INTL("Combate terminado. Como era de esperar, has ganado."))
+        pbMessage(_INTL("Eres más fuerte de lo que pensaba... impresionante."))
+        pbMessage(_INTL("Como recompensa por tu valía, te doy acceso a mi mercado negro."))
+        
+        # Dar objetos especiales del mercado negro
+        pbReceiveItem(PBItems::MASTER_BALL, 5)
+        pbReceiveItem(PBItems::FULL_RESTORE, 3)
+        pbReceiveItem(PBItems::RARE_CANDY, 10)
+        
+        pbMessage(_INTL("Has recibido: 5 Master Balls, 3 Full Restores y 10 Rare Candys"))
+        pbMessage(_INTL("Usa bien estos objetos, son muy difíciles de conseguir."))
+        pbMessage(_INTL("Vuelve cuando quieras más desafíos... si te atreves."))
+      else
+        pbMessage(_INTL("Combate terminado. Has fracasado."))
+        pbMessage(_INTL("Vuelve cuando realmente estés preparado."))
+      end
+      
     else
-      pbMessage(_INTL("Vuelve cuando quieras."))
+      pbMessage(_INTL("..."))
+      pbMessage(_INTL("Como era de esperar. La mayoría no tiene lo necesario."))
+      pbMessage(_INTL("Vuelve cuando estés preparado para un verdadero desafío."))
+      pbMessage(_INTL("...si es que algún día te atreves."))
     end
   end
 end
