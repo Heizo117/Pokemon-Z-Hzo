@@ -3560,6 +3560,107 @@ end
 # Funcion de dialogo para Heizo
 module Kernel
   def self.pbHeizoDialog
+    # 1. Definir HeizoBattle de forma estable
+    Object.const_set(:HeizoBattle, Class.new(::PokeBattle_Battle) {}) unless defined?(::HeizoBattle)
+
+    # 2. Hook de Diálogo Robusto a nivel de Battler (v5 - Versión con Memoria Antiduplicados)
+    battler_class = defined?(::PokeBattle_Battler) ? ::PokeBattle_Battler : (defined?(::Battle::Battler) ? ::Battle::Battler : nil)
+    if battler_class && !battler_class.method_defined?(:pbFaint_heizo_v5)
+      battler_class.class_eval do
+        alias pbFaint_heizo_v5 pbFaint
+        def pbFaint(*args)
+          # 1. Ejecutar desmayo original primero
+          pbFaint_heizo_v5(*args)
+          
+          # 2. Verificación de combate de Heizo y bando rival
+          return if !@battle || !@battle.instance_variable_get(:@heizo_battle) || self.index % 2 == 0
+          
+          # 3. Contar derrotados actualmente
+          party = @battle.pbParty(1)
+          derrotados = 0
+          for p in party; derrotados += 1 if p && p.hp <= 0; end
+          
+          # 4. SISTEMA ANTIDUPLICADOS: Solo disparar si el contador ha subido
+          # Esto evita que se repita el diálogo si el motor llama a pbFaint varias veces para el mismo Pokémon
+          last_processed = @battle.instance_variable_get(:@heizo_last_count) || 0
+          return if derrotados <= last_processed
+          @battle.instance_variable_set(:@heizo_last_count, derrotados)
+          
+          # 5. Selección de mensaje (PRIORIDAD: ESPECIES)
+          char_id = getID(PBSpecies, :CHARIZARD) rescue nil
+          ven_id  = getID(PBSpecies, :VENUSAUR) rescue nil
+          gen_id  = getID(PBSpecies, :GENGAR) rescue nil
+          
+          sp = self.pokemon ? self.pokemon.species : (self.respond_to?(:species) ? self.species : 0)
+          msg = nil
+          
+          # Prioridad absoluta a las frases de especie solicitadas
+          case sp
+          when char_id; msg = "Heizo: Ni siquiera las llamas del inframundo han bastado... empiezas a interesarme."
+          when ven_id;  msg = "Heizo: Has superado incluso a mis toxinas."
+          when gen_id;  msg = "Heizo: ¿Crees que derrotar a una sombra te hace fuerte? Solo estás retrasando lo inevitable."
+          end
+          
+          # Si no es ninguna de esas especies (fallback de seguridad por conteo)
+          if msg.nil?
+            if derrotados == party.length
+              msg = "Heizo: Increíble... me has vencido limpiamente."
+            elsif derrotados == 1
+              msg = "Heizo: ¡Vaya! No esperaba que derrotaras a mi primer Pokémon tan rápido."
+            end
+          end
+
+          # 6. Mostrar Diálogo Cinemático
+          if msg
+            if @battle.scene.respond_to?(:pbShowOpponent)
+              @battle.scene.pbShowOpponent(0) rescue nil
+              @battle.pbDisplayPaused(_INTL(msg))
+              @battle.scene.pbHideOpponent rescue nil
+            else
+              @battle.pbDisplayPaused(_INTL(msg))
+            end
+            ::Graphics.update; pbWait(5) if defined?(pbWait)
+          end
+        end
+      end
+    end
+
+    # 3. Hook de Entrada de Pokémon (v1 - Diálogos al salir)
+    if !::PokeBattle_Battle.method_defined?(:pbSendOut_heizo_v1)
+      ::PokeBattle_Battle.class_eval do
+        alias pbSendOut_heizo_v1 pbSendOut
+        def pbSendOut(index, pokemon)
+          # Ejecutar el comando de salida original
+          pbSendOut_heizo_v1(index, pokemon)
+          
+          # Solo si es combate de Heizo y es un Pokémon rival (índice impar)
+          if self.instance_variable_get(:@heizo_battle) && index % 2 != 0
+            char_id = getID(PBSpecies, :CHARIZARD) rescue nil
+            ven_id  = getID(PBSpecies, :VENUSAUR) rescue nil
+            gen_id  = getID(PBSpecies, :GENGAR) rescue nil
+            
+            msg = nil
+            case pokemon.species
+            when char_id; msg = "Heizo: ¡Charizard! ¡Surca los cielos y reduce todo a cenizas con tu fuego ancestral!"
+            when ven_id;  msg = "Heizo: ¡Venusaur! ¡Despliega tus toxinas y que la naturaleza reclame lo que es suyo!"
+            when gen_id;  msg = "Heizo: ¡Gengar! ¡Sal de las sombras y arrastra a nuestro oponente a la oscuridad eterna!"
+            end
+            
+            if msg
+              if @scene.respond_to?(:pbShowOpponent)
+                @scene.pbShowOpponent(0) rescue nil
+                pbDisplayPaused(_INTL(msg))
+                @scene.pbHideOpponent rescue nil
+              else
+                pbDisplayPaused(_INTL(msg))
+              end
+              ::Graphics.update; pbWait(5) if defined?(pbWait)
+            end
+          end
+        end
+      end
+    end
+
     heizo_event = $game_map.events[995]
     
     # ESTADO 0: Presentación inicial
@@ -3674,7 +3775,10 @@ module Kernel
           black_vp.dispose
           
           scene = pbNewBattleScene
-          battle = PokeBattle_Battle.new(scene, $Trainer.party, heizo_opponent.party, $Trainer, heizo_opponent)
+          # USAR LA ETIQUETA HEIZO BATTLE DESDE EL PRIMER COMBATE
+          battle = HeizoBattle.new(scene, $Trainer.party, heizo_opponent.party, $Trainer, heizo_opponent)
+          battle.instance_variable_set(:@heizo_battle, true) # ETIQUETA ROBUSTA
+          battle.instance_variable_set(:@endspeech, "No es posible... mi magnífico equipo ha caído. No esperaba que alguien pudiera superar tal grado de maestría.") # FIX CAJA VACIA
           battle.internalbattle = true
           pbPrepareBattle(battle)
           pbSceneStandby { decision = battle.pbStartBattle }
@@ -3689,15 +3793,15 @@ module Kernel
         heizo_event.straighten if heizo_event
         
         if decision == 1 # Victoria
-          pbMessage(_INTL("Combate terminado. Como era de esperar, has ganado."))
-          pbMessage(_INTL("Eres más fuerte de lo que pensaba... impresionante."))
-          pbMessage(_INTL("Me has convencido. A partir de ahora, tendré mis mejores mercancías listas para ti."))
-          pbMessage(_INTL("Me esperaré aquí tomando un hidromiel por si necesitas algo del mercado negro."))
+          pbMessage(_INTL("Heizo: Combate terminado. Como era de esperar, has ganado."))
+          pbMessage(_INTL("Heizo: Eres más fuerte de lo que pensaba... impresionante."))
+          pbMessage(_INTL("Heizo: Me has convencido. A partir de ahora, tendré mis mejores mercancías listas para ti."))
+          pbMessage(_INTL("Heizo: Me esperaré aquí tomando un hidromiel por si necesitas algo del mercado negro."))
           
           # Cambiamos a Estado 2 (Victoria/Tienda desbloqueada)
           $game_variables[995] = 2 
         else
-          pbMessage(_INTL("Bien jugado. He ganado esta vez."))
+          pbMessage(_INTL("Heizo: Bien jugado. He ganado esta vez."))
         end
         
         # Volver a la mesa y forzar posición inicial
@@ -3821,15 +3925,19 @@ module Kernel
           decision = 0
           pbBattleAnimation(bgm) { 
             black_vp.dispose
-            scene = pbNewBattleScene; battle = PokeBattle_Battle.new(scene, $Trainer.party, heizo_opponent.party, $Trainer, heizo_opponent)
+            scene = pbNewBattleScene
+            # USAR LA ETIQUETA HEIZO BATTLE PARA LOS DIÁLOGOS
+            battle = HeizoBattle.new(scene, $Trainer.party, heizo_opponent.party, $Trainer, heizo_opponent)
+            battle.instance_variable_set(:@heizo_battle, true) # ETIQUETA ROBUSTA
+            battle.instance_variable_set(:@endspeech, "¿Cómo ha podido ser esto...? Mi equipo magnífico ha sido derrotado. Me has dejado sin palabras... por ahora.") # FIX CAJA VACIA
             battle.internalbattle = true; pbPrepareBattle(battle); pbSceneStandby { decision = battle.pbStartBattle }
           }
           
           # Resultado
           if decision == 1
-            pbMessage(_INTL("Combate terminado. Sigo sin ser rival para ti..."))
+            pbMessage(_INTL("Heizo: Combate terminado. Sigo sin ser rival para ti..."))
           else
-            pbMessage(_INTL("Bien jugado. He ganado esta vez."))
+            pbMessage(_INTL("Heizo: Bien jugado. He ganado esta vez."))
           end
           # Volver a la mesa
           if heizo_event && h_pos; heizo_event.moveto(h_pos[0], h_pos[1]); heizo_event.instance_variable_set(:@direction, h_pos[2]); end
