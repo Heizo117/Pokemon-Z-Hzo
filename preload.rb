@@ -1106,14 +1106,33 @@ module Graphics
                   pkmnname = pokemon.name
                   movename = PBMoves.getName(move)
                   # Intentar aprender en cualquiera de los 8 slots
-                  # pokemon.pbLearnMove devuelve false si ya lo conoce o si los 8 estan llenos
                   if pokemon.pbLearnMove(move)
                     pbDisplayPaused(_INTL("{1} ha aprendido {2}!", pkmnname, movename))
-                  else
-                    # Ya lo conocia o los 8 slots estan llenos
-                    unless pokemon.hasMove?(move)
-                      pbDisplayPaused(_INTL("{1} ya tiene 8 movimientos.", pkmnname))
-                      pbDisplayPaused(_INTL("Gestiona sus movimientos en la Pestana 2."))
+                    return
+                  elsif pokemon.hasMove?(move)
+                    return
+                  end
+                  
+                  # YA TIENE 8 MOVIMIENTOS EN COMBATE, BUCLE DE DECISIÓN DE OLVIDAR
+                  loop do
+                    pbDisplayPaused(_INTL("{1} está intentando aprender {2}.", pkmnname, movename))
+                    pbDisplayPaused(_INTL("Pero {1} ya conoce 8 movimientos.", pkmnname))
+                    if pbDisplayConfirm(_INTL("¿Quieres remplazar un movimiento por {1}?", movename))
+                      pbDisplayPaused(_INTL("¿Qué movimiento debería olvidar?"))
+                      forgetmove = pbForgetMove(pokemon, move)
+                      if forgetmove >= 0
+                        oldmovename = PBMoves.getName(pokemon.moves[forgetmove].id)
+                        pokemon.moves[forgetmove] = PBMove.new(move)
+                        pbDisplayPaused(_INTL("1, 2, y... ... ... ¡Puf!"))
+                        pbDisplayPaused(_INTL("{1} ha olvidado cómo usar {2}. Y... ¡{1} ha aprendido {3}!", pkmnname, oldmovename, movename))
+                        return
+                      elsif pbDisplayConfirm(_INTL("¿Prefieres que {1} no aprenda {2}?", pkmnname, movename))
+                        pbDisplayPaused(_INTL("{1} no ha aprendido {2}.", pkmnname, movename))
+                        return
+                      end
+                    elsif pbDisplayConfirm(_INTL("¿Prefieres que {1} no aprenda {2}?", pkmnname, movename))
+                      pbDisplayPaused(_INTL("{1} no ha aprendido {2}.", pkmnname, movename))
+                      return
                     end
                   end
                 end
