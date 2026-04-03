@@ -3663,8 +3663,9 @@ module Kernel
 
     heizo_event = $game_map.events[995]
     
-    # ESTADO 0: Presentación inicial
     if $game_variables[995] == 0
+      # --- MÚSICA DE ENCUENTRO ---
+      pbBGMPlay("Acertijos") # MÚSICA PARA DIÁLOGOS DE HEIZO
       # Capturar ubicación del encuentro original
       $game_variables[996] = $game_map.map_id
       $game_variables[997] = [$game_player.x, $game_player.y, $game_player.direction]
@@ -3685,11 +3686,14 @@ module Kernel
         pbMessage(_INTL("Como era de esperar. La mayoría no tiene lo necesario."))
         pbMessage(_INTL("Vuelve cuando estés preparado para un verdadero desafío."))
         pbMessage(_INTL("...si es que algún día te atreves."))
+        $game_map.autoplay # Restaurar música del mapa al rechazar
       end
+      $game_map.autoplay if $game_variables[995] == 1 # Si aceptó, restaurar también (el combate la cambiará)
       return
     
     # ESTADO 1: Esperando confirmación para luchar
     elsif $game_variables[995] == 1
+      pbBGMPlay("Acertijos") # MÚSICA PARA DIÁLOGOS
       if pbConfirmMessage(_INTL("¿Estás listo para el combate?"))
         pbMessage(_INTL("Bien. Veamos si tu preparación ha valido la pena."))
         
@@ -3763,7 +3767,7 @@ module Kernel
         heizo_opponent.party = [heizo_charizard]
         
         # 4. Iniciar animación y combate
-        bgm = (pbGetWildBattleBGM(:CHARIZARD) rescue nil) || "Battle Trainer"
+        bgm = "CombateLider" # MÚSICA DE COMBATE LÍDER
         $PokemonGlobal.nextBattleBack = "Pantano"
         
         $game_player.straighten
@@ -3813,10 +3817,12 @@ module Kernel
         return
       else
         pbMessage(_INTL("No me hagas perder el tiempo. Estaré aquí tomando un hidromiel, avisa cuando estés preparado."))
+        $game_map.autoplay # Restaurar música del mapa al no querer combatir
         return
       end
     # ESTADO 2: MENÚ POST-DERROTA (Elección entre Luchar o Comprar)
     elsif $game_variables[995] == 2
+      pbBGMPlay("Acertijos") # MÚSICA PARA DIÁLOGOS
         # Aseguramos posición inicial en la mesa
         h_pos = $game_variables[998]
         if heizo_event && h_pos
@@ -3919,7 +3925,7 @@ module Kernel
           
           heizo_opponent = PokeBattle_Trainer.new("Heizo", 35)
           heizo_opponent.party = [heizo_charizard, heizo_venusaur, heizo_gengar]
-          bgm = (pbGetWildBattleBGM(:CHARIZARD) rescue nil) || "Battle Trainer"
+          bgm = "CombateLider" # MÚSICA DE COMBATE LÍDER
           $PokemonGlobal.nextBattleBack = "Pantano"
           
           decision = 0
@@ -4003,9 +4009,11 @@ module Kernel
           $game_temp.mart_prices = nil # Limpiar después de usar
           
           pbMessage(_INTL("Heizo: Vuelve cuando quieras."))
+          $game_map.autoplay # Restaurar música del mapa al salir de la tienda
           return
         else
           pbMessage(_INTL("Heizo: Estaré aquí terminando mi hidromiel. No me hagas esperar demasiado."))
+          $game_map.autoplay # Restaurar música del mapa al despedirse
           return
         end
     end
