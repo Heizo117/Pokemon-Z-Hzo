@@ -3557,6 +3557,65 @@ def spawn_heizo_final
   end
 end
 
+# ==============================================================
+# HOOKS DE BATALLA (Soporte 8 Movimientos en Combate - Aprendizaje y Lógica)
+# ==============================================================
+if defined?(PokeBattle_Battle) && !PokeBattle_Battle.method_defined?(:pbLearnMove_orig_8moves_battle)
+  PokeBattle_Battle.class_eval do
+    # Hook para aprender movimientos en combate (Al subir de Nivel)
+    alias pbLearnMove_orig_8moves_battle pbLearnMove
+    def pbLearnMove(pkmnIndex,move)
+      pokemon = @party1[pkmnIndex]
+      return if !pokemon
+      pkmnname = pokemon.name
+      battler = pbFindPlayerBattler(pkmnIndex)
+      movename = PBMoves.getName(move)
+      
+      # Comprobar si ya lo tiene, o si tiene espacio (8 espacios en vez de 4)
+      for i in 0...8
+        return if pokemon.moves[i] && pokemon.moves[i].id == move
+        if !pokemon.moves[i] || pokemon.moves[i].id == 0
+          pokemon.moves[i] = PBMove.new(move)
+          battler.moves[i] = PokeBattle_Move.pbFromPBMove(self,pokemon.moves[i]) if battler
+          pbDisplayPaused(_INTL("¡{1} ha aprendido {2}!",pkmnname,movename))
+          return
+        end
+      end
+      
+      # Si tiene 8/8 llenos, pedir olvidar usando la UI adaptada
+      loop do
+        pbDisplayPaused(_INTL("{1} quiere aprender el movimiento {2}.",pkmnname,movename))
+        pbDisplayPaused(_INTL("Pero {1} ya conoce 8 movimientos.",pkmnname))
+        
+        if pbDisplayConfirm(_INTL("¿Quieres sustituir uno de esos movimientos por {1}?",movename))
+          pbDisplayPaused(_INTL("¿Qué movimiento quieres que olvide?"))
+          
+          # Usamos el helper de 8 movs (abre la pantalla de Stats modificada)
+          forgetmove = Kernel.pbForgetMove_8moves(pokemon, move) rescue -1
+          
+          if forgetmove >= 0 && forgetmove < 8
+            oldmovename = PBMoves.getName(pokemon.moves[forgetmove].id)
+            pokemon.moves[forgetmove] = PBMove.new(move)
+            battler.moves[forgetmove] = PokeBattle_Move.pbFromPBMove(self,pokemon.moves[forgetmove]) if battler
+            pbDisplayPaused(_INTL("1, 2 y..."))
+            pbDisplayPaused(_INTL("¡Puf!"))
+            pbDisplayPaused(_INTL("¡{1} ha olvidado cómo utilizar {2}!",pkmnname,oldmovename))
+            pbDisplayPaused(_INTL("Y..."))
+            pbDisplayPaused(_INTL("¡{1} ha aprendido {2}!",pkmnname,movename))
+            return
+          elsif pbDisplayConfirm(_INTL("¿Prefieres que {1} no aprenda {2}?",pkmnname,movename))
+            pbDisplayPaused(_INTL("{1} no ha aprendido {2}.",pkmnname,movename))
+            return
+          end
+        elsif pbDisplayConfirm(_INTL("¿Prefieres que {1} no aprenda {2}?",pkmnname,movename))
+          pbDisplayPaused(_INTL("{1} no ha aprendido {2}.",pkmnname,movename))
+          return
+        end
+      end # end loop #
+    end # end pbLearnMove
+  end # class_eval
+end
+
 # Funcion de dialogo para Heizo
 module Kernel
   def self.pbHeizoDialog
