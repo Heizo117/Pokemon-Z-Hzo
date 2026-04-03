@@ -3198,12 +3198,13 @@ if !defined?($PC_Button_Injector_Hooked)
             next unless scene_class.method_defined?(:pbStartScene)
             scene_class.class_eval do
               
-              # 1. Start Scene: Inyectar PC (6) y bajar SALIR (7)
+              # 1. Start Scene: Inyectar PC (6) y bajar SALIR (7) antes del Fade-In
               unless method_defined?(:_pc_orig_pbStartScene)
                 alias _pc_orig_pbStartScene pbStartScene
                 alias _pc_orig_pbChangeSelection pbChangeSelection
                 alias _pc_orig_pbChoosePokemon pbChoosePokemon
                 alias _pc_orig_pbSetHelpText pbSetHelpText
+                alias _pc_orig_pbFadeInAndShow pbFadeInAndShow rescue nil
               end
               
               # ACORTAR LA CAJA DE TEXTO PARA QUE QUEPA EL BOTON PC
@@ -3214,22 +3215,40 @@ if !defined?($PC_Button_Injector_Hooked)
                 end
               end
               
-              def pbStartScene(party, *args)
-                _pc_orig_pbStartScene(party, *args)
-                
-                # Essentials Originalmente pone SALIR en "pokemon6" si no es multiselect
-                if !@multiselect
-                  @sprites["pokemon6"].dispose if @sprites["pokemon6"]
+              # Inyectar botones EXCACTAMENTE antes de que comience el fundido desde negro
+              def pbFadeInAndShow(sprites, visiblesprites=nil, &block)
+                if !@multiselect && sprites.is_a?(Hash) && sprites.has_key?("pokemon0")
+                  # Forzar carga de bitmap en memoria
+                  pbBitmap("Graphics/Pictures/partyCancelConfirmButton") rescue nil
+                  
+                  sprites["pokemon6"].dispose if sprites["pokemon6"]
                   
                   # Botón PC (Posición 6) - restaurada posición y forma ancha original
-                  @sprites["pokemon6"] = ::PokeSelectionConfirmCancelSprite.new("PKM's", 270, 328, false, @viewport) rescue nil
+                  sprites["pokemon6"] = ::PokeSelectionConfirmCancelSprite.new("PKM's", 270, 328, false, @viewport) rescue nil
                   
                   # Botón Salir (Posición 7) se queda en su sitio nativo a la derecha
-                  @sprites["pokemon7"] = ::PokeSelectionCancelSprite.new(@viewport) rescue nil
+                  sprites["pokemon7"] = ::PokeSelectionCancelSprite.new(@viewport) rescue nil
                   
-                  @sprites["pokemon6"].selected = false if @sprites["pokemon6"].respond_to?(:selected=)
-                  @sprites["pokemon7"].selected = false if @sprites["pokemon7"].respond_to?(:selected=)
+                  if sprites["pokemon6"]
+                    sprites["pokemon6"].selected = false if sprites["pokemon6"].respond_to?(:selected=)
+                    sprites["pokemon6"].refresh if sprites["pokemon6"].respond_to?(:refresh)
+                  end
+                  if sprites["pokemon7"]
+                    sprites["pokemon7"].selected = false if sprites["pokemon7"].respond_to?(:selected=)
+                    sprites["pokemon7"].refresh if sprites["pokemon7"].respond_to?(:refresh)
+                  end
                 end
+                
+                # Ejecutar el fundido original con los botones ya cargados
+                if respond_to?(:_pc_orig_pbFadeInAndShow)
+                  _pc_orig_pbFadeInAndShow(sprites, visiblesprites, &block)
+                else
+                  super(sprites, visiblesprites, &block) rescue nil
+                end
+              end
+
+              def pbStartScene(party, *args)
+                _pc_orig_pbStartScene(party, *args)
               end
 
               # 2. Navegación en Rejilla 2-Columnas Adaptada (7 botones -> 8 botones)
