@@ -3592,7 +3592,7 @@ module Kernel
       if pbConfirmMessage(_INTL("¿Estás listo para el combate?"))
         pbMessage(_INTL("Bien. Veamos si tu preparación ha valido la pena."))
         
-        # CINEMÁTICA: Jugador 5 pasos, Heizo 6 pasos (con un poco de retraso)
+        # CINEMÁTICA: Jugador 5 pasos, Heizo 7 pasos (ventaja de 2 casillas)
         if heizo_event
           pbMoveRoute($game_player, [
             PBMoveRoute::ChangeSpeed, 2, 
@@ -3601,7 +3601,7 @@ module Kernel
           pbMoveRoute(heizo_event, [
             PBMoveRoute::ChangeSpeed, 2, 
             PBMoveRoute::Wait, 32, # Esperar un poco para "tardar en activarse"
-            PBMoveRoute::Right, PBMoveRoute::Right, PBMoveRoute::Right, PBMoveRoute::Right, PBMoveRoute::Right, PBMoveRoute::Right
+            PBMoveRoute::Right, PBMoveRoute::Right, PBMoveRoute::Right, PBMoveRoute::Right, PBMoveRoute::Right, PBMoveRoute::Right, PBMoveRoute::Right
           ], true) 
         end
         pbWait(40) 
