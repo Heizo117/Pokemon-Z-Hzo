@@ -63,13 +63,12 @@ He implementado un **sistema de autoguardado inteligente** que detecta si estás
 
 ## ⚡ Instalación en 1 minuto (Copiar y Pegar)
 
-1. **Descarga el ZIP** de este repositorio (botón verde `Code > Download ZIP`) o clónalo.
-2. **Extrae el ZIP y copia TODO SU CONTENIDO** (esto incluye `preload.rb`, `mkxp.json` y las carpetas `Audio`, `Graphics`, `Data`, etc.).
-3. **Pégalo todo en la carpeta principal** de tu juego Pokémon Z V2.15 (donde está el .exe original).
-4. Windows te preguntará si quieres reemplazar archivos: **dile que SÍ a todo**. (Tranquilo, esto no borra tu partida ni el juego).
-5. **¡Y listo!** Abre el juego normalmente.
-
-> 💡 **¿Por qué copiar todo?** El repositorio ahora incluye el combate especial contra Heizo, que necesita copiar su propia música (en `Audio/BGM`) y sprites visuales (en `Graphics`) para funcionar correctamente.
+1. **Descarga el ZIP** de este repositorio (o clónalo).
+2. **Copia estos 2 archivos** en la carpeta principal de tu juego:
+   - [`preload.rb`](./preload.rb)
+   - [`mkxp.json`](./mkxp.json)
+3. **Pégalos en la raíz** de tu juego (sustituye el `mkxp.json` si te lo pide).
+4. **¡Y listo!** Abre el juego normalmente.
 
 ---
 
