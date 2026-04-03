@@ -31,6 +31,17 @@ Este mod inyecta mejoras de calidad de vida (QoL) y herramientas de depuración 
 ![Navegación Intuitiva](./screenshots/Captura%20de%20pantalla%202026-03-19%20215328.png)
 *Navegación: Menús más rápidos y descriptivos para una depuración ágil.*
 
+## 🗡️ Heizo — NPC Exclusivo (Boss del Mod)
+
+El mod incluye un **NPC exclusivo llamado Heizo** (el creador del mod) que puedes encontrar en el Centro Pokémon. Es un encuentro cinematográfico al estilo de un Líder de Gimnasio:
+
+- 🎵 **Música propia**: Suena `Acertijos` al hablar con él y `CombateLider` al combatir.
+- 🗣️ **Diálogos dramáticos**: Frases únicas al sacar cada Pokémon y al ser derrotado.
+- ⚔️ **Equipo de Boss**: Charizard Shiny Mega Y, Venusaur y Gengar con sets competitivos a tu nivel.
+- 🛒 **Mercado Negro**: Si le derrotas, desbloqueas una tienda con objetos especiales a mitad de precio.
+
+> El sprite, la música y todos los datos de Heizo están incluidos en el ZIP. No necesitas nada extra.
+
 ---
 
 ## 📦 Elige tu versión (4 vs 8 Movimientos)
@@ -63,12 +74,14 @@ He implementado un **sistema de autoguardado inteligente** que detecta si estás
 
 ## ⚡ Instalación en 1 minuto (Copiar y Pegar)
 
-1. **Descarga el ZIP** de este repositorio (o clónalo).
-2. **Copia estos 2 archivos** en la carpeta principal de tu juego:
-   - [`preload.rb`](./preload.rb)
-   - [`mkxp.json`](./mkxp.json)
-3. **Pégalos en la raíz** de tu juego (sustituye el `mkxp.json` si te lo pide).
+1. **Descarga el ZIP** de este repositorio → botón verde `Code > Download ZIP`.
+2. **Extrae el ZIP** y copia **TODO el contenido** dentro de la carpeta de tu juego Pokémon Z V2.15.
+3. **Reemplaza** los archivos cuando Windows te lo pida (solo sobreescribe, no borra nada del juego original).
 4. **¡Y listo!** Abre el juego normalmente.
+
+> [!NOTE]
+> El ZIP ya incluye todos los archivos necesarios: `preload.rb`, `mkxp.json`, los datos (`Data/`), el sprite de Heizo y su música. No necesitas nada más.
+
 
 ---
 
