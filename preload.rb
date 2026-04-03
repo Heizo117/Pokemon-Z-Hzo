@@ -1,4 +1,5 @@
 # --- HELPERS (KERNEL) ---
+# Override global de precios removido (usando $game_temp.mart_prices en su lugar)
 module Kernel
   def safe_check_bitmap_file(params)
     begin
@@ -3561,8 +3562,8 @@ module Kernel
   def self.pbHeizoDialog
     heizo_event = $game_map.events[995]
     
-    # Estado Inicial: Guardar posición y mostrar presentación
-    if $game_variables[995] != 1
+    # ESTADO 0: Presentación inicial
+    if $game_variables[995] == 0
       # Capturar ubicación del encuentro original
       $game_variables[996] = $game_map.map_id
       $game_variables[997] = [$game_player.x, $game_player.y, $game_player.direction]
@@ -3576,7 +3577,7 @@ module Kernel
       
       if pbConfirmMessage(_INTL("Acepto el desafío"))
         pbMessage(_INTL("Okey, prepara tu equipo. No empezaremos aún."))
-        pbMessage(_INTL("Estaré esperándote fuera del Centro Pokémon. Habla conmigo cuando estés listo."))
+        pbMessage(_INTL("Me esperaré aquí tomando un hidromiel. Habla conmigo cuando estés listo."))
         $game_variables[995] = 1
       else
         pbMessage(_INTL("..."))
@@ -3585,14 +3586,12 @@ module Kernel
         pbMessage(_INTL("...si es que algún día te atreves."))
       end
       return
-    end
-
-    # Estado 1: Desafío ya aceptado, esperando confirmación para luchar
-    if $game_variables[995] == 1
+    
+    # ESTADO 1: Esperando confirmación para luchar
+    elsif $game_variables[995] == 1
       if pbConfirmMessage(_INTL("¿Estás listo para el combate?"))
         pbMessage(_INTL("Bien. Veamos si tu preparación ha valido la pena."))
         
-        # CINEMÁTICA: Jugador 5 pasos, Heizo 6 pasos (con un poco de retraso)
         if heizo_event
           pbMoveRoute($game_player, [
             PBMoveRoute::ChangeSpeed, 2, 
@@ -3605,110 +3604,250 @@ module Kernel
           ], true) 
         end
         pbWait(40) 
-        # Proceder al combate...
+
+        # 1. Crear fundido a negro MANUAL (para evitar microcortes y pantalla negra perpetua)
+        black_vp = Viewport.new(0,0,Graphics.width,Graphics.height)
+        black_vp.z = 999999
+        col = Color.new(0,0,0,0)
+        for j in 0..17
+          col.set(0,0,0,j*15); black_vp.color = col
+          Graphics.update; Input.update
+        end
+
+        # 2. RESETAR FÍSICAS y Teletransporte INVISIBLE (mientras está en negro)
+        # Limpiamos estados forzados para recuperar colisiones y físicas
+        $game_player.instance_variable_set(:@through, false)
+        $game_player.instance_variable_set(:@move_route_forcing, false)
+        $game_player.instance_variable_set(:@walk_anime, true)
+        
+        if heizo_event
+          heizo_event.instance_variable_set(:@through, false)
+          heizo_event.instance_variable_set(:@move_route_forcing, false)
+          heizo_event.instance_variable_set(:@walk_anime, true)
+        end
+        
+        p_pos = $game_variables[997]
+        h_pos = $game_variables[998]
+        
+        $game_player.moveto(p_pos[0], p_pos[1])
+        $game_player.instance_variable_set(:@direction, p_pos[2])
+        if heizo_event
+          heizo_event.moveto(h_pos[0], h_pos[1])
+          heizo_event.instance_variable_set(:@direction, h_pos[2])
+        end
+        
+        # Un pequeño refresco del mapa nos asegura que el cambio "se vea" al quitar el negro
+        $game_map.need_refresh = true
+        $game_player.straighten
+
+        # 3. Preparar equipo de Heizo
+        max_level = $Trainer.party.map { |p| p.level }.max || 5
+        heizo_charizard = PokeBattle_Pokemon.new(:CHARIZARD, max_level, $Trainer)
+        
+        fire_type = getID(PBTypes, :FIRE); dragon_type = getID(PBTypes, :DRAGON)
+        heizo_charizard.instance_variable_set(:@type1, fire_type)
+        heizo_charizard.instance_variable_set(:@type2, dragon_type)
+        heizo_charizard.instance_variable_set(:@custom_type1, fire_type)
+        heizo_charizard.instance_variable_set(:@custom_type2, dragon_type)
+        
+        heizo_charizard.setItem(:CHARIZARDITEY); heizo_charizard.form = 2
+        moves = [:FIREFANG, :FLAMETHROWER, :DRAGONCLAW, :DRAGONPULSE, :FLAMETHROWER, :DRAGONTAIL, :FIRESPIN, :HEATWAVE]
+        moves.each_with_index { |m, i| heizo_charizard.moves[i] = PBMove.new(getConst(PBMoves, m)) }
+        
+        heizo_charizard.iv = [31,31,31,31,31,31]; heizo_charizard.ev = [0,252,0,252,0,6]
+        heizo_charizard.setNature(getID(PBNatures,:ADAMANT)); heizo_charizard.setAbility(0)
+        heizo_charizard.calcStats
+        
+        heizo_opponent = PokeBattle_Trainer.new("Heizo", 35) 
+        heizo_opponent.party = [heizo_charizard]
+        
+        # 4. Iniciar animación y combate
+        bgm = (pbGetWildBattleBGM(:CHARIZARD) rescue nil) || "Battle Trainer"
+        $PokemonGlobal.nextBattleBack = "Pantano"
+        
+        $game_player.straighten
+        heizo_event.straighten if heizo_event
+        
+        decision = 0
+        pbBattleAnimation(bgm) { 
+          # ELIMINAR EL NEGRO justo cuando empieza la transición de batalla
+          black_vp.dispose
+          
+          scene = pbNewBattleScene
+          battle = PokeBattle_Battle.new(scene, $Trainer.party, heizo_opponent.party, $Trainer, heizo_opponent)
+          battle.internalbattle = true
+          pbPrepareBattle(battle)
+          pbSceneStandby { decision = battle.pbStartBattle }
+        }
+        
+        # 5. Manejo de resultados
+        $game_player.instance_variable_set(:@through, false)
+        $game_player.instance_variable_set(:@move_route_forcing, false)
+        heizo_event.instance_variable_set(:@through, false) if heizo_event
+        heizo_event.instance_variable_set(:@move_route_forcing, false) if heizo_event
+        $game_player.straighten
+        heizo_event.straighten if heizo_event
+        
+        if decision == 1 # Victoria
+          pbMessage(_INTL("Combate terminado. Como era de esperar, has ganado."))
+          pbMessage(_INTL("Eres más fuerte de lo que pensaba... impresionante."))
+          pbMessage(_INTL("Me has convencido. A partir de ahora, tendré mis mejores mercancías listas para ti."))
+          pbMessage(_INTL("Me esperaré aquí tomando un hidromiel por si necesitas algo del mercado negro."))
+          
+          # Cambiamos a Estado 2 (Victoria/Tienda desbloqueada)
+          $game_variables[995] = 2 
+        else
+          pbMessage(_INTL("Bien jugado. He ganado esta vez."))
+        end
+        
+        # Volver a la mesa y forzar posición inicial
+        h_pos = $game_variables[998]
+        if heizo_event && h_pos
+          heizo_event.moveto(h_pos[0], h_pos[1])
+          heizo_event.instance_variable_set(:@direction, h_pos[2])
+        end
+        return
       else
-        pbMessage(_INTL("No me hagas perder el tiempo. Avisa cuando estés realmente preparado."))
+        pbMessage(_INTL("No me hagas perder el tiempo. Estaré aquí tomando un hidromiel, avisa cuando estés preparado."))
         return
       end
-    end
+    # ESTADO 2: MENÚ POST-DERROTA (Elección entre Luchar o Comprar)
+    elsif $game_variables[995] == 2
+        # Aseguramos posición inicial en la mesa
+        h_pos = $game_variables[998]
+        if heizo_event && h_pos
+          heizo_event.moveto(h_pos[0], h_pos[1])
+          heizo_event.instance_variable_set(:@direction, h_pos[2])
+        end
 
-    # LÓGICA DE COMBATE
-    
-    # Calcular el nivel más alto del equipo del jugador
-    max_level = $Trainer.party.map { |p| p.level }.max || 5
-    
-    # Crear Charizard personalizado para Heizo con el nivel dinámico
-    heizo_charizard = PokeBattle_Pokemon.new(:CHARIZARD, max_level, $Trainer)
-    
-    # Establecer tipos personalizados (Fuego / Dragón)
-    fire_type = getID(PBTypes, :FIRE)
-    dragon_type = getID(PBTypes, :DRAGON)
-    heizo_charizard.instance_variable_set(:@type1, fire_type)
-    heizo_charizard.instance_variable_set(:@type2, dragon_type)
-    heizo_charizard.instance_variable_set(:@custom_type1, fire_type)
-    heizo_charizard.instance_variable_set(:@custom_type2, dragon_type)
-    
-    heizo_charizard.setItem(:CHARIZARDITEY)  # Mega Stone Y
-    heizo_charizard.form = 2  # Forma Mega Charizard Y
-    
-    # Establecer los ataques específicos (8 movimientos en total):
-    heizo_charizard.moves[0] = PBMove.new(getConst(PBMoves,:FIREFANG))
-    heizo_charizard.moves[1] = PBMove.new(getConst(PBMoves,:FLAMETHROWER))
-    heizo_charizard.moves[2] = PBMove.new(getConst(PBMoves,:DRAGONCLAW))
-    heizo_charizard.moves[3] = PBMove.new(getConst(PBMoves,:DRAGONPULSE))
-    
-    # Movimientos 5-8 (adicionales):
-    heizo_charizard.moves[4] = PBMove.new(getConst(PBMoves,:FLAMETHROWER))
-    heizo_charizard.moves[5] = PBMove.new(getConst(PBMoves,:DRAGONTAIL))
-    heizo_charizard.moves[6] = PBMove.new(getConst(PBMoves,:FIRESPIN))
-    heizo_charizard.moves[7] = PBMove.new(getConst(PBMoves,:HEATWAVE))
-    
-    # Establecer PP máximos
-    heizo_charizard.moves[0].pp = 15
-    heizo_charizard.moves[1].pp = 15
-    heizo_charizard.moves[2].pp = 15
-    heizo_charizard.moves[3].pp = 10
-    heizo_charizard.moves[4].pp = 15
-    heizo_charizard.moves[5].pp = 10
-    heizo_charizard.moves[6].pp = 15
-    heizo_charizard.moves[7].pp = 10
-    
-    # Estadísticas competitivas
-    heizo_charizard.iv = [31,31,31,31,31,31]
-    heizo_charizard.ev = [0,252,0,252,0,6]
-    
-    heizo_charizard.setNature(getID(PBNatures,:ADAMANT))
-    heizo_charizard.setAbility(0)
-    heizo_charizard.calcStats
-    
-    # Iniciar combate contra Heizo (Entrenador Custom - ID 35)
-    heizo_opponent = PokeBattle_Trainer.new("Heizo", 35) 
-    heizo_opponent.party = [heizo_charizard]
-    
-    decision = 0
-    bgm = (pbGetWildBattleBGM(:CHARIZARD) rescue nil) || "Battle Trainer"
-    
-    $PokemonGlobal.nextBattleBack = "Pantano"
-    pbBattleAnimation(bgm) { 
-      scene = pbNewBattleScene
-      battle = PokeBattle_Battle.new(scene, $Trainer.party, heizo_opponent.party, $Trainer, heizo_opponent)
-      battle.internalbattle = true
-      pbPrepareBattle(battle)
-      pbSceneStandby {
-        decision = battle.pbStartBattle
-      }
-    }
-    
-    # Resultados del combate y RESTAURACIÓN DE POSICIÓN
-    pbFadeOutIn(999999) {
-      # Devolver a la posición inicial guardada en State 0
-      p_pos = $game_variables[997]
-      h_pos = $game_variables[998]
-      
-      $game_player.moveto(p_pos[0], p_pos[1])
-      $game_player.set_direction(p_pos[2])
-      if heizo_event
-        heizo_event.moveto(h_pos[0], h_pos[1])
-        heizo_event.set_direction(h_pos[2])
-      end
-    }
+        pbMessage(_INTL("Heizo: Ah, el campeón. ¿Qué te trae hoy por aquí? ¿Buscas más práctica o necesitas mercancía?"))
+        
+        cmd = pbMessage(_INTL("¿Qué quieres hacer?"), [
+          _INTL("Combatir de nuevo"),
+          _INTL("Mercado Negro"),
+          _INTL("Nada por ahora")
+        ], 3)
 
-    if decision == 1 # Victoria
-      pbMessage(_INTL("Combate terminado. Como era de esperar, has ganado."))
-      pbMessage(_INTL("Eres más fuerte de lo que pensaba... impresionante."))
-      pbMessage(_INTL("Como recompensa por tu valía, te doy acceso a mi mercado negro."))
-      
-      pbReceiveItem(PBItems::MASTER_BALL, 5)
-      pbReceiveItem(PBItems::FULL_RESTORE, 3)
-      pbReceiveItem(PBItems::RARE_CANDY, 10)
-      
-      pbMessage(_INTL("Has recibido: 5 Master Balls, 3 Full Restores y 10 Rare Candys"))
-      pbMessage(_INTL("Usa bien estos objetos, son muy difíciles de conseguir."))
-      pbMessage(_INTL("Vuelve cuando quieras más desafíos... si te atreves."))
-      $game_variables[995] = 0 
-    else
-      pbMessage(_INTL("Combate terminado. Has fracasado."))
-      pbMessage(_INTL("Vuelve cuando realmente estés preparado."))
+        if cmd == 0 # REPETIR COMBATE
+          pbMessage(_INTL("Heizo: Me gusta tu actitud. Veamos si sigues en forma."))
+          # --- REPETICIÓN DE CINEMÁTICA Y COMBATE ---
+          if heizo_event
+            pbMoveRoute($game_player, [
+              PBMoveRoute::ChangeSpeed, 2, 
+              PBMoveRoute::Right, PBMoveRoute::Right, PBMoveRoute::Right, PBMoveRoute::Right, PBMoveRoute::Right
+            ])
+            pbMoveRoute(heizo_event, [
+              PBMoveRoute::ChangeSpeed, 2, 
+              PBMoveRoute::Wait, 32,
+              PBMoveRoute::Right, PBMoveRoute::Right, PBMoveRoute::Right, PBMoveRoute::Right, PBMoveRoute::Right, PBMoveRoute::Right
+            ], true) 
+          end
+          pbWait(40) 
+
+          # Fundido y TP
+          black_vp = Viewport.new(0,0,Graphics.width,Graphics.height); black_vp.z = 999999
+          col = Color.new(0,0,0,0)
+          for j in 0..17; col.set(0,0,0,j*15); black_vp.color = col; Graphics.update; Input.update; end
+
+          $game_player.instance_variable_set(:@through, false); $game_player.instance_variable_set(:@move_route_forcing, false)
+          heizo_event.instance_variable_set(:@through, false); heizo_event.instance_variable_set(:@move_route_forcing, false) if heizo_event
+          
+          p_pos = $game_variables[997]; h_pos = $game_variables[998]
+          $game_player.moveto(p_pos[0], p_pos[1]); $game_player.instance_variable_set(:@direction, p_pos[2])
+          if heizo_event; heizo_event.moveto(h_pos[0], h_pos[1]); heizo_event.instance_variable_set(:@direction, h_pos[2]); end
+          $game_map.need_refresh = true; $game_player.straighten
+
+          # Preparar Batalla
+          max_level = $Trainer.party.map { |p| p.level }.max || 5
+          heizo_charizard = PokeBattle_Pokemon.new(:CHARIZARD, max_level, $Trainer)
+          heizo_charizard.setItem(:CHARIZARDITEY); heizo_charizard.form = 2
+          heizo_charizard.iv = [31,31,31,31,31,31]; heizo_charizard.ev = [0,252,0,252,0,6]; heizo_charizard.calcStats
+          heizo_opponent = PokeBattle_Trainer.new("Heizo", 35); heizo_opponent.party = [heizo_charizard]
+          bgm = (pbGetWildBattleBGM(:CHARIZARD) rescue nil) || "Battle Trainer"
+          $PokemonGlobal.nextBattleBack = "Pantano"
+          
+          decision = 0
+          pbBattleAnimation(bgm) { 
+            black_vp.dispose
+            scene = pbNewBattleScene; battle = PokeBattle_Battle.new(scene, $Trainer.party, heizo_opponent.party, $Trainer, heizo_opponent)
+            battle.internalbattle = true; pbPrepareBattle(battle); pbSceneStandby { decision = battle.pbStartBattle }
+          }
+          
+          # Resultado
+          if decision == 1
+            pbMessage(_INTL("Combate terminado. Sigo sin ser rival para ti..."))
+          else
+            pbMessage(_INTL("Bien jugado. He ganado esta vez."))
+          end
+          # Volver a la mesa
+          if heizo_event && h_pos; heizo_event.moveto(h_pos[0], h_pos[1]); heizo_event.instance_variable_set(:@direction, h_pos[2]); end
+          return
+          
+        elsif cmd == 1 # MERCADO NEGRO
+          # Lista expandida: Consumibles con 50% Dto, Bayas, Piedras y Master Ball
+          item_symbols = [
+            # --- POKÉ BALLS ---
+            :POKEBALL, :GREATBALL, :ULTRABALL,
+            :POKEBALLCASERA, :SUPERBALLCASERA, :ULTRABALLCASERA,
+            # --- CURACIÓN ---
+            :POTION, :SUPERPOTION, :HYPERPOTION, :MAXPOTION, :FULLRESTORE,
+            :REVIVE, :MAXREVIVE,
+            # --- EXPLORACIÓN Y MUNDO ---
+            :REPEL, :SUPERREPEL, :MAXREPEL,
+            :LUMBERRY, :SITRUSBERRY, :LEPPABERRY, :ENIGMABERRY,
+            :FIRESTONE, :WATERSTONE, :THUNDERSTONE, :LEAFSTONE, :MOONSTONE, :SUNSTONE, 
+            :DUSKSTONE, :DAWNSTONE, :SHINYSTONE,
+            # --- MATERIALES DE CREACIÓN ---
+            :FRASCOCRISTALINO, :MADERA, :GUIJARRO, :TROZODEHIERRO, :POLVODEHUESO, 
+            :ESPECIASEXOTICAS, :POLVOEXPLOSIVO,
+            # --- ESPECIALES ---
+            :SHINYZADOR,
+            :MASTERBALL
+          ]
+
+          # Lista para el Mart
+          items = []
+          # Hash de precios personalizados (Built-in en Essentials)
+          $game_temp.mart_prices = {}
+          
+          # Lista de símbolos que llevan descuento
+          discount_symbols = [
+            :POTION, :SUPERPOTION, :HYPERPOTION, :MAXPOTION, :FULLRESTORE,
+            :REVIVE, :MAXREVIVE, :POKEBALL, :GREATBALL, :ULTRABALL,
+            :REPEL, :SUPERREPEL, :MAXREPEL
+          ]
+
+          item_symbols.each do |sym|
+            item_id = getID(PBItems, sym) rescue nil
+            next if !item_id
+            items.push(item_id)
+            
+            # Obtener precio base
+            base_price = pbGetPrice(item_id) rescue 100
+            final_price = base_price
+            
+            # Aplicar lógica de precios
+            if sym == :MASTERBALL
+              final_price = 50000
+            elsif sym == :SHINYZADOR
+              final_price = 5000
+            elsif discount_symbols.include?(sym)
+              final_price = (base_price / 2).to_i
+            end
+            
+            # Guardar en el sistema de precios del Mart: [PrecioCompra, PrecioVenta(-1 es normal)]
+            $game_temp.mart_prices[item_id] = [final_price, -1]
+          end
+          
+          pbPokemonMart(items, _INTL("Mercado Negro"), true)
+          $game_temp.mart_prices = nil # Limpiar después de usar
+          
+          pbMessage(_INTL("Heizo: Vuelve cuando quieras."))
+          return
+        else
+          pbMessage(_INTL("Heizo: Estaré aquí terminando mi hidromiel. No me hagas esperar demasiado."))
+          return
+        end
     end
   end
 end

@@ -78,5 +78,18 @@ He configurado el motor del juego para que funcione en **modo totalmente portabl
 - **Saves Locales**: A diferencia del original que guarda en carpetas ocultas del sistema (`%AppData%`), mi versión almacena las partidas directamente en la carpeta del juego (`LastSave.dat` y `Partidas Guardadas`).
 - **Ventaja**: Esto facilita enormemente el respaldo de las partidas y permite llevar el juego en un dispositivo externo sin perder el progreso.
 
+## 8. Contenido Especial y "Huevos de Pascua" (Easter Eggs)
+
+He integrado un nuevo encuentro especial como guiño al desarrollo del juego:
+
+-   **NPC Heizo (El Mercader del Inframundo)**:
+    *   **Encuentro Épico**: He diseñado un combate cinemático contra el propio "Heizo" (basado en el usuario), con una secuencia de pre-batalla que utiliza control de cámaras (`viewports`) y efectos de fundido.
+    *   **Mercado Negro**: Al derrotar a Heizo en combate, se desbloquea el acceso permanente a su **Mercado Negro**.
+    *   **Economía de Contrabando (Custom Mart)**:
+        *   **Objetos a Mitad de Precio**: Consumibles básicos como Poké Balls y Pociones tienen un 50% de descuento.
+        *   **Objetos Raros**: Venta de bayas exóticas, piedras evolutivas y materiales de creación.
+        *   **Objetos Especiales**: Venta de la **Poción Brillante** (hace que el próximo Pokémon sea Shiny) y la **Master Ball** (a un precio premium de 50.000).
+    *   **Persistencia de Estado**: El sistema utiliza variables globales (`$game_variables[995]`) para recordar el progreso del duelo y mantener la tienda disponible tras la victoria.
+
 ---
-*He implementado todos estos cambios mediante hooks dinámicos en `preload.rb` para mantener la integridad de los scripts originales del juego.*
+*He implementado todos estos cambios mediante inyecciones dinámicas en `preload.rb`, asegurando que el contenido sea compatible con cualquier versión del juego base sin corromper los scripts originales.*
