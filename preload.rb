@@ -1123,23 +1123,55 @@ module Graphics
 
           # Parche fuera de combate (Kernel.pbLearnMove)
           begin
-            def Kernel.pbLearnMove(pokemon, move, ignoreifknown=false, bymachine=false)
-              return if !pokemon
+            # Redefinimos tanto el global (para MTs) como el del módulo Kernel
+            alias _orig_pbLearnMove_z pbLearnMove if method_defined?(:pbLearnMove)
+            def pbLearnMove(pokemon, move, ignoreifknown=false, bymachine=false, &block)
+              return false if !pokemon
               move = getID(PBMoves, move) if move.is_a?(String) || move.is_a?(Symbol)
-              return if move.to_i <= 0
-              return if pokemon.hasMove?(move) && ignoreifknown
+              return false if move.to_i <= 0
+              return false if pokemon.hasMove?(move) && ignoreifknown
               movename = PBMoves.getName(move) rescue move.to_s
-              # pokemon.pbLearnMove ya itera los 8 slots y devuelve false si estan todos llenos
-              if pokemon.pbLearnMove(move)
-                Kernel.pbMessage(_INTL("{1} ha aprendido {2}!", pokemon.name, movename))
-                return true
-              else
-                unless pokemon.hasMove?(move)
-                  Kernel.pbMessage(_INTL("{1} ya tiene 8 movimientos.", pokemon.name))
-                  Kernel.pbMessage(_INTL("Gestiona sus movimientos en la Pestana 2."))
-                end
+              
+              if pokemon.hasMove?(move)
+                Kernel.pbMessage(_INTL("{1} ya conoce {2}.", pokemon.name, movename), &block) if !ignoreifknown
                 return false
               end
+
+              # pokemon.pbLearnMove ya itera los 8 slots y devuelve false si están todos llenos
+              if pokemon.pbLearnMove(move)
+                Kernel.pbMessage(_INTL("\\se[]{1} ha aprendido {2}!\\se[MoveLearnt]", pokemon.name, movename), &block)
+                return true
+              else
+                # YA TIENE 8 MOVIMIENTOS, BUCLE DE DECISIÓN DE OLVIDAR
+                pkmnname = pokemon.name
+                loop do
+                  Kernel.pbMessage(_INTL("{1} está intentando aprender {2}.", pkmnname, movename), &block)
+                  Kernel.pbMessage(_INTL("Pero {1} ya conoce 8 movimientos.", pkmnname), &block)
+                  if Kernel.pbConfirmMessage(_INTL("¿Quieres remplazar un movimiento por {1}?", movename), &block)
+                    Kernel.pbMessage(_INTL("¿Qué movimiento debería olvidar?"), &block)
+                    forgetmove = pbForgetMove(pokemon, move)
+                    if forgetmove >= 0
+                      oldmovename = PBMoves.getName(pokemon.moves[forgetmove].id)
+                      oldmovepp = pokemon.moves[forgetmove] ? pokemon.moves[forgetmove].pp : 0
+                      pokemon.moves[forgetmove] = PBMove.new(move) # Replaces current/total PP
+                      pokemon.moves[forgetmove].pp = [oldmovepp, pokemon.moves[forgetmove].totalpp].min if bymachine
+                      Kernel.pbMessage(_INTL("\\se[]1,\\wt[16] 2, y\\wt[16]...\\wt[16] ...\\wt[16] ... ¡Puf!\\se[balldrop]"), &block)
+                      Kernel.pbMessage(_INTL("\\se[]{1} ha olvidado cómo usar {2}. Y... ¡{1} ha aprendido {3}!\\se[MoveLearnt]", pkmnname, oldmovename, movename), &block)
+                      return true
+                    elsif Kernel.pbConfirmMessage(_INTL("¿Prefieres que {1} no aprenda {2}?", pkmnname, movename), &block)
+                      Kernel.pbMessage(_INTL("{1} no ha aprendido {2}.", pkmnname, movename), &block)
+                      return false
+                    end
+                  elsif Kernel.pbConfirmMessage(_INTL("¿Prefieres que {1} no aprenda {2}?", pkmnname, movename), &block)
+                    Kernel.pbMessage(_INTL("{1} no ha aprendido {2}.", pkmnname, movename), &block)
+                    return false
+                  end
+                end
+              end
+            end
+
+            def Kernel.pbLearnMove(pokemon, move, ignoreifknown=false, bymachine=false, &block)
+              Object.send(:pbLearnMove, pokemon, move, ignoreifknown, bymachine, &block)
             end
           rescue; end
         end
@@ -3218,9 +3250,6 @@ if !defined?($PC_Button_Injector_Hooked)
               # Inyectar botones EXCACTAMENTE antes de que comience el fundido desde negro
               def pbFadeInAndShow(sprites, visiblesprites=nil, &block)
                 if !@multiselect && sprites.is_a?(Hash) && sprites.has_key?("pokemon0")
-                  # Forzar carga de bitmap en memoria
-                  pbBitmap("Graphics/Pictures/partyCancelConfirmButton") rescue nil
-                  
                   sprites["pokemon6"].dispose if sprites["pokemon6"]
                   
                   # Botón PC (Posición 6) - restaurada posición y forma ancha original
