@@ -61,6 +61,14 @@ He implementado un **sistema de autoguardado inteligente** que detecta si estás
 
 ---
 
+## 🗡️ Demo del Mod (Combate contra Heizo en V2.17)
+
+¿Quieres ver cómo funciona todo el sistema de combate cinemático y la perfecta compatibilidad con la versión V2.17? 
+¡Echa un vistazo a este **video de demostración**:
+👉 **[Ver Test en YouTube Shorts](https://www.youtube.com/shorts/7zxE8x9qQfE)**
+
+---
+
 ## ⚡ Instalación en 1 minuto (Copiar y Pegar)
 
 1. **Descarga el ZIP** de este repositorio (o clónalo).
