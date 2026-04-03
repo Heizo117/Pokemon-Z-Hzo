@@ -1,8 +1,8 @@
-# Pokémon Z (V2.15) — QoL & Debug Mod 🚀
+# Pokémon Z (V2.15 - V2.17) — QoL & Debug Mod 🚀
 
 > ⚠️ **MOD no oficial**. Este repositorio solo contiene los archivos que modifican el juego. El juego original es propiedad de **Lostie Fangames**.
 
-Este mod inyecta mejoras de calidad de vida (QoL) y herramientas de depuración avanzadas en **Pokémon Z (Versión 2.15)** "al vuelo", sin tocar los archivos originales del juego.
+Este mod inyecta mejoras de calidad de vida (QoL) y herramientas de depuración avanzadas en **Pokémon Z (Versiones 2.15 hasta 2.17)** "al vuelo", sin tocar los archivos originales del juego.
 
 > **Nota Personal**: Tengo muchas ganas de jugar Pokémon Z por completo (lo tengo pendiente). Anteriormente ya disfruté muchísimo de **Pokémon Iberia**, otro gran trabajo del creador, y este proyecto es mi forma de agradecer y mejorar la experiencia para otros jugadores.
 
