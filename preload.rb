@@ -4008,7 +4008,8 @@ module Kernel
           pbPokemonMart(items, _INTL("Mercado Negro"), true)
           $game_temp.mart_prices = nil # Limpiar después de usar
           
-          pbMessage(_INTL("Heizo: Vuelve cuando quieras."))
+          # La escena del Mart ya suele decir 'Vuelve pronto', así que ponemos una frase única de Heizo para no repetir
+          pbMessage(_INTL("Heizo: Haz buen uso de esa mercancía, campeón."))
           $game_map.autoplay # Restaurar música del mapa al salir de la tienda
           return
         else
