@@ -82,13 +82,17 @@ He configurado el motor del juego para que funcione en **modo totalmente portabl
 
 He integrado un nuevo encuentro especial como guiño al desarrollo del juego:
 
--   **NPC Heizo (El Mercader del Inframundo)**:
+-   **NPC Heizo (El Mercader del negro)**:
     *   **Encuentro Épico**: He diseñado un combate cinemático contra el propio "Heizo" (basado en el usuario), con una secuencia de pre-batalla que utiliza control de cámaras (`viewports`) y efectos de fundido.
     *   **Mercado Negro**: Al derrotar a Heizo en combate, se desbloquea el acceso permanente a su **Mercado Negro**.
     *   **Economía de Contrabando (Custom Mart)**:
         *   **Objetos a Mitad de Precio**: Consumibles básicos como Poké Balls y Pociones tienen un 50% de descuento.
         *   **Objetos Raros**: Venta de bayas exóticas, piedras evolutivas y materiales de creación.
         *   **Objetos Especiales**: Venta de la **Poción Brillante** (hace que el próximo Pokémon sea Shiny) y la **Master Ball** (a un precio premium de 50.000).
+    *   **Equipo Personalizado (Team Heizo)**: Heizo cuenta con un trío de Pokémon configurados con tácticas avanzadas:
+        *   **Charizard (Shiny)**: Versión Variocolor con habilidad *Adaptable* y 8 movimientos de alto impacto.
+        *   **Venusaur**: Tanque especial con 31 IVs, naturaleza miedosa y movimientos de control de estado.
+        *   **Gengar**: *Sweeper* tímido con habilidad *Levitación* y 8 movimientos tácticos (incluyendo *Hipnosis + Pesadilla*).
     *   **Persistencia de Estado**: El sistema utiliza variables globales (`$game_variables[995]`) para recordar el progreso del duelo y mantener la tienda disponible tras la victoria.
 
 ---

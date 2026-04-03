@@ -3757,12 +3757,64 @@ module Kernel
           if heizo_event; heizo_event.moveto(h_pos[0], h_pos[1]); heizo_event.instance_variable_set(:@direction, h_pos[2]); end
           $game_map.need_refresh = true; $game_player.straighten
 
-          # Preparar Batalla
+          # Preparar Batalla: Charizard Especial de Heizo (Fuego/Dragón + 8 Movs)
           max_level = $Trainer.party.map { |p| p.level }.max || 5
           heizo_charizard = PokeBattle_Pokemon.new(:CHARIZARD, max_level, $Trainer)
-          heizo_charizard.setItem(:CHARIZARDITEY); heizo_charizard.form = 2
-          heizo_charizard.iv = [31,31,31,31,31,31]; heizo_charizard.ev = [0,252,0,252,0,6]; heizo_charizard.calcStats
-          heizo_opponent = PokeBattle_Trainer.new("Heizo", 35); heizo_opponent.party = [heizo_charizard]
+          
+          # Atributos Especiales: Fuego / Dragón
+          f_type = getID(PBTypes, :FIRE); d_type = getID(PBTypes, :DRAGON)
+          heizo_charizard.instance_variable_set(:@type1, f_type)
+          heizo_charizard.instance_variable_set(:@type2, d_type)
+          heizo_charizard.instance_variable_set(:@custom_type1, f_type)
+          heizo_charizard.instance_variable_set(:@custom_type2, d_type)
+          
+          # Apariencia de Mega Charizard Y
+          heizo_charizard.setItem(:CHARIZARDITEY)
+          heizo_charizard.form = 2
+          
+          # 8 Movimientos de Heizo (Optimizados y sin duplicados)
+          moves = [:FIREFANG, :FLAMETHROWER, :DRAGONCLAW, :DRAGONPULSE, :FLAREBLITZ, :DRAGONTAIL, :FIRESPIN, :HEATWAVE]
+          moves.each_with_index { |m, i| heizo_charizard.moves[i] = PBMove.new(getConst(PBMoves, m)) }
+          
+          # Estadísticas de "Boss"
+          heizo_charizard.iv = [31,31,31,31,31,31]
+          heizo_charizard.ev = [0,252,0,252,0,6]
+          heizo_charizard.setNature(getID(PBNatures,:ADAMANT))
+          heizo_charizard.setAbility(getID(PBAbilities,:ADAPTABILITY))
+          heizo_charizard.makeShiny
+          heizo_charizard.calcStats
+          
+          # --- VENUSAUR ESPECIAL DE HEIZO ---
+          heizo_venusaur = PokeBattle_Pokemon.new(:VENUSAUR, max_level, $Trainer)
+          heizo_venusaur.setNature(getID(PBNatures,:MODEST))
+          heizo_venusaur.iv = [31,31,31,31,31,31]
+          heizo_venusaur.setAbility(getID(PBAbilities,:POISONPOINT))
+          
+          # Movimientos: Bomba Lodo, Cargatóxica, Gigadrenado, Drenadoras, Espora, Rayo Solar
+          v_moves = [:SLUDGEBOMB, :VENOSHOCK, :GIGADRAIN, :LEECHSEED, :SPORE, :SOLARBEAM]
+          v_moves.each_with_index { |m, i| heizo_venusaur.moves[i] = PBMove.new(getConst(PBMoves, m)) }
+          
+          # EVs sugeridos: 252 Defensa, 252 Atk. Esp., 6 HP
+          heizo_venusaur.ev = [6, 0, 252, 252, 0, 0]
+          heizo_venusaur.calcStats
+          
+          # --- GENGAR ESPECIAL DE HEIZO ---
+          heizo_gengar = PokeBattle_Pokemon.new(:GENGAR, max_level, $Trainer)
+          heizo_gengar.setNature(getID(PBNatures,:TIMID))
+          heizo_gengar.iv = [31,31,31,31,31,31]
+          heizo_gengar.setAbility(getID(PBAbilities,:LEVITATE))
+          heizo_gengar.setItem(:SPOOKYPLATE)
+          
+          # 8 Movimientos: Bola Sombra, Bomba Lodo, Mismodestino, Pulso Umbrío, Hipnosis, Come Sueños, Tóxico, Pesadilla
+          g_moves = [:SHADOWBALL, :SLUDGEBOMB, :DESTINYBOND, :DARKPULSE, :HYPNOSIS, :DREAMEATER, :TOXIC, :NIGHTMARE]
+          g_moves.each_with_index { |m, i| heizo_gengar.moves[i] = PBMove.new(getConst(PBMoves, m)) }
+          
+          # EVs sugeridos: 252 Atk. Esp., 252 Velocidad, 6 HP
+          heizo_gengar.ev = [6, 0, 0, 252, 0, 252]
+          heizo_gengar.calcStats
+          
+          heizo_opponent = PokeBattle_Trainer.new("Heizo", 35)
+          heizo_opponent.party = [heizo_charizard, heizo_venusaur, heizo_gengar]
           bgm = (pbGetWildBattleBGM(:CHARIZARD) rescue nil) || "Battle Trainer"
           $PokemonGlobal.nextBattleBack = "Pantano"
           
