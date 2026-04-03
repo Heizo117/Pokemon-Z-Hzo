@@ -3559,17 +3559,15 @@ end
 # Funcion de dialogo para Heizo
 module Kernel
   def self.pbHeizoDialog
-    # Estado 1: Desafío ya aceptado, esperando confirmación para luchar
-    if $game_variables[995] == 1
-      if pbConfirmMessage(_INTL("¿Estás listo para el combate?"))
-        pbMessage(_INTL("Bien. Veamos si tu preparación ha valido la pena."))
-        # Proceder al combate (el código se ejecuta abajo al saltar el return)
-      else
-        pbMessage(_INTL("No me hagas perder el tiempo. Avisa cuando estés realmente preparado."))
-        return
-      end
-    else
-      # Estado Inicial: Presentación y desafío
+    heizo_event = $game_map.events[995]
+    
+    # Estado Inicial: Guardar posición y mostrar presentación
+    if $game_variables[995] != 1
+      # Capturar ubicación del encuentro original
+      $game_variables[996] = $game_map.map_id
+      $game_variables[997] = [$game_player.x, $game_player.y, $game_player.direction]
+      $game_variables[998] = [heizo_event.x, heizo_event.y, heizo_event.direction] if heizo_event
+      
       pbMessage(_INTL("..."))
       pbMessage(_INTL("Soy Heizo. El creador de este Mod."))
       pbMessage(_INTL("No vine a hacer amigos. Vine a desafiar."))
@@ -3589,7 +3587,32 @@ module Kernel
       return
     end
 
-    # LÓGICA DE COMBATE (Solo se llega aquí si $game_variables[995] == 1 y el jugador confirmó estar listo)
+    # Estado 1: Desafío ya aceptado, esperando confirmación para luchar
+    if $game_variables[995] == 1
+      if pbConfirmMessage(_INTL("¿Estás listo para el combate?"))
+        pbMessage(_INTL("Bien. Veamos si tu preparación ha valido la pena."))
+        
+        # CINEMÁTICA: Jugador 5 pasos, Heizo 6 pasos (con un poco de retraso)
+        if heizo_event
+          pbMoveRoute($game_player, [
+            PBMoveRoute::ChangeSpeed, 2, 
+            PBMoveRoute::Right, PBMoveRoute::Right, PBMoveRoute::Right, PBMoveRoute::Right, PBMoveRoute::Right
+          ])
+          pbMoveRoute(heizo_event, [
+            PBMoveRoute::ChangeSpeed, 2, 
+            PBMoveRoute::Wait, 32, # Esperar un poco para "tardar en activarse"
+            PBMoveRoute::Right, PBMoveRoute::Right, PBMoveRoute::Right, PBMoveRoute::Right, PBMoveRoute::Right, PBMoveRoute::Right
+          ], true) 
+        end
+        pbWait(40) 
+        # Proceder al combate...
+      else
+        pbMessage(_INTL("No me hagas perder el tiempo. Avisa cuando estés realmente preparado."))
+        return
+      end
+    end
+
+    # LÓGICA DE COMBATE
     
     # Calcular el nivel más alto del equipo del jugador
     max_level = $Trainer.party.map { |p| p.level }.max || 5
@@ -3621,29 +3644,18 @@ module Kernel
     heizo_charizard.moves[7] = PBMove.new(getConst(PBMoves,:HEATWAVE))
     
     # Establecer PP máximos
-    heizo_charizard.moves[0].pp = 15   # Fire Fang
-    heizo_charizard.moves[1].pp = 15   # Flamethrower
-    heizo_charizard.moves[2].pp = 15   # Dragon Claw
-    heizo_charizard.moves[3].pp = 10   # Dragon Pulse
-    heizo_charizard.moves[4].pp = 15   # Flamethrower
-    heizo_charizard.moves[5].pp = 10   # Dragon Tail
-    heizo_charizard.moves[6].pp = 15   # Fire Spin
-    heizo_charizard.moves[7].pp = 10   # Heat Wave
+    heizo_charizard.moves[0].pp = 15
+    heizo_charizard.moves[1].pp = 15
+    heizo_charizard.moves[2].pp = 15
+    heizo_charizard.moves[3].pp = 10
+    heizo_charizard.moves[4].pp = 15
+    heizo_charizard.moves[5].pp = 10
+    heizo_charizard.moves[6].pp = 15
+    heizo_charizard.moves[7].pp = 10
     
     # Estadísticas competitivas
-    heizo_charizard.iv[0] = 31  # HP
-    heizo_charizard.iv[1] = 31  # Attack
-    heizo_charizard.iv[2] = 31  # Defense
-    heizo_charizard.iv[3] = 31  # Special Attack
-    heizo_charizard.iv[4] = 31  # Special Defense
-    heizo_charizard.iv[5] = 31  # Speed
-    
-    heizo_charizard.ev[0] = 0   # HP
-    heizo_charizard.ev[1] = 252 # Attack
-    heizo_charizard.ev[2] = 0   # Defense
-    heizo_charizard.ev[3] = 252 # Special Attack
-    heizo_charizard.ev[4] = 0   # Special Defense
-    heizo_charizard.ev[5] = 6   # Speed
+    heizo_charizard.iv = [31,31,31,31,31,31]
+    heizo_charizard.ev = [0,252,0,252,0,6]
     
     heizo_charizard.setNature(getID(PBNatures,:ADAMANT))
     heizo_charizard.setAbility(0)
@@ -3667,7 +3679,20 @@ module Kernel
       }
     }
     
-    # Resultados del combate
+    # Resultados del combate y RESTAURACIÓN DE POSICIÓN
+    pbFadeOutIn(999999) {
+      # Devolver a la posición inicial guardada en State 0
+      p_pos = $game_variables[997]
+      h_pos = $game_variables[998]
+      
+      $game_player.moveto(p_pos[0], p_pos[1])
+      $game_player.set_direction(p_pos[2])
+      if heizo_event
+        heizo_event.moveto(h_pos[0], h_pos[1])
+        heizo_event.set_direction(h_pos[2])
+      end
+    }
+
     if decision == 1 # Victoria
       pbMessage(_INTL("Combate terminado. Como era de esperar, has ganado."))
       pbMessage(_INTL("Eres más fuerte de lo que pensaba... impresionante."))
@@ -3680,12 +3705,10 @@ module Kernel
       pbMessage(_INTL("Has recibido: 5 Master Balls, 3 Full Restores y 10 Rare Candys"))
       pbMessage(_INTL("Usa bien estos objetos, son muy difíciles de conseguir."))
       pbMessage(_INTL("Vuelve cuando quieras más desafíos... si te atreves."))
-      # Al ganar, podemos resetearlo para que pueda volver a ser desafiado si se desea
       $game_variables[995] = 0 
     else
       pbMessage(_INTL("Combate terminado. Has fracasado."))
       pbMessage(_INTL("Vuelve cuando realmente estés preparado."))
-      # Mantenemos el estado 1 para que pueda reintentar sin ver toda la intro
     end
   end
 end
