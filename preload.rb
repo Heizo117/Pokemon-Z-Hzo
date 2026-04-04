@@ -3728,10 +3728,10 @@ module Kernel
 
           # 4. Recuperación (Respiro, Síntesis, Gigadrenado, Drenadoras)
           # Roost=435, Synthesis=232, Giga Drain=202, Leech Seed=73
-          recovery = [getID(PBMoves, :ROOST) rescue 435, 
-                      getID(PBMoves, :SYNTHESIS) rescue 232, 
-                      getID(PBMoves, :GIGADRAIN) rescue 202,
-                      getID(PBMoves, :LEECHSEED) rescue 73]
+          recovery = [(getID(PBMoves, :ROOST) rescue 435), 
+                      (getID(PBMoves, :SYNTHESIS) rescue 232), 
+                      (getID(PBMoves, :GIGADRAIN) rescue 202),
+                      (getID(PBMoves, :LEECHSEED) rescue 73)]
           if recovery.include?(move.id)
             if attacker.hp < attacker.totalhp / 2
               score += 40
