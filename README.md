@@ -74,26 +74,88 @@ He implementado un **sistema de autoguardado inteligente** que detecta si estás
 
 ### 🏆 Caja 30 y Origen del Equipo (Hall de la Fama)
 
-Además del combate, el Mod integra mi equipo custom dentro de la **Caja 30** del PC a modo de vitrina interactiva. Podrás estudiar sus tácticas y descubrir su lore personal a través de la pestaña de **Origen**:
+Además del combate, el Mod integra mi equipo custom dentro de la **Caja 30** del PC a modo de vitrina interactiva. Podrás estudiar sus tácticas y descubrir su lore personal a través de la pestaña de **Origen**. 
+
+> [!IMPORTANT]
+> **Balance Matemático**: Durante el combate y en la caja, Charizard y Swampert muestran sus formas **Mega**, pero internamente el motor las bloquea para que utilicen las **Estadísticas Base** (forma 0) para garantizar un duelo justo y técnico.
+
+#### 📋 Ficha Técnica del Equipo Heizo
+
+<details>
+<summary><b>🔥 Charizard (Shiny / Mega-Y Visual)</b></summary>
+
+*   **Naturaleza**: Alocada (+Atk. Sp, -Def. Sp)
+*   **Habilidad**: Adaptable (Potencia ataques de su mismo tipo)
+*   **Objeto**: Colmillo Dragón
+*   **Tipos**: Fuego / Dragón (Custom)
+*   **Movimientos**:
+    1. Colmillo Ígneo | 2. Lanzallamas | 3. Garra Dragón | 4. Pulso Dragón
+    5. Respiro | 6. Triturar | 7. Danza Dragón | 8. Tajo Aéreo
+</details>
+
+<details>
+<summary><b>🌊 Swampert (Mega Visual)</b></summary>
+
+*   **Naturaleza**: Firme (+Atk, -Atk. Sp)
+*   **Habilidad**: Intimidación
+*   **Objeto**: Cinta Experto
+*   **Movimientos**:
+    1. Cascada | 2. Terremoto | 3. Puño Hielo | 4. Roca Afilada
+    5. Fuerza Bruta | 6. Demolición | 7. Bostezo | 8. Trampa Rocas
+</details>
+
+<details>
+<summary><b>🌿 Venusaur</b></summary>
+
+*   **Naturaleza**: Serena (+Def. Sp, -Atk)
+*   **Habilidad**: Punto Tóxico
+*   **Objeto**: Raíz Grande
+*   **Movimientos**:
+    1. Gigadrenado | 2. Bomba Lodo | 3. Drenadoras | 4. Espora
+    5. Síntesis | 6. Rayo Solar | 7. Tóxico | 8. Carga Tóxica
+</details>
+
+<details>
+<summary><b>🛡️ Corviknight</b></summary>
+
+*   **Naturaleza**: Agitada (+Def, -Atk. Sp)
+*   **Habilidad**: Coraza Reflejo
+*   **Objeto**: Restos
+*   **Movimientos**:
+    1. Respiro | 2. Defensa Férrea | 3. Pico Coraza | 4. Cabeza de Hierro
+    5. Ida y Vuelta | 6. Despejar | 7. Mofa | 8. Picoteo
+</details>
+
+<details>
+<summary><b>👻 Gengar</b></summary>
+
+*   **Naturaleza**: Miedosa (+Vel, -Atk)
+*   **Habilidad**: Levitación
+*   **Objeto**: Tabla Terror
+*   **Movimientos**:
+    1. Bola Sombra | 2. Bomba Lodo | 3. Mismo Destino | 4. Pulso Umbrío
+    5. Hipnosis | 6. Come Sueños | 7. Tóxico | 8. Pesadilla
+</details>
+
+<details>
+<summary><b>⚡ Zeraora</b></summary>
+
+*   **Naturaleza**: Alegre (+Vel, -Atk. Sp)
+*   **Habilidad**: Dicha
+*   **Objeto**: Cascabel Concha
+*   **Movimientos**:
+    1. Puño Trueno | 2. Puños Plasma | 3. Voltio Cruel | 4. Voltiocambio
+    5. A Bocajarro | 6. Puño Drenaje | 7. Patada Ígnea | 8. Chispa
+</details>
+
+---
 
 ![Origen Charizard](./screenshots/img_chk_charizard.png)
-**Charizard (Mega-Y Estética)**: Atacante Mixto Shiny enfocado en *Adaptable* (doble STAB para Fuego y Dragón) con *Colmillo Dragón*. 
-*Nota de balance:* Las apariencias engañan. Se muestra con el deslumbrante sprite de Mega-Charizard Y para el impacto audiovisual, pero el motor lo fuerza internamente a usar los **Stats Normales de la forma Base (sin alterar matemáticamente)**. Así evitamos abusos de estadísticas "locas" y rompemos el juego.
-
 ![Origen Swampert](./screenshots/img_chk_swampert.png)
-**Swampert (Mega Estética)**: Tanque físico puro con la terrorífica habilidad *Intimidación* portando *Cinta Experto*. Al igual que Charizard, su forma es exclusivamente un imponente cambio de skin y sprite, manteniendo las bases matemáticas puras de Swampert nivel 100 con EVs para un combate táctico equitativo y justo contra el jugador.
-
 ![Origen Venusaur](./screenshots/img_chk_venusaur.png)
-**Venusaur**: Es el *Staller* Especial del equipo. Protege el campo con IVs defensivos perfectos y aprovecha el objeto *Raíz Grande* para drenar energía y agotar a los rivales bajo la penalización de veneno constante (*Punto Tóxico*).
-
 ![Origen Corviknight](./screenshots/img_chk_corviknight.png)
-**Corviknight**: La muralla inquebrantable que no retrocede ante el peligro. Escudo impenetrable alimentado por los *Restos* y su infalible resistencia defensiva física para asentar coberturas aéreas o trampas.
-
 ![Origen Gengar](./screenshots/img_chk_gengar.png)
-**Gengar**: El asesino entre sombras veloz. *Sweeper* Especial configurado como un cristal fulminante. Vuelve a sus orígenes con la habilidad *Levitación* y equipando la *Tabla Terror* para destrozar psiques enteras a su paso con un surtido de 8 movimientos letales.
-
 ![Origen Zeraora](./screenshots/img_chk_zeraora.png)
-**Zeraora**: La chispa destructora puramente ofensiva con *Cascabel Concha*. Ataques físicos eléctricos atronadores que lo auto-regeneran según avanza el combate gracias al gran daño infligido.
 
 ---
 
