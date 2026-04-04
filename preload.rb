@@ -3945,68 +3945,170 @@ module Kernel
           if heizo_event && h_pos; heizo_event.moveto(h_pos[0], h_pos[1]); heizo_event.instance_variable_set(:@direction, h_pos[2]); end
           return
           
-        elsif cmd == 1 # MERCADO NEGRO
-          # Lista expandida: Consumibles con 50% Dto, Bayas, Piedras y Master Ball
-          item_symbols = [
-            # --- POKÉ BALLS ---
-            :POKEBALL, :GREATBALL, :ULTRABALL,
-            :POKEBALLCASERA, :SUPERBALLCASERA, :ULTRABALLCASERA,
-            # --- CURACIÓN ---
-            :POTION, :SUPERPOTION, :HYPERPOTION, :MAXPOTION, :FULLRESTORE,
-            :REVIVE, :MAXREVIVE,
-            # --- EXPLORACIÓN Y MUNDO ---
-            :REPEL, :SUPERREPEL, :MAXREPEL,
-            :LUMBERRY, :SITRUSBERRY, :LEPPABERRY, :ENIGMABERRY,
-            :FIRESTONE, :WATERSTONE, :THUNDERSTONE, :LEAFSTONE, :MOONSTONE, :SUNSTONE, 
-            :DUSKSTONE, :DAWNSTONE, :SHINYSTONE,
-            # --- MATERIALES DE CREACIÓN ---
-            :FRASCOCRISTALINO, :MADERA, :GUIJARRO, :TROZODEHIERRO, :POLVODEHUESO, 
-            :ESPECIASEXOTICAS, :POLVOEXPLOSIVO,
-            # --- ESPECIALES ---
-            :SHINYZADOR,
-            :MASTERBALL,
-            :AIRBALLOON
-          ]
-
-          # Lista para el Mart
-          items = []
-          # Hash de precios personalizados (Built-in en Essentials)
+        elsif cmd == 1 # MERCADO NEGRO - Sistema de Categorías
+          # Inicializar precios globales compartidos entre categorías
           $game_temp.mart_prices = {}
-          
-          # Lista de símbolos que llevan descuento
-          discount_symbols = [
-            :POTION, :SUPERPOTION, :HYPERPOTION, :MAXPOTION, :FULLRESTORE,
-            :REVIVE, :MAXREVIVE, :POKEBALL, :GREATBALL, :ULTRABALL,
-            :REPEL, :SUPERREPEL, :MAXREPEL
-          ]
 
-          item_symbols.each do |sym|
-            item_id = getID(PBItems, sym) rescue nil
-            next if !item_id
-            items.push(item_id)
-            
-            # Obtener precio base
-            base_price = pbGetPrice(item_id) rescue 100
-            final_price = base_price
-            
-            # Aplicar lógica de precios
-            if sym == :MASTERBALL
-              final_price = 50000
-            elsif sym == :SHINYZADOR
-              final_price = 5000
-            elsif discount_symbols.include?(sym)
-              final_price = (base_price / 2).to_i
+          # Helper lambda: construye y abre una tienda con sus propios items y precios
+          _heizo_open_shop = lambda do |syms, half_price_all, special_prices, title|
+            items = []
+            syms.each do |sym|
+              item_id = getID(PBItems, sym) rescue nil
+              next if !item_id
+              items.push(item_id)
+              base = pbGetPrice(item_id) rescue 200
+              if special_prices.key?(sym)
+                price = special_prices[sym]
+              elsif half_price_all
+                price = [(base / 2).to_i, 10].max
+              else
+                price = base
+              end
+              $game_temp.mart_prices[item_id] = [price, -1]
             end
-            
-            # Guardar en el sistema de precios del Mart: [PrecioCompra, PrecioVenta(-1 es normal)]
-            $game_temp.mart_prices[item_id] = [final_price, -1]
+            pbPokemonMart(items, _INTL(title), true) unless items.empty?
           end
-          
-          pbPokemonMart(items, _INTL("Mercado Negro"), true)
-          $game_temp.mart_prices = nil # Limpiar después de usar
-          
-          pbMessage(_INTL("Heizo: Haz buen uso de esa mercancía, campeón."))
-          $game_map.autoplay # Restaurar música del mapa al salir de la tienda
+
+          # --- BUCLE DE CATEGORÍAS ---
+          loop do
+            pbBGMPlay("Acertijos")
+            cat = pbMessage(_INTL("Heizo: ¿Qué tipo de mercancía buscas?"), [
+              _INTL("Poke Balls        (50% dto.)"),
+              _INTL("Bayas y Curacion  (50% dto.)"),
+              _INTL("Materiales        (50% dto.)"),
+              _INTL("Obj. de Combate   (50% dto.)"),
+              _INTL("Potenciadores     (50% dto.)"),
+              _INTL("Especiales"),
+              _INTL("Nada mas, gracias")
+            ], 7)
+
+            break if cat == 6 # Salir
+
+            case cat
+            # -------------------------------------------------------
+            when 0 # POKÉ BALLS
+              _heizo_open_shop.call([
+                :POKEBALL, :GREATBALL, :ULTRABALL,
+                :NETBALL, :DIVEBALL, :NESTBALL, :REPEATBALL, :TIMERBALL,
+                :LUXURYBALL, :DUSKBALL, :HEALBALL, :QUICKBALL,
+                :FASTBALL, :LEVELBALL, :LUREBALL, :HEAVYBALL,
+                :LOVEBALL, :FRIENDBALL, :MOONBALL,
+                :POKEBALLCASERA, :SUPERBALLCASERA, :ULTRABALLCASERA
+              ], true, {}, "Mercado Negro - Poke Balls")
+
+            # -------------------------------------------------------
+            when 1 # BAYAS Y CURACIÓN
+              _heizo_open_shop.call([
+                # Pociones y Revivir
+                :POTION, :SUPERPOTION, :HYPERPOTION, :MAXPOTION, :FULLRESTORE,
+                :REVIVE, :MAXREVIVE, :FULLHEAL,
+                # Éteres y Elixires
+                :ETHER, :MAXETHER, :ELIXIR, :MAXELIXIR,
+                # Curaciones de estado
+                :ANTIDOTE, :BURNHEAL, :PARLYZHEAL, :ICEHEAL, :AWAKENING,
+                # Bayas de curación inmediata
+                :SITRUSBERRY, :ORANBERRY, :LUMBERRY, :LEPPABERRY,
+                :CHESTOBERRY, :PECHABERRY, :RAWSTBERRY, :ASPEARBERRY, :CHERIBERRY,
+                :PERSIMBERRY, :FIGYBERRY, :WIKIBERRY, :MAGOBERRY, :AGUAVBERRY, :IAPPABERRY,
+                # Bayas de stat boost
+                :LIECHIBERRY, :GANLONBERRY, :SALACBERRY, :PETAYABERRY, :APICOTBERRY,
+                :CUSTAPBERRY, :LANSATBERRY, :STARFBERRY, :MICLEBERRY, :ENIGMABERRY,
+                # Bayas de exploración
+                :LUMBERRY, :BLUKBERRY, :NANABBERRY, :WEPEARBERRY
+              ], true, {}, "Mercado Negro - Bayas y Curacion")
+
+            # -------------------------------------------------------
+            when 2 # MATERIALES DE CREACIÓN Y EXPLORACIÓN
+              _heizo_open_shop.call([
+                # Repelentes
+                :REPEL, :SUPERREPEL, :MAXREPEL,
+                # Piedras evolutivas
+                :FIRESTONE, :WATERSTONE, :THUNDERSTONE, :LEAFSTONE,
+                :MOONSTONE, :SUNSTONE, :DUSKSTONE, :DAWNSTONE, :SHINYSTONE,
+                :EVERSTONE, :DRAGONSCALE,
+                # Materiales custom del juego
+                :FRASCOCRISTALINO, :MADERA, :GUIJARRO, :TROZODEHIERRO,
+                :POLVODEHUESO, :ESPECIASEXOTICAS, :POLVOEXPLOSIVO,
+                # Vitaminas de EV
+                :HPUP, :PROTEIN, :IRON, :CALCIUM, :ZINC, :CARBOS,
+                # PP y Caramelos
+                :PPUP, :PPMAX,
+                # Sin precio reducido especial para éstos
+              ], true, {}, "Mercado Negro - Materiales")
+
+            # -------------------------------------------------------
+            when 3 # OBJETOS DE COMBATE (equipables con efecto en batalla)
+              _heizo_open_shop.call([
+                # Recuperación en combate
+                :LEFTOVERS, :BLACKSLUDGE, :SHELLBELL, :BIGROOT,
+                # Daño y potencia
+                :LIFEORB, :EXPERTBELT, :MUSCLEBAND, :WISEGLASSES,
+                # Elecciones (Choice items)
+                :CHOICEBAND, :CHOICESPECS, :CHOICESCARF,
+                # Estrategia de un solo turno
+                :FOCUSSASH, :FOCUSBAND, :WHITEHERB, :POWERHERB, :MENTALHERB,
+                # Reacción al golpe
+                :AIRBALLOON, :ROCKYHELMET, :EJECTBUTTON, :REDCARD,
+                :SHEDSHELL, :KINGSROCK, :RAZORFANG,
+                # Velocidad y precisión
+                :QUICKCLAW, :RAZORCLAW, :SCOPELENS, :WIDELENS, :ZOOMLENS, :BRIGHTPOWDER,
+                # Efectos climáticos
+                :HEATROCK, :DAMPROCK, :SMOOTHROCK, :ICYROCK, :LIGHTCLAY,
+                # Efecto en combate especial
+                :FLAMEORB, :TOXICORB, :ABSORBBULB, :CELLBATTERY,
+                :METRONOME, :GRIPCLAW, :BINDINGBAND,
+                :DESTINYKNOT, :EVIOLITE, :FLOATSTONE,
+                # Inciensos competitivos
+                :LAXINCENSE, :FULLINCENSE,
+                # Anti-huida
+                :SMOKEBALL, :SHEDSHELL,
+                # Miscelánea útil
+                :IRONBALL, :RINGTARGET, :LAGGINGTAIL
+              ], true, {}, "Mercado Negro - Obj. de Combate")
+
+            # -------------------------------------------------------
+            when 4 # POTENCIADORES DE TIPO (Tablas/Placas, Gemas, Inciensos de tipo)
+              _heizo_open_shop.call([
+                # Tablas/Placas de Arceus (tipo)
+                :FLAMEPLATE, :SPLASHPLATE, :ZAPPLATE, :MEADOWPLATE, :ICICLEPLATE,
+                :FISTPLATE, :TOXICPLATE, :EARTHPLATE, :SKYPLATE, :MINDPLATE,
+                :INSECTPLATE, :STONEPLATE, :SPOOKYPLATE, :DRACOPLATE, :DREADPLATE, :IRONPLATE,
+                # Potenciadores básicos de tipo (+20%)
+                :CHARCOAL, :MYSTICWATER, :MAGNET, :MIRACLESEED, :NEVERMELTICE,
+                :BLACKBELT, :POISONBARB, :SOFTSAND, :SHARPBEAK, :TWISTEDSPOON,
+                :SILVERPOWDER, :HARDSTONE, :SPELLTAG, :DRAGONFANG,
+                :BLACKGLASSES, :METALCOAT, :SILKSCARF,
+                # Gemas (uso único +30%)
+                :FIREGEM, :WATERGEM, :ELECTRICGEM, :GRASSGEM, :ICEGEM,
+                :FIGHTINGGEM, :POISONGEM, :GROUNDGEM, :FLYINGGEM, :PSYCHICGEM,
+                :BUGGEM, :ROCKGEM, :GHOSTGEM, :DRAGONGEM, :DARKGEM, :STEELGEM, :NORMALGEM,
+                # Inciensos de tipo
+                :SEAINCENSE, :WAVEINCENSE, :ROSEINCENSE, :ODDINCENSE, :ROCKINCENSE
+              ], true, {}, "Mercado Negro - Potenciadores de Tipo")
+
+            # -------------------------------------------------------
+            when 5 # ESPECIALES (precios fijos premium)
+              _heizo_open_shop.call([
+                :MASTERBALL,
+                :SHINYZADOR,
+                :LUCKYEGG,
+                :EXPSHARE,
+                :AMULETCOIN,
+                :AIRBALLOON
+              ], false, {
+                :MASTERBALL => 50000,
+                :SHINYZADOR  => 5000,
+                :LUCKYEGG   => 15000,
+                :EXPSHARE   => 8000,
+                :AMULETCOIN => 5000,
+                :AIRBALLOON => 10000
+              }, "Mercado Negro - Especiales")
+            end # case cat
+          end # loop categorías
+
+          $game_temp.mart_prices = nil # Limpiar precios tras salir
+          pbMessage(_INTL("Heizo: Haz buen uso de esa mercancia, campeon."))
+          $game_map.autoplay
           return
         else
           pbMessage(_INTL("Heizo: Estaré aquí terminando mi hidromiel. No me hagas esperar demasiado."))
