@@ -3740,28 +3740,25 @@ module Kernel
       pbMessage(_INTL("..."))
       pbMessage(_INTL("Soy Heizo. El creador de este Mod."))
       pbMessage(_INTL("No vine a hacer amigos. Vine a desafiar."))
-      pbMessage(_INTL("Tengo acceso al mercado negro... objetos que tú nunca verás."))
-      pbMessage(_INTL("¿Te atreves a enfrentarte a mí, o tienes miedo de fracasar?"))
+      pbMessage(_INTL("Si me vences, te abro las puertas de mi mercado negro."))
       
       if pbConfirmMessage(_INTL("Acepto el desafío"))
-        pbMessage(_INTL("Okey, prepara tu equipo. No empezaremos aún."))
-        pbMessage(_INTL("Me esperaré aquí tomando un hidromiel. Habla conmigo cuando estés listo."))
+        pbMessage(_INTL("Bien. Prepara tu equipo. No empezaremos aún."))
+        pbMessage(_INTL("Me quedaré aquí con mi hidromiel. Habla conmigo cuando estés listo."))
         $game_variables[995] = 1
       else
         pbMessage(_INTL("..."))
-        pbMessage(_INTL("Como era de esperar. La mayoría no tiene lo necesario."))
-        pbMessage(_INTL("Vuelve cuando estés preparado para un verdadero desafío."))
-        pbMessage(_INTL("...si es que algún día te atreves."))
+        pbMessage(_INTL("Como esperaba. Vuelve cuando te atrevas."))
         $game_map.autoplay # Restaurar música del mapa al rechazar
       end
-      $game_map.autoplay if $game_variables[995] == 1 # Si aceptó, restaurar también (el combate la cambiará)
+      $game_map.autoplay if $game_variables[995] == 1
       return
     
     # ESTADO 1: Esperando confirmación para luchar
     elsif $game_variables[995] == 1
       pbBGMPlay("Acertijos") # MÚSICA PARA DIÁLOGOS
       if pbConfirmMessage(_INTL("¿Estás listo para el combate?"))
-        pbMessage(_INTL("Bien. Veamos si tu preparación ha valido la pena."))
+        pbMessage(_INTL("Heizo: Bien. Que empiece."))
         
         if heizo_event
           pbMoveRoute($game_player, [
@@ -3847,10 +3844,8 @@ module Kernel
         heizo_event.straighten if heizo_event
         
         if decision == 1 # Victoria
-          pbMessage(_INTL("Heizo: Combate terminado. Como era de esperar, has ganado."))
-          pbMessage(_INTL("Heizo: Eres más fuerte de lo que pensaba... impresionante."))
-          pbMessage(_INTL("Heizo: Me has convencido. A partir de ahora, tendré mis mejores mercancías listas para ti."))
-          pbMessage(_INTL("Heizo: Me esperaré aquí tomando un hidromiel por si necesitas algo del mercado negro."))
+          pbMessage(_INTL("Heizo: Has ganado. El mercado negro es tuyo."))
+          pbMessage(_INTL("Heizo: Estaré aquí con mi hidromiel. Cuando quieras, vuelve."))
           
           # Cambiamos a Estado 2 (Victoria/Tienda desbloqueada)
           $game_variables[995] = 2 
@@ -3866,7 +3861,7 @@ module Kernel
         end
         return
       else
-        pbMessage(_INTL("No me hagas perder el tiempo. Estaré aquí tomando un hidromiel, avisa cuando estés preparado."))
+        pbMessage(_INTL("Bien. Veamos si tu preparación ha servido de algo."))
         $game_map.autoplay # Restaurar música del mapa al no querer combatir
         return
       end
@@ -3880,7 +3875,7 @@ module Kernel
           heizo_event.instance_variable_set(:@direction, h_pos[2])
         end
 
-        pbMessage(_INTL("Heizo: Ah, el campeón. ¿Qué te trae hoy por aquí? ¿Buscas más práctica o necesitas mercancía?"))
+        pbMessage(_INTL("Heizo: El campeón. ¿Qué necesitas?"))
         
         cmd = pbMessage(_INTL("¿Qué quieres hacer?"), [
           _INTL("Combatir de nuevo"),
@@ -3889,7 +3884,7 @@ module Kernel
         ], 3)
 
         if cmd == 0 # REPETIR COMBATE
-          pbMessage(_INTL("Heizo: Me gusta tu actitud. Veamos si sigues en forma."))
+          pbMessage(_INTL("Heizo: Así me gusta. Vamos."))
           # --- REPETICIÓN DE CINEMÁTICA Y COMBATE ---
           if heizo_event
             pbMoveRoute($game_player, [
@@ -3937,9 +3932,9 @@ module Kernel
           
           # Resultado
           if decision == 1
-            pbMessage(_INTL("Heizo: Combate terminado. Sigo sin ser rival para ti..."))
+            pbMessage(_INTL("Heizo: Otra vez derrotado. Bien jugado."))
           else
-            pbMessage(_INTL("Heizo: Bien jugado. He ganado esta vez."))
+            pbMessage(_INTL("Heizo: He ganado. Vuelve cuando quieras la revancha."))
           end
           # Volver a la mesa
           if heizo_event && h_pos; heizo_event.moveto(h_pos[0], h_pos[1]); heizo_event.instance_variable_set(:@direction, h_pos[2]); end
@@ -3967,35 +3962,34 @@ module Kernel
               end
               $game_temp.mart_prices[item_id] = [price, -1]
             end
-            pbPokemonMart(items, _INTL(title), true) unless items.empty?
+            pbPokemonMart(items, _INTL(title), false) unless items.empty?
           end
 
           # --- BUCLE DE CATEGORÍAS ---
           loop do
             pbBGMPlay("Acertijos")
-            cat = pbMessage(_INTL("Heizo: Todo a mitad de precio... porque me caes bien."), [
-              _INTL("Poke Balls        (50% dto.)"),
-              _INTL("Bayas y Curacion  (50% dto.)"),
-              _INTL("Materiales        (50% dto.)"),
-              _INTL("Obj. de Combate   (50% dto.)"),
-              _INTL("Potenciadores     (50% dto.)"),
-              _INTL("Especiales        (precio fijo)"),
-              _INTL("Nada mas, gracias")
-            ], 7)
+            cat = pbMessage(_INTL("Heizo: Todo a mitad de precio. Elige sección."), [
+              _INTL("Poke Balls"),
+              _INTL("Bayas y Curacion"),
+              _INTL("Materiales y Vitaminas"),
+              _INTL("Obj. de Combate"),
+              _INTL("Potenciadores de Tipo"),
+              _INTL("Salir")
+            ], 6)
 
-            break if cat == 6 # Salir
+            break if cat == 5 # Salir
 
             case cat
             # -------------------------------------------------------
-            when 0 # POKÉ BALLS
+            when 0 # POKÉ BALLS (incluye Master Ball a precio fijo)
               _heizo_open_shop.call([
-                :POKEBALL, :GREATBALL, :ULTRABALL,
+                :POKEBALL, :GREATBALL, :ULTRABALL, :MASTERBALL,
                 :NETBALL, :DIVEBALL, :NESTBALL, :REPEATBALL, :TIMERBALL,
                 :LUXURYBALL, :DUSKBALL, :HEALBALL, :QUICKBALL,
                 :FASTBALL, :LEVELBALL, :LUREBALL, :HEAVYBALL,
                 :LOVEBALL, :FRIENDBALL, :MOONBALL,
                 :POKEBALLCASERA, :SUPERBALLCASERA, :ULTRABALLCASERA
-              ], true, {}, "Mercado Negro - Poke Balls")
+              ], true, { :MASTERBALL => 50000 }, "Mercado Negro - Poke Balls")
 
             # -------------------------------------------------------
             when 1 # BAYAS Y CURACIÓN
@@ -4013,13 +4007,11 @@ module Kernel
                 :PERSIMBERRY, :FIGYBERRY, :WIKIBERRY, :MAGOBERRY, :AGUAVBERRY, :IAPPABERRY,
                 # Bayas de stat boost
                 :LIECHIBERRY, :GANLONBERRY, :SALACBERRY, :PETAYABERRY, :APICOTBERRY,
-                :CUSTAPBERRY, :LANSATBERRY, :STARFBERRY, :MICLEBERRY, :ENIGMABERRY,
-                # Bayas de exploración
-                :LUMBERRY, :BLUKBERRY, :NANABBERRY, :WEPEARBERRY
+                :CUSTAPBERRY, :LANSATBERRY, :STARFBERRY, :MICLEBERRY, :ENIGMABERRY
               ], true, {}, "Mercado Negro - Bayas y Curacion")
 
             # -------------------------------------------------------
-            when 2 # MATERIALES DE CREACIÓN Y EXPLORACIÓN
+            when 2 # MATERIALES, VITAMINAS Y EVOLUCIÓN
               _heizo_open_shop.call([
                 # Repelentes
                 :REPEL, :SUPERREPEL, :MAXREPEL,
@@ -4034,8 +4026,9 @@ module Kernel
                 :HPUP, :PROTEIN, :IRON, :CALCIUM, :ZINC, :CARBOS,
                 # PP y Caramelos
                 :PPUP, :PPMAX,
-                # Sin precio reducido especial para éstos
-              ], true, {}, "Mercado Negro - Materiales")
+                # Shinyzador (poción custom del mod)
+                :SHINYZADOR
+              ], true, { :SHINYZADOR => 5000 }, "Mercado Negro - Materiales")
 
             # -------------------------------------------------------
             when 3 # OBJETOS DE COMBATE (equipables con efecto en batalla)
@@ -4061,10 +4054,10 @@ module Kernel
                 :DESTINYKNOT, :EVIOLITE, :FLOATSTONE,
                 # Inciensos competitivos
                 :LAXINCENSE, :FULLINCENSE,
-                # Anti-huida
-                :SMOKEBALL, :SHEDSHELL,
-                # Miscelánea útil
-                :IRONBALL, :RINGTARGET, :LAGGINGTAIL
+                # Utilidad general
+                :SMOKEBALL, :IRONBALL, :RINGTARGET, :LAGGINGTAIL,
+                # Experiencia y dinero
+                :LUCKYEGG, :EXPSHARE, :AMULETCOIN
               ], true, {}, "Mercado Negro - Obj. de Combate")
 
             # -------------------------------------------------------
@@ -4086,34 +4079,16 @@ module Kernel
                 # Inciensos de tipo
                 :SEAINCENSE, :WAVEINCENSE, :ROSEINCENSE, :ODDINCENSE, :ROCKINCENSE
               ], true, {}, "Mercado Negro - Potenciadores de Tipo")
-
-            # -------------------------------------------------------
-            when 5 # ESPECIALES (precios fijos premium)
-              _heizo_open_shop.call([
-                :MASTERBALL,
-                :SHINYZADOR,
-                :LUCKYEGG,
-                :EXPSHARE,
-                :AMULETCOIN,
-                :AIRBALLOON
-              ], false, {
-                :MASTERBALL => 50000,
-                :SHINYZADOR  => 5000,
-                :LUCKYEGG   => 15000,
-                :EXPSHARE   => 8000,
-                :AMULETCOIN => 5000,
-                :AIRBALLOON => 10000
-              }, "Mercado Negro - Especiales")
             end # case cat
           end # loop categorías
 
-          $game_temp.mart_prices = nil # Limpiar precios tras salir
-          pbMessage(_INTL("Heizo: Buen gusto. Vuelve cuando necesites mas."))
+          $game_temp.mart_prices = nil
+          pbMessage(_INTL("Heizo: Buen provecho. Ya sabes dónde encontrarme."))
           $game_map.autoplay
           return
         else
-          pbMessage(_INTL("Heizo: Estaré aquí terminando mi hidromiel. No me hagas esperar demasiado."))
-          $game_map.autoplay # Restaurar música del mapa al despedirse
+          pbMessage(_INTL("Heizo: Estaré aquí con mi hidromiel. Sin prisa."))
+          $game_map.autoplay
           return
         end
     end
