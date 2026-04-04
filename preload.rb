@@ -3956,7 +3956,8 @@ module Kernel
               item_id = getID(PBItems, sym) rescue nil
               next if !item_id
               items.push(item_id)
-              base = pbGetPrice(item_id) rescue 200
+              base = (pbGetPrice(item_id) rescue 200).to_i
+              base = 200 if base <= 0
               if special_prices.key?(sym)
                 price = special_prices[sym]
               elsif half_price_all
@@ -3972,13 +3973,13 @@ module Kernel
           # --- BUCLE DE CATEGORÍAS ---
           loop do
             pbBGMPlay("Acertijos")
-            cat = pbMessage(_INTL("Heizo: ¿Qué tipo de mercancía buscas?"), [
+            cat = pbMessage(_INTL("Heizo: Todo a mitad de precio... porque me caes bien."), [
               _INTL("Poke Balls        (50% dto.)"),
               _INTL("Bayas y Curacion  (50% dto.)"),
               _INTL("Materiales        (50% dto.)"),
               _INTL("Obj. de Combate   (50% dto.)"),
               _INTL("Potenciadores     (50% dto.)"),
-              _INTL("Especiales"),
+              _INTL("Especiales        (precio fijo)"),
               _INTL("Nada mas, gracias")
             ], 7)
 
@@ -4107,7 +4108,7 @@ module Kernel
           end # loop categorías
 
           $game_temp.mart_prices = nil # Limpiar precios tras salir
-          pbMessage(_INTL("Heizo: Haz buen uso de esa mercancia, campeon."))
+          pbMessage(_INTL("Heizo: Buen gusto. Vuelve cuando necesites mas."))
           $game_map.autoplay
           return
         else
