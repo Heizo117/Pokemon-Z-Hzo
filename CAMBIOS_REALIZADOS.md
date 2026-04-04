@@ -89,11 +89,22 @@ He integrado un nuevo encuentro especial como guiño al desarrollo del juego:
         *   **Objetos a Mitad de Precio**: Consumibles básicos como Poké Balls y Pociones tienen un 50% de descuento.
         *   **Objetos Raros**: Venta de bayas exóticas, piedras evolutivas y materiales de creación.
         *   **Objetos Especiales**: Venta de la **Poción Brillante** (hace que el próximo Pokémon sea Shiny) y la **Master Ball** (a un precio premium de 50.000).
-    *   **Equipo Personalizado (Team Heizo)**: Heizo cuenta con un trío de Pokémon configurados con tácticas avanzadas:
-        *   **Charizard (Shiny)**: Versión Variocolor con habilidad *Adaptable* y 8 movimientos de alto impacto.
-        *   **Venusaur**: Tanque especial con 31 IVs, naturaleza miedosa y movimientos de control de estado.
-        *   **Gengar**: *Sweeper* tímido con habilidad *Levitación* y 8 movimientos tácticos (incluyendo *Hipnosis + Pesadilla*).
+    *   **Equipo Personalizado (Team Heizo)**: Heizo cuenta con su equipo definitivo de 6 integrantes diseñados para ser letales. Todos comparten IVs perfectos (31), naturalezas puramente competitivas, habilidades ocultas o alteradas y 8 movimientos en batalla.
+        *   **Integrantes:** **Charizard** (Shiny, Mixto con *Adaptable*), **Swampert** (Tanque Físico con *Intimidación*), **Venusaur** (Tanque Especial con *Punto Tóxico*), **Corviknight** (Muro Defensivo con *Coraza Reflejo*), **Gengar** (*Sweeper* Especial con *Levitación*) y **Zeraora** (Físico con *Dicha*).
+        *   **Megas Puras (Cosméticas)**: Durante el combate y en exposición, Charizard-Y y Swampert muestran ininterrumpidamente sus sprites Mega, pero emplean un flag custom interno (`@form_sprite_only_final`) que las ancla forzosamente a los stats matemáticos de la base. Esto logra estéticas abrumadoras sin penalizar la equidad y justicia en combate contra el jugador.
+    *   **Caja 30 (Hall de la Fama / Vitrina Interactiva)**: Se ha interceptado el motor de PC y asignado la Caja 30 como santuario exclusivo bloqueado:
+        *   **Modo Lectura**: El jugador puede abrir la pestaña "Datos" e inspeccionar libremente los ataques y naturaleza de las leyendas de Heizo. Queda inhabilitado cualquier intento de sacar, intercambiar o guardar en esa caja.
+        *   **Pestaña LORE (Origen)**: Se ha sobreescrito a bajo nivel el flujo visual del HUD en la sub-pantalla de "Notas de Entrenador" vaciando dinámicamente la zona para pintar a medida un poema heroico y lore custom (Ej. *"Forjado en las cenizas del Gran Colapso..."*).
+        *   La caja inicia por convención con el fondo místico "Alma".
     *   **Persistencia de Estado**: El sistema utiliza variables globales (`$game_variables[995]`) para recordar el progreso del duelo y mantener la tienda disponible tras la victoria.
+
+> **Capturas del Origen de Equipo (Lore Inject):**
+> 
+> *Coloca tus capturas en GitHub (ej: en carpeta raiz `img/`) y arrastra los enlaces o archivos reemplazando estos comandos visuales:*
+> `![Origen Charizard](ruta/charizard.png)` 
+> `![Origen Swampert](ruta/swampert.png)`
+> `![Origen Gengar](ruta/gengar.png)` 
+> `![Origen Zeraora](ruta/zeraora.png)`
 
 ---
 *He implementado todos estos cambios mediante inyecciones dinámicas en `preload.rb`, asegurando que el contenido sea compatible con cualquier versión del juego base sin corromper los scripts originales.*
