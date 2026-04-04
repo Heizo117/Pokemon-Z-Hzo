@@ -72,6 +72,14 @@ He implementado un **sistema de autoguardado inteligente** que detecta si estás
   </a>
 </p>
 
+### 🏆 Caja 30 y Origen del Equipo (Hall de la Fama)
+
+Además del combate, el Mod integra mi equipo custom dentro de la **Caja 30** del PC a modo de vitrina interactiva. Podrás estudiar sus movimientos y descubrir su lore personal a través de la pestaña de **Origen**:
+
+![Origen Corviknight](./screenshots/origen_heizo_1.png)
+![Origen Swampert](./screenshots/origen_heizo_2.png)
+![Origen Gengar](./screenshots/origen_heizo_3.png)
+![Origen Charizard](./screenshots/origen_heizo_4.png)
 ---
 
 ## ⚡ Instalación en 1 minuto (Copiar y Pegar)
