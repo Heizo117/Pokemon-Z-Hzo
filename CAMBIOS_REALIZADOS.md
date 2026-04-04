@@ -69,7 +69,7 @@ He llevado el motor de batalla a un nuevo nivel de profundidad y comodidad:
 ## 6. Estabilidad y Corrección de Errores
 
 -   **Sincronización de Sprites**: He detectado y corregido fallos menores en las rutas de los sprites y los nombres de archivos en formas alternativas (como Mewtwo Mega y Typhlosion Hisui), asegurando que el juego siempre encuentre el gráfico correcto.
--   **Eliminación de Crashes**: He eliminado el error "RepExp" que ocurría al interactuar con slots vacíos, el fallo de `TypeError` al guardar el follower, y he limpiado los "botones fantasma" que causaban comportamientos erráticos en el menú.
+-   **Eliminación de Crashes y Errores de Sintaxis**: He eliminado el error "RepExp" que ocurría al interactuar con slots vacíos, el fallo de `TypeError` al guardar el follower, limpiado los "botones fantasma" y corregido un `SyntaxError` crítico en `preload.rb` causado por líneas huérfanas al final del script de Heizo.
 -   **Resolución 1080p**: He optimizado el escalado para pantallas modernas sin pérdida de calidad visual.
 
 ## 7. Portabilidad y Sistema de Guardado (Modo Portable)
