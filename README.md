@@ -79,83 +79,66 @@ Además del combate, el Mod integra mi equipo custom dentro de la **Caja 30** de
 > [!IMPORTANT]
 > **Balance Matemático**: Durante el combate y en la caja, Charizard y Swampert muestran sus formas **Mega**, pero internamente el motor las bloquea para que utilicen las **Estadísticas Base** (forma 0) para garantizar un duelo justo y técnico.
 
-#### 📋 Ficha Técnica del Equipo Heizo
+#### 📋 Fichas del Equipo (Técnica & Lore)
 
-<details>
-<summary><b>🔥 Charizard (Shiny / Mega-Y Visual)</b></summary>
-
+![Origen Charizard](./screenshots/img_chk_charizard.png)
+**🔥 Charizard (Shiny / Mega-Y Visual)**
 *   **Naturaleza**: Alocada (+Atk. Sp, -Def. Sp)
-*   **Habilidad**: Adaptable (Potencia ataques de su mismo tipo)
+*   **Habilidad**: Adaptable
 *   **Objeto**: Colmillo Dragón
 *   **Tipos**: Fuego / Dragón (Custom)
-*   **Movimientos**:
-    1. Colmillo Ígneo | 2. Lanzallamas | 3. Garra Dragón | 4. Pulso Dragón
-    5. Respiro | 6. Triturar | 7. Danza Dragón | 8. Tajo Aéreo
-</details>
-
-<details>
-<summary><b>🌊 Swampert (Mega Visual)</b></summary>
-
-*   **Naturaleza**: Firme (+Atk, -Atk. Sp)
-*   **Habilidad**: Intimidación
-*   **Objeto**: Cinta Experto
-*   **Movimientos**:
-    1. Cascada | 2. Terremoto | 3. Puño Hielo | 4. Roca Afilada
-    5. Fuerza Bruta | 6. Demolición | 7. Bostezo | 8. Trampa Rocas
-</details>
-
-<details>
-<summary><b>🌿 Venusaur</b></summary>
-
-*   **Naturaleza**: Serena (+Def. Sp, -Atk)
-*   **Habilidad**: Punto Tóxico
-*   **Objeto**: Raíz Grande
-*   **Movimientos**:
-    1. Gigadrenado | 2. Bomba Lodo | 3. Drenadoras | 4. Espora
-    5. Síntesis | 6. Rayo Solar | 7. Tóxico | 8. Carga Tóxica
-</details>
-
-<details>
-<summary><b>🛡️ Corviknight</b></summary>
-
-*   **Naturaleza**: Agitada (+Def, -Atk. Sp)
-*   **Habilidad**: Coraza Reflejo
-*   **Objeto**: Restos
-*   **Movimientos**:
-    1. Respiro | 2. Defensa Férrea | 3. Pico Coraza | 4. Cabeza de Hierro
-    5. Ida y Vuelta | 6. Despejar | 7. Mofa | 8. Picoteo
-</details>
-
-<details>
-<summary><b>👻 Gengar</b></summary>
-
-*   **Naturaleza**: Miedosa (+Vel, -Atk)
-*   **Habilidad**: Levitación
-*   **Objeto**: Tabla Terror
-*   **Movimientos**:
-    1. Bola Sombra | 2. Bomba Lodo | 3. Mismo Destino | 4. Pulso Umbrío
-    5. Hipnosis | 6. Come Sueños | 7. Tóxico | 8. Pesadilla
-</details>
-
-<details>
-<summary><b>⚡ Zeraora</b></summary>
-
-*   **Naturaleza**: Alegre (+Vel, -Atk. Sp)
-*   **Habilidad**: Dicha
-*   **Objeto**: Cascabel Concha
-*   **Movimientos**:
-    1. Puño Trueno | 2. Puños Plasma | 3. Voltio Cruel | 4. Voltiocambio
-    5. A Bocajarro | 6. Puño Drenaje | 7. Patada Ígnea | 8. Chispa
-</details>
+*   **Movimientos**: 
+    1. Colmillo Ígneo | 2. Lanzallamas | 3. Garra Dragón | 4. Pulso Dragón | 5. Respiro | 6. Triturar | 7. Danza Dragón | 8. Tajo Aéreo
 
 ---
 
-![Origen Charizard](./screenshots/img_chk_charizard.png)
 ![Origen Swampert](./screenshots/img_chk_swampert.png)
+**🌊 Swampert (Mega Visual)**
+*   **Naturaleza**: Firme (+Atk, -Atk. Sp)
+*   **Habilidad**: Intimidación
+*   **Objeto**: Cinta Experto
+*   **Movimientos**: 
+    1. Cascada | 2. Terremoto | 3. Puño Hielo | 4. Roca Afilada | 5. Fuerza Bruta | 6. Demolición | 7. Bostezo | 8. Trampa Rocas
+
+---
+
 ![Origen Venusaur](./screenshots/img_chk_venusaur.png)
+**🌿 Venusaur**
+*   **Naturaleza**: Serena (+Def. Sp, -Atk)
+*   **Habilidad**: Punto Tóxico
+*   **Objeto**: Raíz Grande
+*   **Movimientos**: 
+    1. Gigadrenado | 2. Bomba Lodo | 3. Drenadoras | 4. Espora | 5. Síntesis | 6. Rayo Solar | 7. Tóxico | 8. Carga Tóxica
+
+---
+
 ![Origen Corviknight](./screenshots/img_chk_corviknight.png)
+**🛡️ Corviknight**
+*   **Naturaleza**: Agitada (+Def, -Atk. Sp)
+*   **Habilidad**: Coraza Reflejo
+*   **Objeto**: Restos
+*   **Movimientos**: 
+    1. Respiro | 2. Defensa Férrea | 3. Pico Coraza | 4. Cabeza de Hierro | 5. Ida y Vuelta | 6. Despejar | 7. Mofa | 8. Picoteo
+
+---
+
 ![Origen Gengar](./screenshots/img_chk_gengar.png)
+**👻 Gengar**
+*   **Naturaleza**: Miedosa (+Vel, -Atk)
+*   **Habilidad**: Levitación
+*   **Objeto**: Tabla Terror
+*   **Movimientos**: 
+    1. Bola Sombra | 2. Bomba Lodo | 3. Mismo Destino | 4. Pulso Umbrío | 5. Hipnosis | 6. Come Sueños | 7. Tóxico | 8. Pesadilla
+
+---
+
 ![Origen Zeraora](./screenshots/img_chk_zeraora.png)
+**⚡ Zeraora**
+*   **Naturaleza**: Alegre (+Vel, -Atk. Sp)
+*   **Habilidad**: Dicha
+*   *   **Objeto**: Cascabel Concha
+*   **Movimientos**: 
+    1. Puño Trueno | 2. Puños Plasma | 3. Voltio Cruel | 4. Voltiocambio | 5. A Bocajarro | 6. Puño Drenaje | 7. Patada Ígnea | 8. Chispa
 
 ---
 
