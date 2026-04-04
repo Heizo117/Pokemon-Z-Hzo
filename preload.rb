@@ -3614,8 +3614,206 @@ end
 # Funcion de dialogo para Heizo
 module Kernel
   def self.pbHeizoDialog
-    # 1. Definir HeizoBattle de forma estable
-    Object.const_set(:HeizoBattle, Class.new(::PokeBattle_Battle) {}) unless defined?(::HeizoBattle)
+    # 1. Definir HeizoBattle de forma dinámica para evitar errores de carga (NameError)
+    if !defined?(::HeizoBattle)
+      heizo_cls = Class.new(::PokeBattle_Battle) do
+        # --- IA PERSONALIZADA PARA HEIZO ---
+        
+        # Función de Puntuación Avanzada (Ofensiva y Defensiva)
+        def pbHeizoScorePokemon(pkmn, opponent)
+          score = 0
+          # PUNTUACIÓN OFENSIVA: Basada en la efectividad de sus movimientos contra el rival activo
+          for move in pkmn.moves
+            next if !move || move.id == 0
+            begin
+              eff = PBTypes.getCombinedEffectiveness(move.type, opponent.type1, opponent.type2)
+            rescue
+              eff = 8 # Normal
+            end
+            score += eff
+            score += 4 if pkmn.hasType?(move.type) && eff > 8 # Bonus STAB
+          end
+
+          # PUNTUACIÓN DEFENSIVA: Resistencias de Heizo contra los tipos del rival
+          [opponent.type1, opponent.type2].each do |t|
+            next if t.nil? || t < 0
+            begin
+              res = PBTypes.getCombinedEffectiveness(t, pkmn.type1, pkmn.type2)
+              if res == 0;      score += 20 # Inmunidad
+              elsif res < 8;    score += 12 # Resistencia
+              elsif res > 12;   score -= 15 # Debilidad Crítica
+              end
+            rescue
+            end
+          end
+          score += (pkmn.hp * 15 / pkmn.totalhp).to_i if pkmn.totalhp > 0
+          return score
+        end
+
+        # Selección de Lead Inteligente (Smart Counter-Start)
+        def pbStartBattle
+          my_party = pbParty(1)
+          player_lead = pbParty(0).find { |p| p && p.hp > 0 && !p.isEgg? }
+          if player_lead
+            candidates = []
+            my_party.each_with_index do |pkmn, i|
+              next if !pkmn || pkmn.hp <= 0 || pkmn.isEgg?
+              score = pbHeizoScorePokemon(pkmn, player_lead)
+              candidates.push([i, score])
+            end
+            candidates.sort! { |a, b| b[1] <=> a[1] }
+            best_idx = candidates[0][0]
+            if best_idx > 0
+              my_party[0], my_party[best_idx] = my_party[best_idx], my_party[0]
+            end
+          end
+          super
+        end
+
+        # Cambio por Derrota con Factor de Caos
+        def pbChooseBestNewEnemy(index, party, enemies)
+          return -1 if !enemies || enemies.length == 0
+          opponent = @battlers[index].pbOppositeOpposing
+          opponent = opponent.pbPartner if opponent.isFainted?
+          return super if !opponent || opponent.isFainted?
+          scored_enemies = []
+          for e in enemies
+            score = pbHeizoScorePokemon(party[e], opponent)
+            scored_enemies.push([e, score])
+          end
+          scored_enemies.sort! { |a, b| b[1] <=> a[1] }
+          if scored_enemies.length > 1 && pbAIRandom(100) < 20
+            return scored_enemies[1][0]
+          end
+          return scored_enemies[0][0]
+        end
+
+        # --- IA ESTRATÉGICA FINAL (COMBOS Y TÁCTICAS) ---
+        def pbGetMoveScore(move, attacker, opponent, score=5)
+          score = super
+          
+          # 1. Combo de Sueño (Hipnosis, Espora, Yoste)
+          hip_id = getID(PBMoves, :HYPNOSIS) rescue 95
+          spo_id = getID(PBMoves, :SPORE) rescue 147
+          yawn_id = getID(PBMoves, :YAWN) rescue 281
+          
+          if [hip_id, spo_id, yawn_id].include?(move.id)
+            if opponent.status == 0 && opponent.pbCanSleep?(attacker, false)
+              score += 100 # Prioridad máxima a dormir
+            else
+              score -= 100 # No intentar si ya tiene estado
+            end
+          end
+
+          # 2. Capitalización de Sueño (Comer Sueños, Pesadilla)
+          dream_id = getID(PBMoves, :DREAMEATER) rescue 138
+          night_id = getID(PBMoves, :NIGHTMARE) rescue 171
+          if [dream_id, night_id].include?(move.id)
+            if opponent.status == PBStatuses::SLEEP
+              score += 120 # Castigo severo si duerme
+            else
+              score -= 120 # Inútil si está despierto
+            end
+          end
+
+          # 3. Hazards (Trampa Rocas)
+          rock_id = getID(PBMoves, :STEALTHROCK) rescue 446
+          if move.id == rock_id
+            if opponent.pbOwnSide.effects[PBEffects::StealthRock]
+              score -= 100
+            else
+              score += 50 if attacker.turncount < 3
+            end
+          end
+
+          # 4. Recuperación (Respiro, Síntesis, Gigadrenado, Drenadoras)
+          # Roost=435, Synthesis=232, Giga Drain=202, Leech Seed=73
+          recovery = [getID(PBMoves, :ROOST) rescue 435, 
+                      getID(PBMoves, :SYNTHESIS) rescue 232, 
+                      getID(PBMoves, :GIGADRAIN) rescue 202,
+                      getID(PBMoves, :LEECHSEED) rescue 73]
+          if recovery.include?(move.id)
+            if attacker.hp < attacker.totalhp / 2
+              score += 40
+            end
+          end
+
+          # 5. Mismo Destino (Destiny Bond) - Destiny Bond=194
+          destiny_id = getID(PBMoves, :DESTINYBOND) rescue 194
+          if move.id == destiny_id
+            if attacker.hp < attacker.totalhp / 3
+              score += 80 # Intentar llevarse al rival si va a morir
+            end
+          end
+
+          return score
+        end
+
+        # Cambios Proactivos (IA Inteligente y Justa)
+
+        def pbEnemyShouldWithdrawEx?(index, alwaysSwitch)
+          return true if alwaysSwitch
+          battler = @battlers[index]
+          return false if battler.turncount <= 0
+          opponent = battler.pbOppositeOpposing
+          opponent = opponent.pbPartner if opponent.isFainted?
+          return false if !opponent || opponent.isFainted?
+          
+          begin
+            # 1. FILTRO DE KO: Si el rival está herido y tenemos un golpe cargado, nos quedamos.
+            if opponent.hp < opponent.totalhp * 0.75
+              for m in battler.moves
+                next if !m || m.id == 0 || m.basedamage == 0
+                eff = PBTypes.getCombinedEffectiveness(m.type, opponent.type1, opponent.type2)
+                if eff > 12 # Súper efectivo
+                  return false if pbAIRandom(100) < 80 # 80% de quedarse a intentar el KO
+                end
+              end
+            end
+
+            # 2. FACTOR DE AGALLAS (30% de quedarse por pura agresividad)
+            return false if pbAIRandom(100) < 30
+
+            # 3. FILTRO "FODDER" (Sacrificio táctico)
+            # Si nos queda poca vida y el rival es más rápido, el cambio solo nos haría perder un turno.
+            if battler.hp < (battler.totalhp / 4) && battler.speed < opponent.speed
+              return false 
+            end
+
+            # 4. LÓGICA DE CAMBIO SELECTIVO
+            eff1 = PBTypes.getCombinedEffectiveness(opponent.type1, battler.type1, battler.type2)
+            eff2 = (opponent.type1 != opponent.type2) ? PBTypes.getCombinedEffectiveness(opponent.type2, battler.type1, battler.type2) : 0
+            
+            # Solo buscamos cambio si tenemos una debilidad crítica frente al rival
+            if eff1 > 12 || eff2 > 12
+              party = pbParty(index)
+              current_score = pbHeizoScorePokemon(battler.pokemon, opponent)
+              
+              best_bench_index = -1
+              max_bench_score = current_score
+
+              for i in 0...party.length
+                next if !pbCanSwitch?(index, i, false)
+                bench_score = pbHeizoScorePokemon(party[i], opponent)
+                if bench_score > max_bench_score
+                  max_bench_score = bench_score
+                  best_bench_index = i
+                end
+              end
+              
+              # UMBRAL DE VENTAJA: Solo cambia si el banquillo es sustancialmente mejor (+50 puntos)
+              if best_bench_index != -1 && max_bench_score > current_score + 50
+                return pbRegisterSwitch(index, best_bench_index)
+              end
+            end
+          rescue
+          end
+          return super
+        end
+
+      end # end Class.new block
+      Object.const_set(:HeizoBattle, heizo_cls)
+    end # end if !defined?
 
     # 2. Hook de Diálogo Robusto a nivel de Battler (v5 - Versión con Memoria Antiduplicados)
     battler_class = defined?(::PokeBattle_Battler) ? ::PokeBattle_Battler : (defined?(::Battle::Battler) ? ::Battle::Battler : nil)
@@ -3851,6 +4049,7 @@ module Kernel
           $game_variables[995] = 2 
         else
           pbMessage(_INTL("Heizo: Bien jugado. He ganado esta vez."))
+          pbStartOver
         end
         
         # Volver a la mesa y forzar posición inicial
@@ -3935,6 +4134,7 @@ module Kernel
             pbMessage(_INTL("Heizo: Otra vez derrotado. Bien jugado."))
           else
             pbMessage(_INTL("Heizo: He ganado. Vuelve cuando quieras la revancha."))
+            pbStartOver
           end
           # Volver a la mesa
           if heizo_event && h_pos; heizo_event.moveto(h_pos[0], h_pos[1]); heizo_event.instance_variable_set(:@direction, h_pos[2]); end

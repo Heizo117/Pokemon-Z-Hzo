@@ -97,6 +97,7 @@ Además del combate, el Mod integra mi equipo custom dentro de la **Caja 30** de
 *   **Naturaleza**: Firme (+Atk, -Atk. Sp)
 *   **Habilidad**: Intimidación
 *   **Objeto**: Cinta Experto
+*   **Táctica Maestro**: Priorizará colocar **Trampa Rocas** al principio para desgastar a tu equipo y usará **Bostezo** para forzar cambios o dormirte.
 *   **Movimientos**: 
     1. Cascada | 2. Terremoto | 3. Puño Hielo | 4. Roca Afilada | 5. Fuerza Bruta | 6. Demolición | 7. Bostezo | 8. Trampa Rocas
 
@@ -107,6 +108,7 @@ Además del combate, el Mod integra mi equipo custom dentro de la **Caja 30** de
 *   **Naturaleza**: Serena (+Def. Sp, -Atk)
 *   **Habilidad**: Punto Tóxico
 *   **Objeto**: Raíz Grande
+*   **Táctica Maestro**: Especialista en desgaste. Buscará dormirte con **Espora** y drenar tu vida con **Drenadoras** + **Gigadrenado**.
 *   **Movimientos**: 
     1. Gigadrenado | 2. Bomba Lodo | 3. Drenadoras | 4. Espora | 5. Síntesis | 6. Rayo Solar | 7. Tóxico | 8. Carga Tóxica
 
@@ -127,6 +129,7 @@ Además del combate, el Mod integra mi equipo custom dentro de la **Caja 30** de
 *   **Naturaleza**: Miedosa (+Vel, -Atk)
 *   **Habilidad**: Bromista
 *   **Objeto**: Globo Helio
+*   **Táctica Maestro**: Su habilidad **Bromista** le da prioridad a **Hipnosis**. Si duermes, usará **Come Sueños**. Si está en peligro, intentará llevarte con él usando **Mismo Destino**.
 *   **Movimientos**: 
     1. Bola Sombra | 2. Bomba Lodo | 3. Mismo Destino | 4. Pulso Umbrío | 5. Hipnosis | 6. Come Sueños | 7. Tóxico | 8. Pesadilla
 
@@ -139,6 +142,18 @@ Además del combate, el Mod integra mi equipo custom dentro de la **Caja 30** de
 *   *   **Objeto**: Cascabel Concha
 *   **Movimientos**: 
     1. Puño Trueno | 2. Puños Plasma | 3. Voltio Cruel | 4. Voltiocambio | 5. A Bocajarro | 6. Puño Drenaje | 7. Patada Ígnea | 8. Chispa
+
+---
+
+### 🧠 IA de Combate "Estratega Maestro" (v3)
+
+He rediseñado la IA de Heizo para que se comporte como un jugador experto:
+- **Análisis de Combo**: Heizo detecta cuando tu Pokémon está dormido para capitalizar el daño.
+- **Tácticas de Entrada**: Colocación de Hazards (Rocas) y estados alterados de forma prioritaria.
+- **Gestión de Riesgo**: Inteligencia para decidir cuándo quedarse en combate y cuándo sacrificar a un Pokémon.
+
+> [!NOTE]
+> **Defeat Safe (Nuzlocke Friendly)**: Si pierdes contra Heizo, el juego ahora procesa correctamente el **Desmayo (Blackout)**, curando a tu equipo y enviándote al Centro Pokémon. Esto evita el estado de "equipo muerto" en el mapa y asegura que el combate sea una prueba justa que no interfiera con el flujo base del juego ni con retos externos.
 
 ---
 

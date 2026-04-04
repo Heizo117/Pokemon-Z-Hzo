@@ -96,6 +96,13 @@ He integrado un nuevo encuentro especial como guiño al desarrollo del juego:
         *   **Modo Lectura**: El jugador puede abrir la pestaña "Datos" e inspeccionar libremente los ataques y naturaleza de las leyendas de Heizo. Queda inhabilitado cualquier intento de sacar, intercambiar o guardar en esa caja.
         *   **Pestaña LORE (Origen)**: Se ha sobreescrito a bajo nivel el flujo visual del HUD en la sub-pantalla de "Notas de Entrenador" vaciando dinámicamente la zona para pintar a medida un poema heroico y lore custom (Ej. *"Forjado en las cenizas del Gran Colapso..."*).
         *   La caja inicia por convención con el fondo místico "Alma".
+        *   **IA de Combate "Estratega Maestro" (HeizoBattle v3)**: Se ha implementado un sistema de puntuación de movimientos dinámico para maximizar el potencial de su equipo:
+            *   **Prioridad de Combos**: Gengar y Venusaur priorizarán dormir al rival (Hipnosis/Espora) antes de usar movimientos como Comer Sueños o Pesadilla.
+            *   **Control del Campo**: Swampert buscará colocar Trampa Rocas en los primeros turnos para desgastar al equipo del jugador.
+            *   **Gestión de Recursos**: Uso inteligente de movimientos de recuperación (Respiro/Síntesis/Drenadoras) y sacrificio táctico con Mismo Destino cuando su HP es crítico.
+            *   **Corrección de Derrota (Blackout)**: Se ha corregido el flujo de combate para que, en caso de derrota del jugador, se procese un "Desmayo" estándar, enviando al jugador al Centro Pokémon y evitando el estado de equipo debilitado en el mapa.
+
+
     *   **Persistencia de Estado**: El sistema utiliza variables globales (`$game_variables[995]`) para recordar el progreso del duelo y mantener la tienda disponible tras la victoria.
 
 > **Capturas del Origen de Equipo (Lore Inject):**
