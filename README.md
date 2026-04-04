@@ -76,24 +76,25 @@ He implementado un **sistema de autoguardado inteligente** que detecta si estás
 
 Además del combate, el Mod integra mi equipo custom dentro de la **Caja 30** del PC a modo de vitrina interactiva. Podrás estudiar sus tácticas y descubrir su lore personal a través de la pestaña de **Origen**:
 
-![Origen Charizard](./screenshots/origen_charizard.png)
+![Origen Charizard](./screenshots/img_chk_charizard.png)
 **Charizard (Mega-Y Estética)**: Atacante Mixto Shiny enfocado en *Adaptable* (doble STAB para Fuego y Dragón) con *Colmillo Dragón*. 
 *Nota de balance:* Las apariencias engañan. Se muestra con el deslumbrante sprite de Mega-Charizard Y para el impacto audiovisual, pero el motor lo fuerza internamente a usar los **Stats Normales de la forma Base (sin alterar matemáticamente)**. Así evitamos abusos de estadísticas "locas" y rompemos el juego.
 
-![Origen Swampert](./screenshots/origen_swampert.png)
+![Origen Swampert](./screenshots/img_chk_swampert.png)
 **Swampert (Mega Estética)**: Tanque físico puro con la terrorífica habilidad *Intimidación* portando *Cinta Experto*. Al igual que Charizard, su forma es exclusivamente un imponente cambio de skin y sprite, manteniendo las bases matemáticas puras de Swampert nivel 100 con EVs para un combate táctico equitativo y justo contra el jugador.
 
-![Origen Venusaur](./screenshots/origen_venusaur.png)
+![Origen Venusaur](./screenshots/img_chk_venusaur.png)
 **Venusaur**: Es el *Staller* Especial del equipo. Protege el campo con IVs defensivos perfectos y aprovecha el objeto *Raíz Grande* para drenar energía y agotar a los rivales bajo la penalización de veneno constante (*Punto Tóxico*).
 
-![Origen Corviknight](./screenshots/origen_corviknight.png)
+![Origen Corviknight](./screenshots/img_chk_corviknight.png)
 **Corviknight**: La muralla inquebrantable que no retrocede ante el peligro. Escudo impenetrable alimentado por los *Restos* y su infalible resistencia defensiva física para asentar coberturas aéreas o trampas.
 
-![Origen Gengar](./screenshots/origen_gengar.png)
+![Origen Gengar](./screenshots/img_chk_gengar.png)
 **Gengar**: El asesino entre sombras veloz. *Sweeper* Especial configurado como un cristal fulminante. Vuelve a sus orígenes con la habilidad *Levitación* y equipando la *Tabla Terror* para destrozar psiques enteras a su paso con un surtido de 8 movimientos letales.
 
-![Origen Zeraora](./screenshots/origen_zeraora.png)
+![Origen Zeraora](./screenshots/img_chk_zeraora.png)
 **Zeraora**: La chispa destructora puramente ofensiva con *Cascabel Concha*. Ataques físicos eléctricos atronadores que lo auto-regeneran según avanza el combate gracias al gran daño infligido.
+
 ---
 
 ## ⚡ Instalación en 1 minuto (Copiar y Pegar)
