@@ -125,8 +125,8 @@ Además del combate, el Mod integra mi equipo custom dentro de la **Caja 30** de
 ![Origen Gengar](./screenshots/img_chk_gengar.png)
 **👻 Gengar**
 *   **Naturaleza**: Miedosa (+Vel, -Atk)
-*   **Habilidad**: Levitación
-*   **Objeto**: Tabla Terror
+*   **Habilidad**: Bromista
+*   **Objeto**: Globo Helio
 *   **Movimientos**: 
     1. Bola Sombra | 2. Bomba Lodo | 3. Mismo Destino | 4. Pulso Umbrío | 5. Hipnosis | 6. Come Sueños | 7. Tóxico | 8. Pesadilla
 

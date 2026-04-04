@@ -3964,7 +3964,8 @@ module Kernel
             :ESPECIASEXOTICAS, :POLVOEXPLOSIVO,
             # --- ESPECIALES ---
             :SHINYZADOR,
-            :MASTERBALL
+            :MASTERBALL,
+            :AIRBALLOON
           ]
 
           # Lista para el Mart
@@ -4081,10 +4082,10 @@ def pbGetHeizoTeam(max_level)
   # 5. Gengar
   gen = PokeBattle_Pokemon.new(:GENGAR, max_level, $Trainer)
   gen.setNature(getID(PBNatures,:TIMID)); gen.iv = [31,31,31,31,31,31]; gen.ev = [4, 0, 0, 252, 252, 0]
-  gen.setItem(:SPOOKYPLATE); gen.setAbility(getID(PBAbilities,:LEVITATE))
+  gen.setItem(:AIRBALLOON); gen.setAbility(getID(PBAbilities,:PRANKSTER))
   g_mov = [:SHADOWBALL, :SLUDGEBOMB, :DESTINYBOND, :DARKPULSE, :HYPNOSIS, :DREAMEATER, :TOXIC, :NIGHTMARE]
   g_mov.each_with_index { |m, idx| gen.moves[idx] = PBMove.new(getID(PBMoves, m)) rescue nil }; gen.calcStats
-  gen.heizo_legend = "Sombra huérfana del Eclipse Eterno. Heizo le dio un propósito cuando la oscuridad amenazaba con consumirlo por completo."
+  gen.heizo_legend = "Sombra huérfana del Eclipse Eterno. Ahora flota sobre un globo de helio, canalizando bromas pesadas de la ultratumba para sumir a sus rivales en un sueño eterno."
   team.push(gen)
 
   # 6. Zeraora
