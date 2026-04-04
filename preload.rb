@@ -3944,12 +3944,12 @@ module Kernel
           # Inicializar precios globales compartidos entre categorías
           $game_temp.mart_prices = {}
 
-          # Helper lambda: construye stock y abre la pantalla de COMPRA directamente (sin menú comprar/vender/mirar)
+          # Helper lambda: construye stock y abre la pantalla de COMPRA directamente
           _heizo_open_shop = lambda do |syms, half_price_all, special_prices|
             items = []
             syms.each do |sym|
               item_id = getID(PBItems, sym) rescue nil
-              next if !item_id
+              next if !item_id || item_id <= 0
               next if pbIsImportantItem?(item_id) && $PokemonBag.pbQuantity(item_id) > 0
               items.push(item_id)
               base = (pbGetPrice(item_id) rescue 200).to_i
@@ -3970,18 +3970,20 @@ module Kernel
             end
           end
 
+          pbMessage(_INTL("Heizo: Todo a mitad de precio. Elige una sección... o lárgate."))
           # --- BUCLE DE CATEGORÍAS ---
           loop do
             pbBGMPlay("Acertijos")
-            cat = pbMessage(_INTL("Heizo: Todo a mitad de precio. Elige sección."), [
+            cat = pbMessage(_INTL("Heizo: ¿Algo más?"), [
               _INTL("Poke Balls"),
               _INTL("Bayas y Curacion"),
-              _INTL("Materiales y Vitaminas"),
-              _INTL("Equipamiento"),
+              _INTL("Materiales y Evolucion"),
+              _INTL("Objetos de Combate"),
+              _INTL("Potenciadores de Tipo"),
               _INTL("Salir")
-            ], 5)
+            ], 6)
 
-            break if cat == 4 # Salir
+            break if cat == 5 # Salir
 
             case cat
             # -------------------------------------------------------
@@ -4009,7 +4011,7 @@ module Kernel
                 # Bayas de curación y estado
                 :SITRUSBERRY, :ORANBERRY, :LUMBERRY, :LEPPABERRY,
                 :CHESTOBERRY, :PECHABERRY, :RAWSTBERRY, :ASPEARBERRY, :CHERIBERRY,
-                :PERSIMBERRY, :FIGYBERRY, :WIKIBERRY, :MAGOBERRY, :AGUAVBERRY, :IAPPABERRY,
+                :PERSIMBERRY, :FIGYBERRY, :WIKIBERRY, :MAGOBERRY, :AGUAVBERRY, :IAPAPABERRY,
                 # Bayas de stat boost
                 :LIECHIBERRY, :GANLONBERRY, :SALACBERRY, :PETAYABERRY, :APICOTBERRY,
                 :CUSTAPBERRY, :LANSATBERRY, :STARFBERRY, :MICLEBERRY, :ENIGMABERRY
@@ -4018,61 +4020,56 @@ module Kernel
             # -------------------------------------------------------
             when 2 # MATERIALES, VITAMINAS Y EVOLUCIÓN
               _heizo_open_shop.call([
-                # Repelentes
+                # Repelentes y Mapas
                 :REPEL, :SUPERREPEL, :MAXREPEL,
                 # Piedras evolutivas
                 :FIRESTONE, :WATERSTONE, :THUNDERSTONE, :LEAFSTONE,
                 :MOONSTONE, :SUNSTONE, :DUSKSTONE, :DAWNSTONE, :SHINYSTONE,
                 :EVERSTONE, :DRAGONSCALE,
-                # Materiales custom del juego
+                # Materiales de crafteo
                 :FRASCOCRISTALINO, :MADERA, :GUIJARRO, :TROZODEHIERRO,
                 :POLVODEHUESO, :ESPECIASEXOTICAS, :POLVOEXPLOSIVO,
-                # Vitaminas de EV
+                # Vitaminas
                 :HPUP, :PROTEIN, :IRON, :CALCIUM, :ZINC, :CARBOS,
-                # PP
                 :PPUP, :PPMAX,
-                # Utilidad, experiencia y dinero
+                # Utilidad
                 :LUCKYEGG, :EXPSHARE, :AMULETCOIN,
-                # Shinyzador
                 :SHINYZADOR
               ], true, { :SHINYZADOR => 5000 })
 
             # -------------------------------------------------------
-            when 3 # EQUIPAMIENTO (todo lo que se equipa a un Pokémon y tiene efecto)
+            when 3 # OBJETOS DE COMBATE
               _heizo_open_shop.call([
-                # --- Recuperación pasiva ---
                 :LEFTOVERS, :BLACKSLUDGE, :SHELLBELL, :BIGROOT,
-                # --- Potencia de daño general ---
                 :LIFEORB, :EXPERTBELT, :MUSCLEBAND, :WISEGLASSES,
-                # --- Elección (Choice) ---
                 :CHOICEBAND, :CHOICESPECS, :CHOICESCARF,
-                # --- Supervivencia ---
                 :FOCUSSASH, :FOCUSBAND, :WHITEHERB, :POWERHERB, :MENTALHERB,
-                # --- Reacción al golpe ---
                 :AIRBALLOON, :ROCKYHELMET, :EJECTBUTTON, :REDCARD, :EVIOLITE,
-                # --- Velocidad y precisión ---
                 :QUICKCLAW, :RAZORCLAW, :SCOPELENS, :WIDELENS, :ZOOMLENS, :BRIGHTPOWDER,
-                # --- Clima ---
                 :HEATROCK, :DAMPROCK, :SMOOTHROCK, :ICYROCK, :LIGHTCLAY,
-                # --- Efecto especial ---
                 :FLAMEORB, :TOXICORB, :DESTINYKNOT, :KINGSROCK, :RAZORFANG,
                 :METRONOME, :GRIPCLAW, :BINDINGBAND, :FLOATSTONE,
                 :ABSORBBULB, :CELLBATTERY, :SHEDSHELL, :SMOKEBALL,
-                :IRONBALL, :RINGTARGET, :LAGGINGTAIL,
-                # --- Potenciadores de tipo (+20%) ---
+                :IRONBALL, :RINGTARGET, :LAGGINGTAIL
+              ], true, {})
+
+            # -------------------------------------------------------
+            when 4 # POTENCIADORES DE TIPO
+              _heizo_open_shop.call([
+                # Placas
+                :FLAMEPLATE, :SPLASHPLATE, :ZAPPLATE, :MEADOWPLATE, :ICICLEPLATE,
+                :FISTPLATE, :TOXICPLATE, :EARTHPLATE, :SKYPLATE, :MINDPLATE,
+                :INSECTPLATE, :STONEPLATE, :SPOOKYPLATE, :DRACOPLATE, :DREADPLATE, :IRONPLATE,
+                # Objetos de tipo
                 :CHARCOAL, :MYSTICWATER, :MAGNET, :MIRACLESEED, :NEVERMELTICE,
                 :BLACKBELT, :POISONBARB, :SOFTSAND, :SHARPBEAK, :TWISTEDSPOON,
                 :SILVERPOWDER, :HARDSTONE, :SPELLTAG, :DRAGONFANG,
                 :BLACKGLASSES, :METALCOAT, :SILKSCARF,
-                # --- Tablas (+25%) ---
-                :FLAMEPLATE, :SPLASHPLATE, :ZAPPLATE, :MEADOWPLATE, :ICICLEPLATE,
-                :FISTPLATE, :TOXICPLATE, :EARTHPLATE, :SKYPLATE, :MINDPLATE,
-                :INSECTPLATE, :STONEPLATE, :SPOOKYPLATE, :DRACOPLATE, :DREADPLATE, :IRONPLATE,
-                # --- Gemas (uso único +30%) ---
+                # Gemas
                 :FIREGEM, :WATERGEM, :ELECTRICGEM, :GRASSGEM, :ICEGEM,
                 :FIGHTINGGEM, :POISONGEM, :GROUNDGEM, :FLYINGGEM, :PSYCHICGEM,
                 :BUGGEM, :ROCKGEM, :GHOSTGEM, :DRAGONGEM, :DARKGEM, :STEELGEM, :NORMALGEM,
-                # --- Inciensos ---
+                # Inciensos
                 :SEAINCENSE, :WAVEINCENSE, :ROSEINCENSE, :ODDINCENSE, :ROCKINCENSE,
                 :LAXINCENSE, :FULLINCENSE
               ], true, {})
@@ -4081,11 +4078,13 @@ module Kernel
 
           $game_temp.mart_prices = nil
           pbMessage(_INTL("Heizo: Buen provecho. Ya sabes dónde encontrarme."))
-          $game_map.autoplay
-          return
+          $game_map.autoplay; return
         else
           pbMessage(_INTL("Heizo: Estaré aquí con mi hidromiel. Sin prisa."))
-          $game_map.autoplay
+          $game_map.autoplay; return
+        end
+    end
+  end
           return
         end
     end
