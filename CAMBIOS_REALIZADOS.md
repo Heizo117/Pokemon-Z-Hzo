@@ -100,11 +100,10 @@ He integrado un nuevo encuentro especial como guiño al desarrollo del juego:
 
 > **Capturas del Origen de Equipo (Lore Inject):**
 > 
-> *Coloca tus capturas en GitHub (ej: en carpeta raiz `img/`) y arrastra los enlaces o archivos reemplazando estos comandos visuales:*
-> `![Origen Charizard](ruta/charizard.png)` 
-> `![Origen Swampert](ruta/swampert.png)`
-> `![Origen Gengar](ruta/gengar.png)` 
-> `![Origen Zeraora](ruta/zeraora.png)`
+> ![Origen Corviknight](screenshots/origen_heizo_1.png)
+> ![Origen Swampert](screenshots/origen_heizo_2.png)
+> ![Origen Gengar](screenshots/origen_heizo_3.png)
+> ![Origen Charizard](screenshots/origen_heizo_4.png)
 
 ---
 *He implementado todos estos cambios mediante inyecciones dinámicas en `preload.rb`, asegurando que el contenido sea compatible con cualquier versión del juego base sin corromper los scripts originales.*
