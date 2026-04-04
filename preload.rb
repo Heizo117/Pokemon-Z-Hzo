@@ -3944,12 +3944,13 @@ module Kernel
           # Inicializar precios globales compartidos entre categorías
           $game_temp.mart_prices = {}
 
-          # Helper lambda: construye y abre una tienda con sus propios items y precios
-          _heizo_open_shop = lambda do |syms, half_price_all, special_prices, title|
+          # Helper lambda: construye stock y abre la pantalla de COMPRA directamente (sin menú comprar/vender/mirar)
+          _heizo_open_shop = lambda do |syms, half_price_all, special_prices|
             items = []
             syms.each do |sym|
               item_id = getID(PBItems, sym) rescue nil
               next if !item_id
+              next if pbIsImportantItem?(item_id) && $PokemonBag.pbQuantity(item_id) > 0
               items.push(item_id)
               base = (pbGetPrice(item_id) rescue 200).to_i
               base = 200 if base <= 0
@@ -3962,7 +3963,11 @@ module Kernel
               end
               $game_temp.mart_prices[item_id] = [price, -1]
             end
-            pbPokemonMart(items, _INTL(title), false) unless items.empty?
+            if !items.empty?
+              scene = PokemonMartScene.new
+              screen = PokemonMartScreen.new(scene, items)
+              screen.pbBuyScreen
+            end
           end
 
           # --- BUCLE DE CATEGORÍAS ---
@@ -3972,24 +3977,24 @@ module Kernel
               _INTL("Poke Balls"),
               _INTL("Bayas y Curacion"),
               _INTL("Materiales y Vitaminas"),
-              _INTL("Obj. de Combate"),
-              _INTL("Potenciadores de Tipo"),
+              _INTL("Equipamiento"),
               _INTL("Salir")
-            ], 6)
+            ], 5)
 
-            break if cat == 5 # Salir
+            break if cat == 4 # Salir
 
             case cat
             # -------------------------------------------------------
-            when 0 # POKÉ BALLS (incluye Master Ball a precio fijo)
+            when 0 # POKÉ BALLS
               _heizo_open_shop.call([
-                :POKEBALL, :GREATBALL, :ULTRABALL, :MASTERBALL,
+                :POKEBALL, :GREATBALL, :ULTRABALL,
                 :NETBALL, :DIVEBALL, :NESTBALL, :REPEATBALL, :TIMERBALL,
                 :LUXURYBALL, :DUSKBALL, :HEALBALL, :QUICKBALL,
                 :FASTBALL, :LEVELBALL, :LUREBALL, :HEAVYBALL,
                 :LOVEBALL, :FRIENDBALL, :MOONBALL,
-                :POKEBALLCASERA, :SUPERBALLCASERA, :ULTRABALLCASERA
-              ], true, { :MASTERBALL => 50000 }, "Mercado Negro - Poke Balls")
+                :POKEBALLCASERA, :SUPERBALLCASERA, :ULTRABALLCASERA,
+                :MASTERBALL
+              ], true, { :MASTERBALL => 50000 })
 
             # -------------------------------------------------------
             when 1 # BAYAS Y CURACIÓN
@@ -4001,14 +4006,14 @@ module Kernel
                 :ETHER, :MAXETHER, :ELIXIR, :MAXELIXIR,
                 # Curaciones de estado
                 :ANTIDOTE, :BURNHEAL, :PARLYZHEAL, :ICEHEAL, :AWAKENING,
-                # Bayas de curación inmediata
+                # Bayas de curación y estado
                 :SITRUSBERRY, :ORANBERRY, :LUMBERRY, :LEPPABERRY,
                 :CHESTOBERRY, :PECHABERRY, :RAWSTBERRY, :ASPEARBERRY, :CHERIBERRY,
                 :PERSIMBERRY, :FIGYBERRY, :WIKIBERRY, :MAGOBERRY, :AGUAVBERRY, :IAPPABERRY,
                 # Bayas de stat boost
                 :LIECHIBERRY, :GANLONBERRY, :SALACBERRY, :PETAYABERRY, :APICOTBERRY,
                 :CUSTAPBERRY, :LANSATBERRY, :STARFBERRY, :MICLEBERRY, :ENIGMABERRY
-              ], true, {}, "Mercado Negro - Bayas y Curacion")
+              ], true, {})
 
             # -------------------------------------------------------
             when 2 # MATERIALES, VITAMINAS Y EVOLUCIÓN
@@ -4024,61 +4029,53 @@ module Kernel
                 :POLVODEHUESO, :ESPECIASEXOTICAS, :POLVOEXPLOSIVO,
                 # Vitaminas de EV
                 :HPUP, :PROTEIN, :IRON, :CALCIUM, :ZINC, :CARBOS,
-                # PP y Caramelos
+                # PP
                 :PPUP, :PPMAX,
-                # Shinyzador (poción custom del mod)
+                # Utilidad, experiencia y dinero
+                :LUCKYEGG, :EXPSHARE, :AMULETCOIN,
+                # Shinyzador
                 :SHINYZADOR
-              ], true, { :SHINYZADOR => 5000 }, "Mercado Negro - Materiales")
+              ], true, { :SHINYZADOR => 5000 })
 
             # -------------------------------------------------------
-            when 3 # OBJETOS DE COMBATE (equipables con efecto en batalla)
+            when 3 # EQUIPAMIENTO (todo lo que se equipa a un Pokémon y tiene efecto)
               _heizo_open_shop.call([
-                # Recuperación en combate
+                # --- Recuperación pasiva ---
                 :LEFTOVERS, :BLACKSLUDGE, :SHELLBELL, :BIGROOT,
-                # Daño y potencia
+                # --- Potencia de daño general ---
                 :LIFEORB, :EXPERTBELT, :MUSCLEBAND, :WISEGLASSES,
-                # Elecciones (Choice items)
+                # --- Elección (Choice) ---
                 :CHOICEBAND, :CHOICESPECS, :CHOICESCARF,
-                # Estrategia de un solo turno
+                # --- Supervivencia ---
                 :FOCUSSASH, :FOCUSBAND, :WHITEHERB, :POWERHERB, :MENTALHERB,
-                # Reacción al golpe
-                :AIRBALLOON, :ROCKYHELMET, :EJECTBUTTON, :REDCARD,
-                :SHEDSHELL, :KINGSROCK, :RAZORFANG,
-                # Velocidad y precisión
+                # --- Reacción al golpe ---
+                :AIRBALLOON, :ROCKYHELMET, :EJECTBUTTON, :REDCARD, :EVIOLITE,
+                # --- Velocidad y precisión ---
                 :QUICKCLAW, :RAZORCLAW, :SCOPELENS, :WIDELENS, :ZOOMLENS, :BRIGHTPOWDER,
-                # Efectos climáticos
+                # --- Clima ---
                 :HEATROCK, :DAMPROCK, :SMOOTHROCK, :ICYROCK, :LIGHTCLAY,
-                # Efecto en combate especial
-                :FLAMEORB, :TOXICORB, :ABSORBBULB, :CELLBATTERY,
-                :METRONOME, :GRIPCLAW, :BINDINGBAND,
-                :DESTINYKNOT, :EVIOLITE, :FLOATSTONE,
-                # Inciensos competitivos
-                :LAXINCENSE, :FULLINCENSE,
-                # Utilidad general
-                :SMOKEBALL, :IRONBALL, :RINGTARGET, :LAGGINGTAIL,
-                # Experiencia y dinero
-                :LUCKYEGG, :EXPSHARE, :AMULETCOIN
-              ], true, {}, "Mercado Negro - Obj. de Combate")
-
-            # -------------------------------------------------------
-            when 4 # POTENCIADORES DE TIPO (Tablas/Placas, Gemas, Inciensos de tipo)
-              _heizo_open_shop.call([
-                # Tablas/Placas de Arceus (tipo)
-                :FLAMEPLATE, :SPLASHPLATE, :ZAPPLATE, :MEADOWPLATE, :ICICLEPLATE,
-                :FISTPLATE, :TOXICPLATE, :EARTHPLATE, :SKYPLATE, :MINDPLATE,
-                :INSECTPLATE, :STONEPLATE, :SPOOKYPLATE, :DRACOPLATE, :DREADPLATE, :IRONPLATE,
-                # Potenciadores básicos de tipo (+20%)
+                # --- Efecto especial ---
+                :FLAMEORB, :TOXICORB, :DESTINYKNOT, :KINGSROCK, :RAZORFANG,
+                :METRONOME, :GRIPCLAW, :BINDINGBAND, :FLOATSTONE,
+                :ABSORBBULB, :CELLBATTERY, :SHEDSHELL, :SMOKEBALL,
+                :IRONBALL, :RINGTARGET, :LAGGINGTAIL,
+                # --- Potenciadores de tipo (+20%) ---
                 :CHARCOAL, :MYSTICWATER, :MAGNET, :MIRACLESEED, :NEVERMELTICE,
                 :BLACKBELT, :POISONBARB, :SOFTSAND, :SHARPBEAK, :TWISTEDSPOON,
                 :SILVERPOWDER, :HARDSTONE, :SPELLTAG, :DRAGONFANG,
                 :BLACKGLASSES, :METALCOAT, :SILKSCARF,
-                # Gemas (uso único +30%)
+                # --- Tablas (+25%) ---
+                :FLAMEPLATE, :SPLASHPLATE, :ZAPPLATE, :MEADOWPLATE, :ICICLEPLATE,
+                :FISTPLATE, :TOXICPLATE, :EARTHPLATE, :SKYPLATE, :MINDPLATE,
+                :INSECTPLATE, :STONEPLATE, :SPOOKYPLATE, :DRACOPLATE, :DREADPLATE, :IRONPLATE,
+                # --- Gemas (uso único +30%) ---
                 :FIREGEM, :WATERGEM, :ELECTRICGEM, :GRASSGEM, :ICEGEM,
                 :FIGHTINGGEM, :POISONGEM, :GROUNDGEM, :FLYINGGEM, :PSYCHICGEM,
                 :BUGGEM, :ROCKGEM, :GHOSTGEM, :DRAGONGEM, :DARKGEM, :STEELGEM, :NORMALGEM,
-                # Inciensos de tipo
-                :SEAINCENSE, :WAVEINCENSE, :ROSEINCENSE, :ODDINCENSE, :ROCKINCENSE
-              ], true, {}, "Mercado Negro - Potenciadores de Tipo")
+                # --- Inciensos ---
+                :SEAINCENSE, :WAVEINCENSE, :ROSEINCENSE, :ODDINCENSE, :ROCKINCENSE,
+                :LAXINCENSE, :FULLINCENSE
+              ], true, {})
             end # case cat
           end # loop categorías
 
