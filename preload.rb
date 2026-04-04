@@ -3390,6 +3390,7 @@ if !defined?($PC_Button_Injector_Hooked)
                     if @activecmd == 6 # BOTÓN PC
                       pbPlayDecisionSE()
                       pbFadeOutIn(99999) { 
+                        pbApplyHeizoPC_Lockdown # Aplicar bloqueo de solo lectura antes de abrir
                         screen = ::PokemonStorageScreen.new(::PokemonStorageScene.new, $PokemonStorage)
                         screen.pbStartScreen(2) 
                       }
@@ -3643,6 +3644,9 @@ module Kernel
           char_id = getID(PBSpecies, :CHARIZARD) rescue nil
           ven_id  = getID(PBSpecies, :VENUSAUR) rescue nil
           gen_id  = getID(PBSpecies, :GENGAR) rescue nil
+          zer_id  = getID(PBSpecies, :ZERAORA) rescue nil
+          cor_id  = getID(PBSpecies, :CORVIKNIGHT) rescue nil
+          swa_id  = getID(PBSpecies, :SWAMPERT) rescue nil
           
           sp = self.pokemon ? self.pokemon.species : (self.respond_to?(:species) ? self.species : 0)
           msg = nil
@@ -3652,6 +3656,9 @@ module Kernel
           when char_id; msg = "Heizo: Ni siquiera las llamas del inframundo han bastado... empiezas a interesarme."
           when ven_id;  msg = "Heizo: Has superado incluso a mis toxinas."
           when gen_id;  msg = "Heizo: ¿Crees que derrotar a una sombra te hace fuerte? Solo estás retrasando lo inevitable."
+          when zer_id;  msg = "Heizo: ¿Has podido seguir la velocidad del rayo? Impresionante."
+          when cor_id;  msg = "Heizo: Ni siquiera la armadura más pesada es eterna... bien hecho."
+          when swa_id;  msg = "Heizo: El lodo se ha secado... pero tu esfuerzo ha sido digno."
           end
           
           # Si no es ninguna de esas especies (fallback de seguridad por conteo)
@@ -3691,12 +3698,18 @@ module Kernel
             char_id = getID(PBSpecies, :CHARIZARD) rescue nil
             ven_id  = getID(PBSpecies, :VENUSAUR) rescue nil
             gen_id  = getID(PBSpecies, :GENGAR) rescue nil
+            zer_id  = getID(PBSpecies, :ZERAORA) rescue nil
+            cor_id  = getID(PBSpecies, :CORVIKNIGHT) rescue nil
+            swa_id  = getID(PBSpecies, :SWAMPERT) rescue nil
             
             msg = nil
             case pokemon.species
             when char_id; msg = "Heizo: ¡Charizard! ¡Surca los cielos y reduce todo a cenizas con tu fuego ancestral!"
             when ven_id;  msg = "Heizo: ¡Venusaur! ¡Despliega tus toxinas y que la naturaleza reclame lo que es suyo!"
             when gen_id;  msg = "Heizo: ¡Gengar! ¡Sal de las sombras y arrastra a nuestro oponente a la oscuridad eterna!"
+            when zer_id;  msg = "Heizo: ¡Zeraora! ¡Demuéstrales que nada es más rápido que el trueno!"
+            when cor_id;  msg = "Heizo: ¡Corviknight! ¡Despliega tus alas de acero y sé nuestro escudo inquebrantable!"
+            when swa_id;  msg = "Heizo: ¡Swampert! ¡Desata la fuerza de las mareas y que la tierra tiemble ante tu poder!"
             end
             
             if msg
@@ -3800,24 +3813,8 @@ module Kernel
 
         # 3. Preparar equipo de Heizo
         max_level = $Trainer.party.map { |p| p.level }.max || 5
-        heizo_charizard = PokeBattle_Pokemon.new(:CHARIZARD, max_level, $Trainer)
-        
-        fire_type = getID(PBTypes, :FIRE); dragon_type = getID(PBTypes, :DRAGON)
-        heizo_charizard.instance_variable_set(:@type1, fire_type)
-        heizo_charizard.instance_variable_set(:@type2, dragon_type)
-        heizo_charizard.instance_variable_set(:@custom_type1, fire_type)
-        heizo_charizard.instance_variable_set(:@custom_type2, dragon_type)
-        
-        heizo_charizard.setItem(:CHARIZARDITEY); heizo_charizard.form = 2
-        moves = [:FIREFANG, :FLAMETHROWER, :DRAGONCLAW, :DRAGONPULSE, :FLAMETHROWER, :DRAGONTAIL, :FIRESPIN, :HEATWAVE]
-        moves.each_with_index { |m, i| heizo_charizard.moves[i] = PBMove.new(getConst(PBMoves, m)) }
-        
-        heizo_charizard.iv = [31,31,31,31,31,31]; heizo_charizard.ev = [0,252,0,252,0,6]
-        heizo_charizard.setNature(getID(PBNatures,:ADAMANT)); heizo_charizard.setAbility(0)
-        heizo_charizard.calcStats
-        
         heizo_opponent = PokeBattle_Trainer.new("Heizo", 35) 
-        heizo_opponent.party = [heizo_charizard]
+        heizo_opponent.party = pbGetHeizoTeam(max_level)
         
         # 4. Iniciar animación y combate
         bgm = "CombateLider" # MÚSICA DE COMBATE LÍDER
@@ -3920,64 +3917,10 @@ module Kernel
           if heizo_event; heizo_event.moveto(h_pos[0], h_pos[1]); heizo_event.instance_variable_set(:@direction, h_pos[2]); end
           $game_map.need_refresh = true; $game_player.straighten
 
-          # Preparar Batalla: Charizard Especial de Heizo (Fuego/Dragón + 8 Movs)
+          # Preparar Batalla: Equipo Centralizado de Heizo (Consistente con PC y Leyendas)
           max_level = $Trainer.party.map { |p| p.level }.max || 5
-          heizo_charizard = PokeBattle_Pokemon.new(:CHARIZARD, max_level, $Trainer)
-          
-          # Atributos Especiales: Fuego / Dragón
-          f_type = getID(PBTypes, :FIRE); d_type = getID(PBTypes, :DRAGON)
-          heizo_charizard.instance_variable_set(:@type1, f_type)
-          heizo_charizard.instance_variable_set(:@type2, d_type)
-          heizo_charizard.instance_variable_set(:@custom_type1, f_type)
-          heizo_charizard.instance_variable_set(:@custom_type2, d_type)
-          
-          # Apariencia de Mega Charizard Y
-          heizo_charizard.setItem(:CHARIZARDITEY)
-          heizo_charizard.form = 2
-          
-          # 8 Movimientos de Heizo (Optimizados y sin duplicados)
-          moves = [:FIREFANG, :FLAMETHROWER, :DRAGONCLAW, :DRAGONPULSE, :FLAREBLITZ, :DRAGONTAIL, :FIRESPIN, :HEATWAVE]
-          moves.each_with_index { |m, i| heizo_charizard.moves[i] = PBMove.new(getConst(PBMoves, m)) }
-          
-          # Estadísticas de "Boss"
-          heizo_charizard.iv = [31,31,31,31,31,31]
-          heizo_charizard.ev = [0,252,0,252,0,6]
-          heizo_charizard.setNature(getID(PBNatures,:ADAMANT))
-          heizo_charizard.setAbility(getID(PBAbilities,:ADAPTABILITY))
-          heizo_charizard.makeShiny
-          heizo_charizard.calcStats
-          
-          # --- VENUSAUR ESPECIAL DE HEIZO ---
-          heizo_venusaur = PokeBattle_Pokemon.new(:VENUSAUR, max_level, $Trainer)
-          heizo_venusaur.setNature(getID(PBNatures,:MODEST))
-          heizo_venusaur.iv = [31,31,31,31,31,31]
-          heizo_venusaur.setAbility(getID(PBAbilities,:POISONPOINT))
-          
-          # Movimientos: Bomba Lodo, Cargatóxica, Gigadrenado, Drenadoras, Espora, Rayo Solar
-          v_moves = [:SLUDGEBOMB, :VENOSHOCK, :GIGADRAIN, :LEECHSEED, :SPORE, :SOLARBEAM]
-          v_moves.each_with_index { |m, i| heizo_venusaur.moves[i] = PBMove.new(getConst(PBMoves, m)) }
-          
-          # EVs sugeridos: 252 Defensa, 252 Atk. Esp., 6 HP
-          heizo_venusaur.ev = [6, 0, 252, 252, 0, 0]
-          heizo_venusaur.calcStats
-          
-          # --- GENGAR ESPECIAL DE HEIZO ---
-          heizo_gengar = PokeBattle_Pokemon.new(:GENGAR, max_level, $Trainer)
-          heizo_gengar.setNature(getID(PBNatures,:TIMID))
-          heizo_gengar.iv = [31,31,31,31,31,31]
-          heizo_gengar.setAbility(getID(PBAbilities,:LEVITATE))
-          heizo_gengar.setItem(:SPOOKYPLATE)
-          
-          # 8 Movimientos: Bola Sombra, Bomba Lodo, Mismodestino, Pulso Umbrío, Hipnosis, Come Sueños, Tóxico, Pesadilla
-          g_moves = [:SHADOWBALL, :SLUDGEBOMB, :DESTINYBOND, :DARKPULSE, :HYPNOSIS, :DREAMEATER, :TOXIC, :NIGHTMARE]
-          g_moves.each_with_index { |m, i| heizo_gengar.moves[i] = PBMove.new(getConst(PBMoves, m)) }
-          
-          # EVs sugeridos: 252 Atk. Esp., 252 Velocidad, 6 HP
-          heizo_gengar.ev = [6, 0, 0, 252, 0, 252]
-          heizo_gengar.calcStats
-          
           heizo_opponent = PokeBattle_Trainer.new("Heizo", 35)
-          heizo_opponent.party = [heizo_charizard, heizo_venusaur, heizo_gengar]
+          heizo_opponent.party = pbGetHeizoTeam(max_level)
           bgm = "CombateLider" # MÚSICA DE COMBATE LÍDER
           $PokemonGlobal.nextBattleBack = "Pantano"
           
@@ -4061,7 +4004,6 @@ module Kernel
           pbPokemonMart(items, _INTL("Mercado Negro"), true)
           $game_temp.mart_prices = nil # Limpiar después de usar
           
-          # La escena del Mart ya suele decir 'Vuelve pronto', así que ponemos una frase única de Heizo para no repetir
           pbMessage(_INTL("Heizo: Haz buen uso de esa mercancía, campeón."))
           $game_map.autoplay # Restaurar música del mapa al salir de la tienda
           return
@@ -4073,4 +4015,222 @@ module Kernel
     end
   end
 end
+
+# ==============================================================================
+# --- SISTEMA DE LEYENDAS Y EQUIPO DE HEIZO ---
+# ==============================================================================
+
+# Añadir atributo de leyenda a los Pokémon
+class PokeBattle_Pokemon
+  attr_accessor :heizo_legend
+end
+
+# Generador centralizado del equipo
+def pbGetHeizoTeam(max_level)
+  team = []
+  fire_type = getID(PBTypes, :FIRE) rescue 2
+  dragon_type = getID(PBTypes, :DRAGON) rescue 16
+
+  # 1. Corviknight
+  cor = PokeBattle_Pokemon.new(:CORVIKNIGHT, max_level, $Trainer)
+  cor.setNature(getID(PBNatures,:IMPISH)); cor.iv = [31,31,31,31,31,31]; cor.ev = [252, 4, 252, 0, 0, 0]
+  cor.setItem(:LEFTOVERS); cor.setAbility(getID(PBAbilities,:MIRRORARMOR))
+  c_mov = [:ROOST, :IRONDEFENSE, :BRAVEBIRD, :IRONHEAD, :UTURN, :DEFOG, :TAUNT, :DRILLPECK]
+  c_mov.each_with_index { |m, idx| cor.moves[idx] = PBMove.new(getID(PBMoves, m)) rescue nil }; cor.calcStats
+  cor.heizo_legend = "Forjado en las cenizas del Gran Colapso; el único veterano que no huyó cuando las sombras devoraron la ciudad."
+  team.push(cor)
+
+  # 2. Swampert (Mega Visual / Stats Base)
+  swa = PokeBattle_Pokemon.new(:SWAMPERT, max_level, $Trainer)
+  swa.setNature(getID(PBNatures,:ADAMANT)); swa.iv = [31,31,31,31,31,31]; swa.ev = [252, 252, 4, 0, 0, 0]
+  swa.setItem(:EXPERTBELT); swa.setAbility(getID(PBAbilities,:INTIMIDATE))
+  s_mov = [:WATERFALL, :EARTHQUAKE, :ICEPUNCH, :STONEEDGE, :SUPERPOWER, :BRICKBREAK, :YAWN, :STEALTHROCK]
+  s_mov.each_with_index { |m, idx| swa.moves[idx] = PBMove.new(getID(PBMoves, m)) rescue nil }
+  swa.form = 1 # MEGA VISUAL
+  swa.instance_variable_set(:@form_sprite_only_final, true)
+  swa.calcStats # Recalculate to enforce base stats
+  swa.heizo_legend = "Titán de las marismas tóxicas que Heizo rescató. Su fuerza es tan vasta que no necesita despertar su poder para vencer."
+  team.push(swa)
+
+  # 3. Venusaur
+  ven = PokeBattle_Pokemon.new(:VENUSAUR, max_level, $Trainer)
+  ven.setNature(getID(PBNatures,:CALM)); ven.iv = [31,31,31,31,31,31]; ven.ev = [252, 0, 0, 0, 4, 252]
+  ven.setItem(:BIGROOT); ven.setAbility(getID(PBAbilities,:POISONPOINT))
+  v_mov = [:GIGADRAIN, :SLUDGEBOMB, :LEECHSEED, :SPORE, :SYNTHESIS, :SOLARBEAM, :TOXIC, :VENOSHOCK]
+  v_mov.each_with_index { |m, idx| ven.moves[idx] = PBMove.new(getID(PBMoves, m)) rescue nil }; ven.calcStats
+  ven.heizo_legend = "Surgió de la primera semilla tras la devastación. Heizo lo crió entre ruinas, convirtiéndolo en guardián de lo que queda."
+  team.push(ven)
+  # 4. Charizard (Shiny / Mega-Y Visual / Stats Base / Fuego-Dragón + Dragon Boost)
+  cha = PokeBattle_Pokemon.new(:CHARIZARD, max_level, $Trainer)
+  cha.makeShiny
+  cha.setNature(getID(PBNatures,:RASH)); cha.iv = [31,31,31,31,31,31]; cha.ev = [0, 252, 0, 252, 0, 6]
+  cha.setItem(:DRAGONFANG); cha.setAbility(getID(PBAbilities,:ADAPTABILITY))
+  cha_mov = [:FIREFANG, :FLAMETHROWER, :DRAGONCLAW, :DRAGONPULSE, :ROOST, :CRUNCH, :DRAGONDANCE, :AIRSLASH]
+  cha_mov.each_with_index { |m, idx| cha.moves[idx] = PBMove.new(getID(PBMoves, m)) rescue nil }
+  
+  cha.form = 2 # MEGA Y VISUAL (Stats Base)
+  cha.instance_variable_set(:@form_sprite_only_final, true)
+  cha.calcStats # Recalculate to enforce base stats
+  
+  # Forzar tipo Fuego/Dragón
+  cha.instance_variable_set(:@type1, fire_type); cha.instance_variable_set(:@type2, dragon_type)
+  cha.instance_variable_set(:@custom_type1, fire_type); cha.instance_variable_set(:@custom_type2, dragon_type)
+  cha.heizo_legend = "Descendió de cielos rojos cuando el mundo ardió. Heizo lo domó compartiendo su fuego e hidromiel bajo una lluvia de ceniza."
+  team.push(cha)
+
+  # 5. Gengar
+  gen = PokeBattle_Pokemon.new(:GENGAR, max_level, $Trainer)
+  gen.setNature(getID(PBNatures,:TIMID)); gen.iv = [31,31,31,31,31,31]; gen.ev = [4, 0, 0, 252, 252, 0]
+  gen.setItem(:SPOOKYPLATE); gen.setAbility(getID(PBAbilities,:LEVITATE))
+  g_mov = [:SHADOWBALL, :SLUDGEBOMB, :DESTINYBOND, :DARKPULSE, :HYPNOSIS, :DREAMEATER, :TOXIC, :NIGHTMARE]
+  g_mov.each_with_index { |m, idx| gen.moves[idx] = PBMove.new(getID(PBMoves, m)) rescue nil }; gen.calcStats
+  gen.heizo_legend = "Sombra huérfana del Eclipse Eterno. Heizo le dio un propósito cuando la oscuridad amenazaba con consumirlo por completo."
+  team.push(gen)
+
+  # 6. Zeraora
+  zer = PokeBattle_Pokemon.new(:ZERAORA, max_level, $Trainer)
+  zer.setNature(getID(PBNatures,:JOLLY)); zer.iv = [31,31,31,31,31,31]; zer.ev = [4, 252, 0, 252, 0, 0]
+  zer.setItem(:SHELLBELL); zer.setAbility(getID(PBAbilities,:SERENEGRACE))
+  z_mov = [:THUNDERPUNCH, :PLASMAFISTS, :WILDCHARGE, :VOLTSWITCH, :CLOSECOMBAT, :DRAINPUNCH, :BLAZEKICK, :SPARK]
+  z_mov.each_with_index { |m, idx| zer.moves[idx] = PBMove.new(getID(PBMoves, m)) rescue nil }; zer.calcStats
+  zer.heizo_legend = "El rayo errante de la Montaña Blanca. No es un siervo, es un aliado unido a Heizo por una promesa inquebrantable."
+  team.push(zer)
+
+  return team
+end
+
+# Parche para mostrar las Leyendas en el Resumen
+def pbApplyHeizoSummaryPatch
+  return if !defined?(PokemonSummaryScene)
+  return if PokemonSummaryScene.method_defined?(:drawPageTwo_heizo_legend)
+  
+  PokemonSummaryScene.class_eval do
+    alias drawPageTwo_heizo_legend drawPageTwo
+    def drawPageTwo(pokemon)
+      drawPageTwo_heizo_legend(pokemon)
+      return if !pokemon.respond_to?(:heizo_legend) || !pokemon.heizo_legend
+      
+      overlay = @sprites["overlay"].bitmap
+      # Limpiar el área de notas de entrenador para que el texto épico de Heizo no se superponga
+      overlay.clear_rect(232, 74, 280, 260) rescue nil
+      
+      # Escribir la leyenda
+      epic_text = "<c3=F83820,E09890>Origen:\n<c3=404040,B0B0B0>" + pokemon.heizo_legend
+      drawFormattedTextEx(overlay, 232, 78, 276, epic_text)
+    end
+  end
+end
+
+# ==============================================================================
+# --- CAJA DE REFERENCIA DE HEIZO (PC CAJA 30) ---
+# ==============================================================================
+
+# Parche robusto para la interfaz del PC (Bloquea mover, pero permite ver ataques/datos)
+def pbApplyHeizoPC_Lockdown
+  return if !defined?(PokemonStorageScreen)
+  return if PokemonStorageScreen.method_defined?(:pbStartScreen_heizo_lock)
+  
+  begin
+    Object.const_get(:PokemonStorageScreen).class_eval do
+      # 1. Gancho de inicio
+      alias pbStartScreen_heizo_lock pbStartScreen
+      def pbStartScreen(command)
+        pbSetupHeizoReferenceBox(@storage)
+        pbStartScreen_heizo_lock(command)
+      end
+
+      # 2. Bloqueo de Retirada (Modificado: Consultar datos en lugar de solo bloquear)
+      alias pbWithdraw_heizo_lock pbWithdraw
+      def pbWithdraw(selected, heldpoke)
+        if selected && selected[0] == 29
+          pokemon = @storage[selected[0], selected[1]]
+          pbSummary(selected, nil) if pokemon
+          return false
+        end
+        pbWithdraw_heizo_lock(selected, heldpoke)
+      end
+
+      # 3. Bloqueo de Mover (Modificado: Abrir Datos en lugar de error al hacer clic)
+      alias pbHold_heizo_lock pbHold
+      def pbHold(selected)
+        if selected && selected[0] == 29
+          pokemon = @storage[selected[0], selected[1]]
+          pbSummary(selected, nil) if pokemon
+          return
+        end
+        pbHold_heizo_lock(selected)
+      end
+
+      # 4. Bloqueo de Intercambio
+      alias pbSwap_heizo_lock pbSwap
+      def pbSwap(selected)
+        if selected && selected[0] == 29
+          pbDisplay(_INTL("Heizo: Solo para referencia. No puedes mover mis Pokémon."))
+          return false
+        end
+        pbSwap_heizo_lock(selected)
+      end
+
+      # 5. Bloqueo de Depósito
+      alias pbPlace_heizo_lock pbPlace
+      def pbPlace(selected)
+        if selected && selected[0] == 29
+          pbDisplay(_INTL("Heizo: Caja bloqueada. No puedes dejar Pokémon aquí."))
+          return
+        end
+        pbPlace_heizo_lock(selected)
+      end
+
+      # 3. Menú contextual optimizado (Datos visibles para ver ataques)
+      alias pbShowCommands_heizo_lock pbShowCommands
+      def pbShowCommands(msg, commands)
+        if @storage && @storage.currentBox == 29
+          new_cmds = []
+          # Permitirmos "Datos", variantes de "Salir/Cerrar", y comandos de la Caja (Saltar, Paisaje, Nombre)
+          allowed = ["datos", "summary", "información", "informacion", "salir", "cancel", "cerrar", "saltar", "paisaje", "nombre"]
+          for c in commands
+            clean_c = c.gsub(/<.*?>/, "").strip rescue c
+            new_cmds << c if allowed.any? { |a| clean_c.downcase.include?(a) }
+          end
+          return pbShowCommands_heizo_lock(msg, new_cmds.empty? ? commands : new_cmds)
+        end
+        pbShowCommands_heizo_lock(msg, commands)
+      end
+
+      # 7. Hook de Datos (Mostrar resumen directamente)
+      alias pbSummary_heizo_lock pbSummary
+      def pbSummary(selected, pokemon)
+        pbSummary_heizo_lock(selected, pokemon)
+      end
+    end
+  rescue => e
+    pbPrint("Error en Heizo PC Patch: #{e.message}") if $DEBUG
+  end
+end
+
+# Generador del equipo en la Caja 30
+def pbSetupHeizoReferenceBox(storage)
+  return if !storage
+  pbApplyHeizoPC_Lockdown
+  pbApplyHeizoSummaryPatch
+  
+  box_index = 29 
+  # Set default name and background only if it hasn't been customized yet
+  if storage[box_index].name == "Caja 30" || storage[box_index].name == "Box 30" || storage[box_index].name == ""
+    storage[box_index].name = "EQUIPO HEIZO"
+    storage[box_index].background = "box17"
+  end
+  # Si ya tenía el nombre puesto pero el fondo sigue siendo el por defecto (box5), lo forzamos a Alma una vez.
+  if storage[box_index].name == "EQUIPO HEIZO" && storage[box_index].background == "box5"
+    storage[box_index].background = "box17"
+  end
+  
+  max_level = PBExperience::MAXLEVEL
+  
+  heizo_party = pbGetHeizoTeam(max_level)
+  heizo_party.each_with_index do |pkmn, i|
+    storage[box_index, i] = pkmn
+  end
+end
+
 
