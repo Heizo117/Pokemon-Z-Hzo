@@ -4418,6 +4418,7 @@ module Kernel
                   _heizo_set_player_sprite.call(restore_sprite)
                   $game_variables[994] = 0
                   $game_variables[993] = ""
+                  pbSEPlay("PRSFX- Shadow Claw2") rescue nil
                   pbMessage(_INTL("Heizo: Bien. Vuelven donde deben estar."))
                   pbMessage(_INTL("Heizo: Cuídate en la ruta. Sin la marca del clan, estás a merced del tiempo."))
                 else
@@ -4440,6 +4441,7 @@ module Kernel
                     _heizo_set_player_sprite.call("cazadorow")
                     $game_variables[994] = 1
                     Kernel.pbUpdateVehicle rescue nil
+                    pbSEPlay("PRSFX- Shadow Claw2") rescue nil
                     pbMessage(_INTL("Heizo: Tómalos."))
                     pbMessage(_INTL("Heizo: Ahora llevas la marca del clan. Cada ruta te lo agradecerá."))
                   else
