@@ -4583,49 +4583,50 @@ end
 # INTERFAZ GRÁFICA DEL MERCADO NEGRO DE HEIZO
 # ===============================================================================
 
-class Window_HeizoShopCategory < Window_CommandPokemon
-  def initialize(commands, x, y)
-    @icons = [
-      "Graphics/Icons/item004", # Poke Ball
-      "Graphics/Icons/item017", # Poción (Hyper)
-      "Graphics/Icons/item033", # Piedra Fuego
-      "Graphics/Icons/item212", # Choice Band
-      "Graphics/Icons/item245", # Tabla Llama
-      nil                       # Salir
-    ]
-    super(commands, 330) # Un poco más ancha para los iconos
-    self.x = x
-    self.y = y
-    self.z = 99999
-  end
-
-  def drawItem(index, count, rect)
-    # 1. DIBUJAR ICONO (Manteniendo el texto a un lado)
-    icon_path = @icons[index]
-    if icon_path
-      begin
-        bmp_path = pbBitmapName(icon_path)
-        if bmp_path
-          bitmap_full = AnimatedBitmap.new(bmp_path)
-          bitmap = bitmap_full.bitmap
-          # Centramos el icono (24x24) a la izquierda
-          dest_rect = Rect.new(rect.x + 8, rect.y + (rect.height - 24) / 2, 24, 24)
-          src_rect = Rect.new(0, 0, bitmap.width, bitmap.height)
-          self.contents.stretch_blt(dest_rect, bitmap, src_rect)
-          bitmap_full.dispose
-        end
-      rescue => e
-        # Fallback si falla la carga
-      end
-    end
-    # 2. DIBUJAR TEXTO (Con un offset de 44px a la derecha del icono)
-    text_rect = Rect.new(rect.x + 44, rect.y, rect.width - 44, rect.height)
-    super(index, count, text_rect)
-  end
-end
-
 module Kernel
   def self.pbHeizoShopCategoryMenu
+    # DEFINICIÓN DINÁMICA: Evita NameError al arrancar el juego
+    # (Window_CommandPokemon no existe hasta que cargan los scripts base)
+    if !defined?(Window_HeizoShopCategory)
+      cls = Class.new(Window_CommandPokemon) do
+        def initialize(commands, x, y)
+          @icons = [
+            "Graphics/Icons/item004", # Poke Ball
+            "Graphics/Icons/item017", # Poción (Hyper)
+            "Graphics/Icons/item033", # Piedra Fuego
+            "Graphics/Icons/item212", # Choice Band
+            "Graphics/Icons/item245", # Tabla Llama
+            nil                       # Salir
+          ]
+          super(commands, 330)
+          self.x = x
+          self.y = y
+          self.z = 99999
+        end
+
+        def drawItem(index, count, rect)
+          icon_path = @icons[index]
+          if icon_path
+            begin
+              bmp_path = pbBitmapName(icon_path)
+              if bmp_path
+                bitmap_full = AnimatedBitmap.new(bmp_path)
+                bitmap = bitmap_full.bitmap
+                dest_rect = Rect.new(rect.x + 8, rect.y + (rect.height - 24) / 2, 24, 24)
+                src_rect = Rect.new(0, 0, bitmap.width, bitmap.height)
+                self.contents.stretch_blt(dest_rect, bitmap, src_rect)
+                bitmap_full.dispose
+              end
+            rescue
+            end
+          end
+          text_rect = Rect.new(rect.x + 44, rect.y, rect.width - 44, rect.height)
+          super(index, count, text_rect)
+        end
+      end
+      Object.const_set(:Window_HeizoShopCategory, cls)
+    end
+
     commands = [
       _INTL("Poke Balls"),
       _INTL("Bayas y Curacion"),
@@ -4672,7 +4673,7 @@ module Kernel
       
       if Input.trigger?(Input::B)
         pbSEPlay("GUI menu close")
-        result = 5 # Selecciona "Salir" directamente
+        result = 5 # Salir
         break
       end
       
@@ -4683,7 +4684,7 @@ module Kernel
       end
     end
     
-    # Limpieza de recursos
+    # Limpieza
     window.dispose
     bg_sprite.bitmap.dispose
     bg_sprite.dispose
