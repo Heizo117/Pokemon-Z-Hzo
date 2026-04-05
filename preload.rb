@@ -4362,7 +4362,7 @@ def pbGetHeizoTeam(max_level)
   zer = PokeBattle_Pokemon.new(:ZERAORA, max_level, $Trainer)
   zer.setNature(getID(PBNatures,:JOLLY)); zer.iv = [31,31,31,31,31,31]; zer.ev = [4, 252, 0, 252, 0, 0]
   zer.setItem(:SHELLBELL); zer.setAbility(getID(PBAbilities,:SERENEGRACE))
-  z_mov = [:THUNDERPUNCH, :PLASMAFISTS, :WILDCHARGE, :VOLTSWITCH, :CLOSECOMBAT, :DRAINPUNCH, :BLAZEKICK, :SPARK]
+  z_mov = [:THUNDERPUNCH, :SPARK, :WILDCHARGE, :VOLTSWITCH, :CLOSECOMBAT, :DRAINPUNCH, :BLAZEKICK, :FAKEOUT]
   z_mov.each_with_index { |m, idx| zer.moves[idx] = PBMove.new(getID(PBMoves, m)) rescue nil }; zer.calcStats
   zer.heizo_legend = "El rayo errante de la Montaña Blanca. No es un siervo, es un aliado unido a Heizo por una promesa inquebrantable."
   team.push(zer)
