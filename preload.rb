@@ -4255,15 +4255,8 @@ module Kernel
           # --- BUCLE DE CATEGORÍAS ---
           loop do
             pbBGMPlay("Acertijos")
-            cat = pbMessage(_INTL("Heizo: ¿Algo más?"), [
-              _INTL("Poke Balls"),
-              _INTL("Bayas y Curacion"),
-              _INTL("Materiales y Evolucion"),
-              _INTL("Objetos de Combate"),
-              _INTL("Potenciadores de Tipo"),
-              _INTL("Salir")
-            ], 6)
-
+            cat = Kernel.pbHeizoShopCategoryMenu # NUEVO MENÚ CON ICONOS
+            
             break if cat == 5 # Salir
 
             case cat
@@ -4348,6 +4341,7 @@ module Kernel
                 :BLACKGLASSES, :METALCOAT, :SILKSCARF,
                 # Gemas
                 :FIREGEM, :WATERGEM, :ELECTRICGEM, :GRASSGEM, :ICEGEM,
+
                 :FIGHTINGGEM, :POISONGEM, :GROUNDGEM, :FLYINGGEM, :PSYCHICGEM,
                 :BUGGEM, :ROCKGEM, :GHOSTGEM, :DRAGONGEM, :DARKGEM, :STEELGEM, :NORMALGEM,
                 # Inciensos
@@ -4585,4 +4579,116 @@ def pbSetupHeizoReferenceBox(storage)
   end
 end
 
+# ===============================================================================
+# INTERFAZ GRÁFICA DEL MERCADO NEGRO DE HEIZO
+# ===============================================================================
 
+class Window_HeizoShopCategory < Window_CommandPokemon
+  def initialize(commands, x, y)
+    @icons = [
+      "Graphics/Icons/item004", # Poke Ball
+      "Graphics/Icons/item017", # Poción (Hyper)
+      "Graphics/Icons/item033", # Piedra Fuego
+      "Graphics/Icons/item212", # Choice Band
+      "Graphics/Icons/item245", # Tabla Llama
+      nil                       # Salir
+    ]
+    super(commands, 330) # Un poco más ancha para los iconos
+    self.x = x
+    self.y = y
+    self.z = 99999
+  end
+
+  def drawItem(index, count, rect)
+    # 1. DIBUJAR ICONO (Manteniendo el texto a un lado)
+    icon_path = @icons[index]
+    if icon_path
+      begin
+        bmp_path = pbBitmapName(icon_path)
+        if bmp_path
+          bitmap_full = AnimatedBitmap.new(bmp_path)
+          bitmap = bitmap_full.bitmap
+          # Centramos el icono (24x24) a la izquierda
+          dest_rect = Rect.new(rect.x + 8, rect.y + (rect.height - 24) / 2, 24, 24)
+          src_rect = Rect.new(0, 0, bitmap.width, bitmap.height)
+          self.contents.stretch_blt(dest_rect, bitmap, src_rect)
+          bitmap_full.dispose
+        end
+      rescue => e
+        # Fallback si falla la carga
+      end
+    end
+    # 2. DIBUJAR TEXTO (Con un offset de 44px a la derecha del icono)
+    text_rect = Rect.new(rect.x + 44, rect.y, rect.width - 44, rect.height)
+    super(index, count, text_rect)
+  end
+end
+
+module Kernel
+  def self.pbHeizoShopCategoryMenu
+    commands = [
+      _INTL("Poke Balls"),
+      _INTL("Bayas y Curacion"),
+      _INTL("Materiales y Evolucion"),
+      _INTL("Objetos de Combate"),
+      _INTL("Potenciadores de Tipo"),
+      _INTL("Salir")
+    ]
+    
+    # Viewport para el fondo oscurecido "Premium"
+    viewport = Viewport.new(0, 0, Graphics.width, Graphics.height)
+    viewport.z = 99998
+    
+    # Sombreado de fondo
+    bg_sprite = Sprite.new(viewport)
+    bg_sprite.bitmap = Bitmap.new(Graphics.width, Graphics.height)
+    bg_sprite.bitmap.fill_rect(0, 0, Graphics.width, Graphics.height, Color.new(0, 0, 0, 160))
+    
+    # Ventana de selección
+    w = 330
+    h = commands.length * 32 + 32
+    x = (Graphics.width - w) / 2
+    y = (Graphics.height - h) / 2
+    
+    window = Window_HeizoShopCategory.new(commands, x, y)
+    window.viewport = viewport
+    
+    # Animación rápida de entrada
+    window.opacity = 0
+    window.contents_opacity = 0
+    for i in 0..6
+      window.opacity += 40
+      window.contents_opacity += 40
+      Graphics.update
+    end
+    
+    pbSEPlay("GUI menu open")
+    
+    result = -1
+    loop do
+      Graphics.update
+      Input.update
+      window.update
+      
+      if Input.trigger?(Input::B)
+        pbSEPlay("GUI menu close")
+        result = 5 # Selecciona "Salir" directamente
+        break
+      end
+      
+      if Input.trigger?(Input::C)
+        pbSEPlay("GUI menu selection")
+        result = window.index
+        break
+      end
+    end
+    
+    # Limpieza de recursos
+    window.dispose
+    bg_sprite.bitmap.dispose
+    bg_sprite.dispose
+    viewport.dispose
+    
+    return result
+  end
+end
