@@ -3650,21 +3650,42 @@ module Kernel
           return score
         end
 
-        # Selección de Lead Inteligente (Smart Counter-Start)
+        # Selección de Lead Inteligente (Soportar Individual y Doble)
         def pbStartBattle
           my_party = pbParty(1)
-          player_lead = pbParty(0).find { |p| p && p.hp > 0 && !p.isEgg? }
-          if player_lead
+          player_party = pbParty(0).select { |p| p && p.hp > 0 && !p.isEgg? }
+          
+          if player_party.length > 0
             candidates = []
+            num_leads = @doublebattle ? 2 : 1
+            player_leads = player_party[0...num_leads]
+            
             my_party.each_with_index do |pkmn, i|
               next if !pkmn || pkmn.hp <= 0 || pkmn.isEgg?
-              score = pbHeizoScorePokemon(pkmn, player_lead)
-              candidates.push([i, score])
+              # Puntuación media contra todos los líderes del jugador
+              total_score = 0
+              player_leads.each { |pl| total_score += pbHeizoScorePokemon(pkmn, pl) }
+              avg_score = total_score / player_leads.length
+              candidates.push([i, avg_score])
             end
+            
             candidates.sort! { |a, b| b[1] <=> a[1] }
-            best_idx = candidates[0][0]
-            if best_idx > 0
-              my_party[0], my_party[best_idx] = my_party[best_idx], my_party[0]
+            
+            # Reposicionar a los mejores candidatos al frente
+            if candidates.length > 0
+              new_party = []
+              top_indices = candidates[0...num_leads].map { |c| c[0] }
+              
+              # Meter a los mejores primero
+              top_indices.each { |idx| new_party.push(my_party[idx]) }
+              
+              # Rellenar con los demás
+              my_party.each_with_index do |p, idx|
+                new_party.push(p) unless top_indices.include?(idx)
+              end
+              
+              # Aplicar cambios al equipo de Heizo
+              my_party.replace(new_party)
             end
           end
           super
@@ -3746,6 +3767,11 @@ module Kernel
             end
           end
 
+          # 6. Targeting Inteligente (Dobles) - Priorizar remates para superioridad numérica
+          if @doublebattle && opponent && opponent.hp < (opponent.totalhp / 3)
+            score += 40
+          end
+
           return score
         end
 
@@ -3755,18 +3781,26 @@ module Kernel
           return true if alwaysSwitch
           battler = @battlers[index]
           return false if battler.turncount <= 0
-          opponent = battler.pbOppositeOpposing
-          opponent = opponent.pbPartner if opponent.isFainted?
-          return false if !opponent || opponent.isFainted?
+          
+          # Encontrar oponentes activos (Soporta Individual y Dobles)
+          active_opponents = []
+          opp1 = battler.pbOppositeOpposing
+          active_opponents.push(opp1) if opp1 && !opp1.isFainted?
+          opp2 = (opp1 && opp1.pbPartner) ? opp1.pbPartner : nil
+          active_opponents.push(opp2) if opp2 && !opp2.isFainted?
+          
+          return false if active_opponents.empty?
           
           begin
-            # 1. FILTRO DE KO: Si el rival está herido y tenemos un golpe cargado, nos quedamos.
-            if opponent.hp < opponent.totalhp * 0.75
-              for m in battler.moves
-                next if !m || m.id == 0 || m.basedamage == 0
-                eff = PBTypes.getCombinedEffectiveness(m.type, opponent.type1, opponent.type2)
-                if eff > 12 # Súper efectivo
-                  return false if pbAIRandom(100) < 80 # 80% de quedarse a intentar el KO
+            # 1. FILTRO DE KO: Si ALGÚN rival está herido y tenemos ventaja ofensiva, nos quedamos.
+            for opp in active_opponents
+              if opp.hp < opp.totalhp * 0.75
+                for m in battler.moves
+                  next if !m || m.id == 0 || m.basedamage == 0
+                  eff = PBTypes.getCombinedEffectiveness(m.type, opp.type1, opp.type2)
+                  if eff > 12 # Súper efectivo
+                    return false if pbAIRandom(100) < 80 # 80% de quedarse a intentar el KO
+                  end
                 end
               end
             end
@@ -3775,33 +3809,43 @@ module Kernel
             return false if pbAIRandom(100) < 30
 
             # 3. FILTRO "FODDER" (Sacrificio táctico)
-            # Si nos queda poca vida y el rival es más rápido, el cambio solo nos haría perder un turno.
-            if battler.hp < (battler.totalhp / 4) && battler.speed < opponent.speed
+            # Solo si el rival más rápido puede matarnos
+            fastest_opp = active_opponents.max_by { |o| o.speed }
+            if battler.hp < (battler.totalhp / 4) && battler.speed < fastest_opp.speed
               return false 
             end
 
-            # 4. LÓGICA DE CAMBIO SELECTIVO
-            eff1 = PBTypes.getCombinedEffectiveness(opponent.type1, battler.type1, battler.type2)
-            eff2 = (opponent.type1 != opponent.type2) ? PBTypes.getCombinedEffectiveness(opponent.type2, battler.type1, battler.type2) : 0
+            # 4. CONCIENCIA DE AMENAZA DUAL
+            # Buscamos si CUALQUIERA de los oponentes tiene una ventaja de tipo crítica
+            main_threat = nil
+            for opp in active_opponents
+              eff1 = PBTypes.getCombinedEffectiveness(opp.type1, battler.type1, battler.type2)
+              eff2 = (opp.type1 != opp.type2) ? PBTypes.getCombinedEffectiveness(opp.type2, battler.type1, battler.type2) : 0
+              if eff1 > 12 || eff2 > 12
+                main_threat = opp
+                break
+              end
+            end
             
-            # Solo buscamos cambio si tenemos una debilidad crítica frente al rival
-            if eff1 > 12 || eff2 > 12
+            # Solo buscamos cambio si detectamos una amenaza seria
+            if main_threat
               party = pbParty(index)
-              current_score = pbHeizoScorePokemon(battler.pokemon, opponent)
+              current_score = pbHeizoScorePokemon(battler.pokemon, main_threat)
               
               best_bench_index = -1
               max_bench_score = current_score
 
               for i in 0...party.length
                 next if !pbCanSwitch?(index, i, false)
-                bench_score = pbHeizoScorePokemon(party[i], opponent)
+                # Puntuación contra la amenaza principal
+                bench_score = pbHeizoScorePokemon(party[i], main_threat)
                 if bench_score > max_bench_score
                   max_bench_score = bench_score
                   best_bench_index = i
                 end
               end
               
-              # UMBRAL DE VENTAJA: Solo cambia si el banquillo es sustancialmente mejor (+50 puntos)
+              # UMBRAL DE VENTAJA: Solo cambia si el banquillo es sustancialmente mejor contra la amenaza
               if best_bench_index != -1 && max_bench_score > current_score + 50
                 return pbRegisterSwitch(index, best_bench_index)
               end
@@ -3954,8 +3998,24 @@ module Kernel
     
     # ESTADO 1: Esperando confirmación para luchar
     elsif $game_variables[995] == 1
-      pbBGMPlay("Acertijos") # MÚSICA PARA DIÁLOGOS
       if pbConfirmMessage(_INTL("¿Estás listo para el combate?"))
+        # Elegir Modo de Combate (Menú de Selección)
+        cmd_mode = pbMessage(_INTL("Heizo: ¿Cómo prefieres combatir?"), [
+          _INTL("Individual"),
+          _INTL("Doble")
+        ], 0)
+        is_double = (cmd_mode == 1)
+
+        if is_double
+          # Comprobación de seguridad: ¿Tiene el jugador al menos 2 Pokémon sanos?
+          player_healthy = $Trainer.party.count { |p| p && p.hp > 0 && !p.isEgg? }
+          if player_healthy < 2
+            pbMessage(_INTL("Heizo: Tipo, es imposible que me ganes así... no perdamos el tiempo."))
+            pbMessage(_INTL("Heizo: Vuelve cuando tengas al menos dos Pokémon en condiciones."))
+            $game_map.autoplay; return
+          end
+        end
+
         pbMessage(_INTL("Heizo: Bien. Que empiece."))
         
         if heizo_event
@@ -4005,7 +4065,7 @@ module Kernel
         # Un pequeño refresco del mapa nos asegura que el cambio "se vea" al quitar el negro
         $game_map.need_refresh = true
         $game_player.straighten
-
+ 
         # 3. Preparar equipo de Heizo
         max_level = $Trainer.party.map { |p| p.level }.max || 5
         heizo_opponent = PokeBattle_Trainer.new("Heizo", 35) 
@@ -4026,6 +4086,7 @@ module Kernel
           scene = pbNewBattleScene
           # USAR LA ETIQUETA HEIZO BATTLE DESDE EL PRIMER COMBATE
           battle = HeizoBattle.new(scene, $Trainer.party, heizo_opponent.party, $Trainer, heizo_opponent)
+          battle.doublebattle = is_double
           battle.instance_variable_set(:@heizo_battle, true) # ETIQUETA ROBUSTA
           battle.instance_variable_set(:@endspeech, "No es posible... mi magnífico equipo ha caído. No esperaba que alguien pudiera superar tal grado de maestría.") # FIX CAJA VACIA
           battle.internalbattle = true
@@ -4064,6 +4125,7 @@ module Kernel
         $game_map.autoplay # Restaurar música del mapa al no querer combatir
         return
       end
+
     # ESTADO 2: MENÚ POST-DERROTA (Elección entre Luchar o Comprar)
     elsif $game_variables[995] == 2
       pbBGMPlay("Acertijos") # MÚSICA PARA DIÁLOGOS
@@ -4084,6 +4146,24 @@ module Kernel
 
         if cmd == 0 # REPETIR COMBATE
           pbMessage(_INTL("Heizo: Así me gusta. Vamos."))
+          
+          # Elegir Modo de Combate (Menú de Selección)
+          cmd_mode = pbMessage(_INTL("Heizo: ¿Cómo quieres luchar esta vez?"), [
+            _INTL("Individual"),
+            _INTL("Doble")
+          ], 0)
+          is_double = (cmd_mode == 1)
+
+          if is_double
+            # Comprobación de seguridad
+            player_healthy = $Trainer.party.count { |p| p && p.hp > 0 && !p.isEgg? }
+            if player_healthy < 2
+              pbMessage(_INTL("Heizo: Tipo, es imposible que me ganes así... no perdamos el tiempo."))
+              pbMessage(_INTL("Heizo: Vuelve cuando tengas al menos dos Pokémon en condiciones."))
+              $game_map.autoplay; return
+            end
+          end
+
           # --- REPETICIÓN DE CINEMÁTICA Y COMBATE ---
           if heizo_event
             pbMoveRoute($game_player, [
@@ -4111,7 +4191,7 @@ module Kernel
           if heizo_event; heizo_event.moveto(h_pos[0], h_pos[1]); heizo_event.instance_variable_set(:@direction, h_pos[2]); end
           $game_map.need_refresh = true; $game_player.straighten
 
-          # Preparar Batalla: Equipo Centralizado de Heizo (Consistente con PC y Leyendas)
+          # Preparar Batalla
           max_level = $Trainer.party.map { |p| p.level }.max || 5
           heizo_opponent = PokeBattle_Trainer.new("Heizo", 35)
           heizo_opponent.party = pbGetHeizoTeam(max_level)
@@ -4124,6 +4204,7 @@ module Kernel
             scene = pbNewBattleScene
             # USAR LA ETIQUETA HEIZO BATTLE PARA LOS DIÁLOGOS
             battle = HeizoBattle.new(scene, $Trainer.party, heizo_opponent.party, $Trainer, heizo_opponent)
+            battle.doublebattle = is_double
             battle.instance_variable_set(:@heizo_battle, true) # ETIQUETA ROBUSTA
             battle.instance_variable_set(:@endspeech, "¿Cómo ha podido ser esto...? Mi equipo magnífico ha sido derrotado. Me has dejado sin palabras... por ahora.") # FIX CAJA VACIA
             battle.internalbattle = true; pbPrepareBattle(battle); pbSceneStandby { decision = battle.pbStartBattle }
