@@ -3518,6 +3518,12 @@ begin
 rescue
 end
 
+# Heizo NPC - Helpers de Seguimiento
+def pbHeizoFollowing?
+  return false if !$PokemonTemp || !$PokemonTemp.dependentEvents
+  return $PokemonTemp.dependentEvents.getEventByName("HeizoNPC") != nil
+end
+
 # Heizo NPC - Integrado directamente
 $heizo_maps = [10, 18, 30, 45, 60, 82, 104, 114, 134, 142, 164]
 $heizo_last_map = 0
@@ -3549,6 +3555,124 @@ module Graphics
                 return heizo_old_character_name
               end
             end
+
+            # Parche para poder hablarle al seguidor Heizo
+            if !method_defined?(:heizo_check_event_trigger_there)
+              alias heizo_check_event_trigger_there check_event_trigger_there
+              def check_event_trigger_there(triggers)
+                # 1. Comprobar eventos normales (estáticos)
+                ret = heizo_check_event_trigger_there(triggers)
+                return ret if ret
+                
+                # 2. Si no hay evento normal en frente, comprobar seguidores de Heizo
+                return false if $game_system.map_interpreter.running?
+                if triggers.include?(0) # Botón Acción (C)
+                  # Comprobamos hasta 3 tiles en frente para encontrar a Heizo en la fila
+                  for dist in 1..3
+                    new_x = @x + (@direction == 6 ? dist : @direction == 4 ? -dist : 0)
+                    new_y = @y + (@direction == 2 ? dist : @direction == 8 ? -dist : 0)
+                    
+                    if $PokemonTemp && $PokemonTemp.dependentEvents
+                      evts = $PokemonTemp.dependentEvents.realEvents rescue []
+                      data_list = $PokemonGlobal.dependentEvents rescue []
+                      for i in 0...data_list.length
+                        event = evts[i]
+                        data = data_list[i]
+                        if event && event.x == new_x && event.y == new_y && data && data[8] == "HeizoNPC"
+                          Kernel.pbHeizoDialog
+                          return true
+                        end
+                      end
+                    end
+                  end
+                end
+                return false
+              end
+            end
+          end
+        end
+      end
+      
+      if !@heizo_patched_dependent
+        if defined?(::DependentEvents)
+          @heizo_patched_dependent = true
+          ::DependentEvents.class_eval do
+            if !method_defined?(:heizo_createEvent)
+              alias heizo_createEvent createEvent
+              def createEvent(eventData)
+                newEvent = heizo_createEvent(eventData)
+                
+                # REGLA GENERAL: Ocultar si surfeamos, buceamos o vamos en bici
+                if $PokemonGlobal && ($PokemonGlobal.surfing || $PokemonGlobal.diving || $PokemonGlobal.bicycle)
+                  newEvent.transparent = true rescue nil
+                  newEvent.opacity = 0 rescue nil
+                end
+
+                if eventData[8] == "HeizoNPC"
+                  list = [
+                    RPG::EventCommand.new(355, 0, ["Kernel.pbHeizoDialog"]),
+                    RPG::EventCommand.new(0, 0, [])
+                  ]
+                  rpg_evt = newEvent.instance_variable_get(:@event)
+                  rpg_evt.pages[0].list = list if rpg_evt && rpg_evt.respond_to?(:pages) && rpg_evt.pages && rpg_evt.pages[0]
+                  if newEvent.respond_to?(:refresh)
+                    newEvent.refresh
+                  end
+                end
+                return newEvent
+              end
+            end
+
+            if !method_defined?(:heizo_refresh_sprite)
+              alias heizo_refresh_sprite refresh_sprite
+              def refresh_sprite(animation=false)
+                heizo_refresh_sprite(animation)
+                
+                # Sincronizar visibilidad por medio de transporte
+                hide_all = $PokemonGlobal && ($PokemonGlobal.surfing || $PokemonGlobal.diving || $PokemonGlobal.bicycle)
+                
+                evts = @realEvents rescue []
+                for evt in evts
+                  next if !evt
+                  if hide_all
+                    evt.transparent = true rescue nil
+                    evt.opacity = 0 rescue nil
+                  else
+                    evt.transparent = false rescue nil
+                    evt.opacity = 255 rescue nil
+                  end
+                end
+              end
+            end
+
+            if !method_defined?(:heizo_update_dep)
+              alias heizo_update_dep updateDependentEvents
+              def updateDependentEvents
+                heizo_update_dep
+                # REGLA SIMPLE: Ocultar todo si se surfea, bucea o va en bici (sin lag)
+                is_surfing = $PokemonGlobal && $PokemonGlobal.surfing rescue false
+                is_diving = $PokemonGlobal && $PokemonGlobal.diving rescue false
+                is_biking = $PokemonGlobal && $PokemonGlobal.bicycle rescue false
+                hide_all = is_surfing || is_diving || is_biking
+                
+                evts = (@realEvents || []) rescue []
+                if hide_all
+                  for evt in evts
+                    next if !evt
+                    evt.transparent = true rescue nil
+                    evt.opacity = 0 rescue nil
+                  end
+                else
+                  # Restaurar visibilidad normal en tierra firme
+                  for evt in evts
+                    next if !evt
+                    # Solo tocamos transparencia si no hay otro sistema (como invisibilidad)
+                    evt.transparent = $game_player.transparent rescue false
+                    evt.opacity = 255 rescue nil
+                  end
+                end
+              end
+            end
           end
         end
       end
@@ -3558,6 +3682,17 @@ end
 
 def spawn_heizo_final
   return if !$game_map
+  
+  # SI ESTÁ SIGUIENDO, ELIMINAR EL CLON ESTÁTICO
+  if pbHeizoFollowing?
+    if $game_map.events[995]
+      # Borramos el evento y su representación
+      $game_map.events.delete(995) rescue nil
+      $heizo_spawned = false
+    end
+    return
+  end
+
   current_map = $game_map.map_id
   
   if current_map != $heizo_last_map
@@ -4160,13 +4295,22 @@ module Kernel
 
         pbMessage(_INTL("Heizo: El campeón. ¿Qué necesitas?"))
         
+        $heizo_following = ($PokemonTemp && $PokemonTemp.dependentEvents && $PokemonTemp.dependentEvents.getEventByName("HeizoNPC")) != nil
+        follow_label = $heizo_following ? _INTL("Nos vemos en el Centro Pokémon") : _INTL("Acompáñame")
+        
         cmd = pbMessage(_INTL("¿Qué quieres hacer?"), [
           _INTL("Combatir de nuevo"),
           _INTL("Mercado Negro"),
+          follow_label,
           _INTL("Nada por ahora")
-        ], 3)
+        ], 4)
 
         if cmd == 0 # REPETIR COMBATE
+          if $heizo_following
+            pbMessage(_INTL("Heizo: No deberíamos levantar sospechas luchando aquí en la ruta."))
+            pbMessage(_INTL("Heizo: Si quieres combatir, dímelo cuando esté de vuelta en mi asiento."))
+            $game_map.autoplay; return
+          end
           pbMessage(_INTL("Heizo: Así me gusta. Vamos."))
           
           # Elegir Modo de Combate (Menú de Selección)
@@ -4459,8 +4603,37 @@ module Kernel
           pbMessage(_INTL("Heizo: Buen provecho. Ya sabes dónde encontrarme."))
           $game_map.autoplay; return
 
-        elsif cmd == 2 # NADA POR AHORA
-          pbMessage(_INTL("Heizo: Estaré aquí con mi hidromiel. Sin prisa."))
+        elsif cmd == 2 # ACOMPAÑAR / QUEDARSE
+          if $heizo_following
+            pbMessage(_INTL("Heizo: Está bien. Nos vemos en el Centro Pokémon."))
+            pbRemoveDependency2("HeizoNPC") rescue nil
+            # Re-activar el evento si estamos en el mapa base
+            if $game_map.events[995]
+              ge = $game_map.events[995]
+              ge.instance_variable_set(:@erased, false)
+              ge.refresh rescue nil
+              h_pos = $game_variables[998] || [3, 11, 2]
+              ge.moveto(h_pos[0], h_pos[1])
+              ge.instance_variable_set(:@direction, h_pos[2])
+              $game_player.straighten rescue nil
+            else
+              # Si no estamos en el mapa, spawn_heizo_final lo regenerará después
+              $heizo_spawned = false
+            end
+            $game_map.autoplay; return
+          else
+            pbMessage(_INTL("Heizo: ¿Quieres mi compañía? Bien."))
+            pbMessage(_INTL("Heizo: Me mantendré al margen en tus combates, pero seguiré vendiéndote mercancía."))
+            begin
+              pbAddDependency2(995, "HeizoNPC", nil)
+            rescue => e
+              pbMessage(_INTL("Heizo: Mmm... parece que no puedo seguirte en las condiciones actuales."))
+            end
+            $game_map.autoplay; return
+          end
+          
+        elsif cmd == 3 # NADA POR AHORA
+          pbMessage(_INTL("Heizo: Estaré aquí conteniendo el aliento. Sin prisa."))
           $game_map.autoplay; return
         end
     end
