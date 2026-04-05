@@ -86,9 +86,14 @@ He integrado un nuevo encuentro especial como guiño al desarrollo del juego:
     *   **Encuentro Épico**: He diseñado un combate cinemático contra el propio "Heizo" (basado en el usuario), con una secuencia de pre-batalla que utiliza control de cámaras (`viewports`) y efectos de fundido.
     *   **Mercado Negro**: Al derrotar a Heizo en combate, se desbloquea el acceso permanente a su **Mercado Negro**.
     *   **Economía de Contrabando (Custom Mart)**:
+        *   **Interfaz Categorizada**: Se ha diseñado un menú visual y dinámico por categorías (Poké Balls, Curación, Materiales, Objetos de Combate, Potenciadores) utilizando los iconos nativos del juego, agilizando enormemente la compra.
         *   **Objetos a Mitad de Precio**: Consumibles básicos como Poké Balls y Pociones tienen un 50% de descuento.
         *   **Objetos Raros**: Venta de bayas exóticas, piedras evolutivas y materiales de creación.
         *   **Objetos Especiales**: Venta de la **Poción Brillante** (hace que el próximo Pokémon sea Shiny) y la **Master Ball** (a un precio premium de 50.000).
+    *   **Sistema de Ropajes (Cosmético)**: 
+        *   **Integración de Disfraz**: Al derrotar a Heizo y tener acceso a su menú, el jugador puede comprar los "Ropajes del clan cazador" por 100$.
+        *   **Sobrescritura Nativa de Motor (`class_eval`)**: Se ha parcheado de forma diferida el motor de Ruby en `Game_Player#character_name` de RPG Maker XP. Esto permite que el gráfico del jugador en el mapa cambie al sprite `cazadorow` sin romper las animaciones de caminar/correr y siendo totalmente compatible con el uso de monturas (la bici).
+        *   **Persistencia Total**: Guardado de estado en `$game_variables[994]`. Al guardar partida o cambiar de mapa, el jugador mantiene la apariencia de cazador intacta, hasta que decide devolvérselos a Heizo.
     *   **Equipo Personalizado (Team Heizo)**: Heizo cuenta con su equipo definitivo de 6 integrantes diseñados para ser letales. Todos comparten IVs perfectos (31), naturalezas puramente competitivas, habilidades ocultas o alteradas y 8 movimientos en batalla.
         *   **Integrantes:** **Charizard** (Shiny, Mixto con *Adaptable*), **Swampert** (Tanque Físico con *Intimidación*), **Venusaur** (Tanque Especial con *Punto Tóxico*), **Corviknight** (Muro Defensivo con *Coraza Reflejo*), **Gengar** (*Sweeper* Especial con *Bromista*) y **Zeraora** (Físico con *Dicha*).
         *   **Táctica Zeraora:** Maximiza su habilidad **Dicha** (*Serene Grace*) mediante **Chispa**, logrando un **60% de probabilidad de parálisis**. Además, utiliza **Sorpresa** para control de entrada y *Puño Drenaje* para sustain.
@@ -98,11 +103,11 @@ He integrado un nuevo encuentro especial como guiño al desarrollo del juego:
         *   **Pestaña LORE (Origen)**: Se ha sobreescrito a bajo nivel el flujo visual del HUD en la sub-pantalla de "Notas de Entrenador" vaciando dinámicamente la zona para pintar a medida un poema heroico y lore custom (Ej. *"Forjado en las cenizas del Gran Colapso..."*).
         *   La caja inicia por convención con el fondo místico "Alma".
         *   **IA de Combate "Estratega Maestro" (HeizoBattle v3)**: Se ha implementado un sistema de puntuación de movimientos dinámico para maximizar el potencial de su equipo:
+            *   **Inteligencia de Leads/Switches**: La IA evalúa la debilidad/resistencia del Pokémon activo contra su rival para forzar relevos agresivos o mantener la línea defensiva.
             *   **Prioridad de Combos**: Gengar y Venusaur priorizarán dormir al rival (Hipnosis/Espora) antes de usar movimientos como Comer Sueños o Pesadilla.
             *   **Control del Campo**: Swampert buscará colocar Trampa Rocas en los primeros turnos para desgastar al equipo del jugador.
             *   **Gestión de Recursos**: Uso inteligente de movimientos de recuperación (Respiro/Síntesis/Drenadoras) y sacrificio táctico con Mismo Destino cuando su HP es crítico.
             *   **Corrección de Derrota (Blackout)**: Se ha corregido el flujo de combate para que, en caso de derrota del jugador, se procese un "Desmayo" estándar, enviando al jugador al Centro Pokémon y evitando el estado de equipo debilitado en el mapa.
-
 
     *   **Persistencia de Estado**: El sistema utiliza variables globales (`$game_variables[995]`) para recordar el progreso del duelo y mantener la tienda disponible tras la victoria.
 

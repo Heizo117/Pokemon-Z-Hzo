@@ -3530,19 +3530,27 @@ module Graphics
       heizo_upd_final
       # Crear Heizo inmediatamente al cargar el mapa
       spawn_heizo_final
-      # Persistencia de ropajes del clan cazador:
-      # Si el jugador tiene los ropajes equipados y el sprite ha sido reseteado (ej. al cambiar de mapa),
-      # lo restauramos. Sólo comprobamos cada 20 frames para no impactar el rendimiento.
-      if Graphics.frame_count % 20 == 0
-        begin
-          if $game_player && $game_variables && $game_variables[994] == 1
-            if $game_player.character_name != "cazadorow"
-              $game_player.instance_variable_set(:@character_name, "cazadorow") rescue nil
-              $game_player.instance_variable_set(:@tile_id, 0) rescue nil
-              $game_player.character_name = "cazadorow" rescue nil
+      
+      # Parche en tiempo de ejecución para evitar problemas de orden de carga
+      if !@heizo_patched_player
+        if defined?(::Game_Player)
+          @heizo_patched_player = true
+          ::Game_Player.class_eval do
+            if !method_defined?(:heizo_old_character_name)
+              alias heizo_old_character_name character_name
+              def character_name
+                # Si los ropajes están activos y no estamos en bici/surf/buceo
+                if $game_variables && $game_variables[994] == 1
+                  if $PokemonGlobal && !$PokemonGlobal.bicycle && !$PokemonGlobal.surfing && !$PokemonGlobal.diving
+                    return "cazadorow"
+                  end
+                end
+                # Comportamiento normal
+                return heizo_old_character_name
+              end
             end
           end
-        rescue; end
+        end
       end
     end
   end
@@ -4152,8 +4160,8 @@ module Kernel
 
         pbMessage(_INTL("Heizo: El campeón. ¿Qué necesitas?"))
         
-        # Etiqueta dinámica según si el jugador ya lleva los ropajes del clan
-        ropajes_label = ($game_variables[994] == 1) ? _INTL("Devolver ropajes del clan") : _INTL("Ropajes del clan")
+        # Etiqueta dinámica según si el jugador ya lleva los ropajes
+        ropajes_label = ($game_variables[994] == 1) ? _INTL("Devolver ropajes") : _INTL("Ropajes de Heizo")
         
         cmd = pbMessage(_INTL("¿Qué quieres hacer?"), [
           _INTL("Combatir de nuevo"),
@@ -4455,6 +4463,7 @@ module Kernel
                 # Aplicar sprite del clan cazador
                 _heizo_set_player_sprite.call("cazadorow")
                 $game_variables[994] = 1
+                Kernel.pbUpdateVehicle rescue nil # Forzar actualización inmediata a través del motor
                 pbMessage(_INTL("Heizo: Tómalos."))
                 pbMessage(_INTL("Heizo: Ahora llevas la marca del clan. Cada ruta te lo agradecerá."))
               else
