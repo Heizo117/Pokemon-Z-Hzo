@@ -3530,6 +3530,20 @@ module Graphics
       heizo_upd_final
       # Crear Heizo inmediatamente al cargar el mapa
       spawn_heizo_final
+      # Persistencia de ropajes del clan cazador:
+      # Si el jugador tiene los ropajes equipados y el sprite ha sido reseteado (ej. al cambiar de mapa),
+      # lo restauramos. Sólo comprobamos cada 20 frames para no impactar el rendimiento.
+      if Graphics.frame_count % 20 == 0
+        begin
+          if $game_player && $game_variables && $game_variables[994] == 1
+            if $game_player.character_name != "cazadorow"
+              $game_player.instance_variable_set(:@character_name, "cazadorow") rescue nil
+              $game_player.instance_variable_set(:@tile_id, 0) rescue nil
+              $game_player.character_name = "cazadorow" rescue nil
+            end
+          end
+        rescue; end
+      end
     end
   end
 end
@@ -4138,11 +4152,15 @@ module Kernel
 
         pbMessage(_INTL("Heizo: El campeón. ¿Qué necesitas?"))
         
+        # Etiqueta dinámica según si el jugador ya lleva los ropajes del clan
+        ropajes_label = ($game_variables[994] == 1) ? _INTL("Devolver ropajes del clan") : _INTL("Ropajes del clan")
+        
         cmd = pbMessage(_INTL("¿Qué quieres hacer?"), [
           _INTL("Combatir de nuevo"),
           _INTL("Mercado Negro"),
+          ropajes_label,
           _INTL("Nada por ahora")
-        ], 3)
+        ], 4)
 
         if cmd == 0 # REPETIR COMBATE
           pbMessage(_INTL("Heizo: Así me gusta. Vamos."))
@@ -4354,6 +4372,101 @@ module Kernel
           $game_temp.mart_prices = nil
           pbMessage(_INTL("Heizo: Buen provecho. Ya sabes dónde encontrarme."))
           $game_map.autoplay; return
+
+        elsif cmd == 2 # ROPAJES DEL CLAN CAZADOR
+
+          # --- Helper robusto para cambiar el sprite del jugador en mkxp-z ---
+          # Establece el graphic a nivel de ivar, fuerza el tile_id a 0
+          # y hace una micro-transferencia al mismo tile para disparar el refresco del spriteset.
+          _heizo_set_player_sprite = lambda do |sprite_name|
+            begin
+              # 1. Cambio directo en la variable interna del Game_Character
+              $game_player.instance_variable_set(:@character_name, sprite_name)
+              $game_player.instance_variable_set(:@tile_id, 0)
+              # 2. Setter público (también notifica al motor)
+              $game_player.character_name = sprite_name rescue nil
+              # 3. Forzar refresco de la escena de mapa
+              if $scene.is_a?(Scene_Map) && $scene.respond_to?(:spriteset)
+                sp = $scene.spriteset
+                # Buscar el Sprite_Character del jugador y forzar su update
+                begin
+                  arr = sp.instance_variable_get(:@character_sprites) rescue []
+                  arr.each do |s|
+                    next unless s.respond_to?(:update)
+                    ch = s.instance_variable_get(:@character) rescue nil
+                    if ch == $game_player
+                      # Resetear cache interna del sprite para forzar recarga de bitmap
+                      s.instance_variable_set(:@character_name, nil) rescue nil
+                      s.instance_variable_set(:@tile_id, nil) rescue nil
+                      s.update rescue nil
+                      break
+                    end
+                  end
+                rescue; end
+              end
+              # 4. Notificar al mapa que necesita refresco
+              $game_map.need_refresh = true rescue nil
+              Graphics.update rescue nil
+            rescue => e
+              # Fallback mínimo garantizado
+              $game_player.character_name = sprite_name rescue nil
+            end
+          end
+
+          if $game_variables[994] == 1
+            # --- DEVOLVER ROPAJES ---
+            pbMessage(_INTL("Heizo: Devolviendo los ropajes del clan."))
+            if pbConfirmMessage(_INTL("¿Devolver los ropajes del clan cazador?"))
+              original_sprite = $game_variables[993].to_s
+              # Determinar el sprite a restaurar
+              if original_sprite != "" && original_sprite != "cazadorow"
+                restore_sprite = original_sprite
+              else
+                begin
+                  restore_sprite = ($Trainer.female ? "girl_walk" : "boy_walk")
+                rescue
+                  restore_sprite = "boy_walk"
+                end
+              end
+              _heizo_set_player_sprite.call(restore_sprite)
+              $game_variables[994] = 0
+              $game_variables[993] = ""
+              pbMessage(_INTL("Heizo: Bien. Vuelven donde deben estar."))
+              pbMessage(_INTL("Heizo: Cuídate en la ruta. Sin la marca del clan, estás a merced del tiempo."))
+            else
+              pbMessage(_INTL("Heizo: Sigue llevándolos. Son tuyos mientras los honres."))
+            end
+            $game_map.autoplay; return
+          else
+            # --- COMPRAR ROPAJES ---
+            pbMessage(_INTL("Heizo: ¿Los ropajes del clan?"))
+            pbMessage(_INTL("Heizo: No son exactamente los míos. Son del clan de cazadores al que pertenezco."))
+            pbMessage(_INTL("Heizo: Cuero curtido en frío. Resistentes al viento, a la lluvia y a las inclemencias de cualquier ruta."))
+            pbMessage(_INTL("Heizo: Los llevamos en expedición. Para la aventura, no para el salón."))
+            pbMessage(_INTL("Heizo: 100$. Y no porque necesite el dinero."))
+
+            if pbConfirmMessage(_INTL("¿Comprar los ropajes del clan cazador por 100$?"))
+              if $Trainer.money >= 100
+                $Trainer.money -= 100
+                # Guardar sprite original ANTES del cambio
+                current_sprite = $game_player.character_name.to_s
+                current_sprite = "boy_walk" if current_sprite == "" || current_sprite == "cazadorow"
+                $game_variables[993] = current_sprite
+                # Aplicar sprite del clan cazador
+                _heizo_set_player_sprite.call("cazadorow")
+                $game_variables[994] = 1
+                pbMessage(_INTL("Heizo: Tómalos."))
+                pbMessage(_INTL("Heizo: Ahora llevas la marca del clan. Cada ruta te lo agradecerá."))
+              else
+                pbMessage(_INTL("Heizo: No tienes suficiente."))
+                pbMessage(_INTL("Heizo: 100$. El clan no regala sus ropajes."))
+              end
+            else
+              pbMessage(_INTL("Heizo: Como quieras. No son para todo el mundo."))
+            end
+            $game_map.autoplay; return
+          end
+
         else
           pbMessage(_INTL("Heizo: Estaré aquí con mi hidromiel. Sin prisa."))
           $game_map.autoplay; return
