@@ -4629,7 +4629,20 @@ module Kernel
           if $heizo_following
             pbSEPlay("VozCrisantoSigh") rescue nil
             pbMessage(_INTL("Heizo: Está bien. Nos vemos en el Centro Pokémon."))
+            
+            # --- INICIAR CORTINA NEGRA ANTES DEL TP ---
+            blink_vp = Viewport.new(0,0,Graphics.width,Graphics.height); blink_vp.z = 999999
+            blink_col = Color.new(0,0,0,0)
+            for j in 0..12 # Aumentamos un poco más la duración del fundido de entrada
+              blink_col.set(0,0,0,j*22)
+              blink_vp.color = blink_col
+              Graphics.update
+              Input.update
+            end
+            
+            # EL MOMENTO DEL TP (con la pantalla totalmente negra)
             pbRemoveDependency2("HeizoNPC") rescue nil
+            
             # Re-activar el evento si estamos en el mapa base
             if $game_map.events[995]
               ge = $game_map.events[995]
@@ -4640,9 +4653,22 @@ module Kernel
               ge.instance_variable_set(:@direction, h_pos[2])
               $game_player.straighten rescue nil
             else
-              # Si no estamos en el mapa, spawn_heizo_final lo regenerará después
               $heizo_spawned = false
             end
+            
+            # Un pequeño parpadeo extra en negro puro para asegurar
+            pbWait(5) if defined?(pbWait)
+            
+            # Fundido de salida
+            for j in 0..12
+              blink_col.set(0,0,0,255 - j*22)
+              blink_vp.color = blink_col
+              Graphics.update
+              Input.update
+            end
+            blink_vp.dispose
+            # ------------------------------------------
+            
             $game_map.autoplay; return
           else
             pbMessage(_INTL("Heizo: ¿Quieres mi compañía? Bien."))
