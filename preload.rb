@@ -4126,8 +4126,22 @@ module Kernel
       end
     end
 
+    # Identificar el evento (estático o seguidor)
     heizo_event = $game_map.events[995]
+    if !heizo_event && $PokemonTemp && $PokemonTemp.dependentEvents
+       heizo_event = $PokemonTemp.dependentEvents.getEventByName("HeizoNPC")
+    end
     
+    # EFECTO VISUAL Y SONORO DE ATENCIÓN
+    if heizo_event
+      if !pbHeizoFollowing?
+        # Solo mostrar exclamación si NO está siguiendo (estático)
+        fake_event = Struct.new(:x, :y).new(heizo_event.x, heizo_event.y - 1)
+        pbExclaim(fake_event, 3) rescue nil 
+      end
+      pbSEPlay("VozCrisantoWhat") rescue nil
+    end
+
     if $game_variables[995] == 0
       # --- MÚSICA DE ENCUENTRO ---
       pbBGMPlay("Acertijos") # MÚSICA PARA DIÁLOGOS DE HEIZO
@@ -4270,9 +4284,9 @@ module Kernel
           pbStartOver
         end
         
-        # Volver a la mesa y forzar posición inicial
+        # Volver a la mesa y forzar posición inicial (solo si no es seguidor)
         h_pos = $game_variables[998]
-        if heizo_event && h_pos
+        if !pbHeizoFollowing? && heizo_event && h_pos
           heizo_event.moveto(h_pos[0], h_pos[1])
           heizo_event.instance_variable_set(:@direction, h_pos[2])
         end
@@ -4286,16 +4300,16 @@ module Kernel
     # ESTADO 2: MENÚ POST-DERROTA (Elección entre Luchar o Comprar)
     elsif $game_variables[995] == 2
       pbBGMPlay("Acertijos") # MÚSICA PARA DIÁLOGOS
-        # Aseguramos posición inicial en la mesa
+        # Aseguramos posición inicial en la mesa (solo si NO está siguiendo)
         h_pos = $game_variables[998]
-        if heizo_event && h_pos
+        if !pbHeizoFollowing? && heizo_event && h_pos
           heizo_event.moveto(h_pos[0], h_pos[1])
           heizo_event.instance_variable_set(:@direction, h_pos[2])
         end
 
         pbMessage(_INTL("Heizo: El campeón. ¿Qué necesitas?"))
         
-        $heizo_following = ($PokemonTemp && $PokemonTemp.dependentEvents && $PokemonTemp.dependentEvents.getEventByName("HeizoNPC")) != nil
+        $heizo_following = pbHeizoFollowing?
         follow_label = $heizo_following ? _INTL("Nos vemos en el Centro Pokémon") : _INTL("Acompáñame")
         
         cmd = pbMessage(_INTL("¿Qué quieres hacer?"), [
@@ -4417,7 +4431,11 @@ module Kernel
             end
           end
 
-          pbMessage(_INTL("Heizo: Todo a mitad de precio. Elige una sección... o lárgate."))
+          if $heizo_following
+            pbMessage(_INTL("Heizo: Ya que te sigo, puedo soltar algo de mi bolsa... pero no esperes regalos. ¿Qué buscas?"))
+          else
+            pbMessage(_INTL("Heizo: Todo a mitad de precio. Elige una sección... o lárgate."))
+          end
           # --- BUCLE DE CATEGORÍAS ---
           loop do
             pbBGMPlay("Acertijos")
@@ -4600,11 +4618,16 @@ module Kernel
           end # loop categorías
 
           $game_temp.mart_prices = nil
-          pbMessage(_INTL("Heizo: Buen provecho. Ya sabes dónde encontrarme."))
+          if $heizo_following
+            pbMessage(_INTL("Heizo: Negocio cerrado. Sigamos."))
+          else
+            pbMessage(_INTL("Heizo: Buen provecho. Ya sabes dónde encontrarme."))
+          end
           $game_map.autoplay; return
 
         elsif cmd == 2 # ACOMPAÑAR / QUEDARSE
           if $heizo_following
+            pbSEPlay("VozCrisantoSigh") rescue nil
             pbMessage(_INTL("Heizo: Está bien. Nos vemos en el Centro Pokémon."))
             pbRemoveDependency2("HeizoNPC") rescue nil
             # Re-activar el evento si estamos en el mapa base
@@ -4869,12 +4892,12 @@ module Kernel
       cls = Class.new(Window_CommandPokemon) do
         def initialize(commands, x, y)
           @icons = [
-            "Graphics/Icons/item004", # Poke Ball
-            "Graphics/Icons/item017", # Poción (Hyper)
-            "Graphics/Icons/item033", # Piedra Fuego
-            "Graphics/Icons/item212", # Choice Band
-            "Graphics/Icons/item245", # Tabla Llama
-            "Graphics/Icons/item513", # Ropajes (ícono Saca/Mochila)
+            "Graphics/Icons/item275", # Poke Ball
+            "Graphics/Icons/item217", # Poción
+            "Graphics/Icons/item033", # Piedra Fuego (Materiales)
+            "Graphics/Icons/item212", # Choice Band (Combate)
+            "Graphics/Icons/item245", # Tabla Llama (Tipo)
+            "Graphics/Icons/item513", # Ropajes (Mochila)
             nil                       # Salir
           ]
           super(commands, 330)
