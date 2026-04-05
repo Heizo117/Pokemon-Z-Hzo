@@ -14,6 +14,144 @@ module Kernel
     end
   end
 
+  # Auxiliar para detectar si el mapa actual es un Gimnasio
+  def pbHeizoInGym?
+    map_id = $game_map.map_id rescue 0
+    return false if map_id == 0
+    map_name = pbGetMapName(map_id) rescue ""
+    return map_name.downcase.include?("gimnasio") || map_name.downcase.include?("gym")
+  end
+
+  # Auxiliar para validar si una especie de Pokémon es válida en el motor actual
+  def pbHeizoValidSpecies?(species)
+    return false if !species || (species.is_a?(Numeric) && species <= 0)
+    begin
+      id = (species.is_a?(String) || species.is_a?(Symbol)) ? getID(PBSpecies, species) : species
+      return false if !id || id <= 0 || id > (PBSpecies.maxValue rescue 1000)
+      name = PBSpecies.getName(id) rescue ""
+      return name != ""
+    rescue
+      return false
+    end
+  end
+
+  # Auxiliar para generar la información de Heizo como compañero
+  def pbHeizoBuildPartnerInfo
+    return nil if !defined?(pbHeizoFollowing?) || !pbHeizoFollowing? || $game_variables[992] != 1
+    max_level = $Trainer.party.map { |p| p.level }.max rescue 5
+    heizo_party = pbGetHeizoTeam(max_level) rescue []
+    return nil if heizo_party.empty?
+    
+    heizo_trainer = PokeBattle_Trainer.new("Heizo", 35) # CAZADOR
+    heizo_party.each do |pkmn|
+      pkmn.trainerID = heizo_trainer.id
+      pkmn.ot = heizo_trainer.name
+      pkmn.calcStats
+    end
+    
+    # [trainerid, trainername, trainerid, party]
+    return [35, "Heizo", heizo_trainer.id, heizo_party]
+  end
+
+  # --- AUXILIAR: REGISTRO SEGURO DE EVENTOS (LAZY LOADING) ---
+  def pbHeizoInstallBattleEvents
+    return if defined?($heizo_events_installed_v3)
+    return if !defined?(Events) || !defined?(Events.onWildBattleOverride)
+    $heizo_events_installed_v3 = true
+    
+    # 1. INTERCEPTOR DE COMBATES SALVAJES
+    Events.onWildBattleOverride += proc { |_sender, e|
+      species = e[0]; level = e[1]; handled = e[2]
+      next if handled[0] != nil || pbHeizoInGym?
+      
+      p_info = pbHeizoBuildPartnerInfo rescue nil
+      next if !p_info
+      
+      # Bypass de restricción de batalla doble (Interruptor 855: BOSS)
+      old_boss = $game_switches[855] rescue false
+      $game_switches[855] = true rescue nil
+      
+      # MODO 2v2 (Variable 991 == 1)
+      if $game_variables[991] == 1
+        enctype = $PokemonEncounters.pbEncounterType rescue -1
+        genwild2 = (enctype >= 0) ? ($PokemonEncounters.pbEncounteredPokemon(enctype) rescue nil) : nil
+        
+        s1 = (species.is_a?(String) || species.is_a?(Symbol)) ? getID(PBSpecies, species) : species
+        # Validar especie principal
+        next if !pbHeizoValidSpecies?(s1)
+        
+        # Determinar especie secundaria y validar
+        s2 = (genwild2.is_a?(PokeBattle_Pokemon) ? genwild2.species : genwild2) rescue nil
+        s2 = s1 if !pbHeizoValidSpecies?(s2) # Fallback al primero si el segundo es inválido (ej: ID 1018)
+        
+        scene = pbNewBattleScene
+        othertrainer = PokeBattle_Trainer.new(p_info[1], p_info[0])
+        othertrainer.id = p_info[2]; othertrainer.party = p_info[3]
+        
+        # COMBINACIÓN TOTAL (6+6 = 12)
+        playerparty = $Trainer.party + othertrainer.party
+        
+        wild_p = [pbGenerateWildPokemon(s1, level), pbGenerateWildPokemon(s2, level)]
+        
+        battle = PokeBattle_Battle.new(scene, playerparty, wild_p, [$Trainer, othertrainer], nil)
+        battle.fullparty1 = true # ACTIVAR MODO EXTRA (6+6)
+        battle.doublebattle = true; battle.internalbattle = true
+        pbPrepareBattle(battle)
+        $PokemonGlobal.partner = p_info # Temporizar para el motor de batalla
+        decision = 0
+        pbBattleAnimation(pbGetWildBattleBGM(species)) { 
+           pbSceneStandby { decision = battle.pbStartBattle(false) }
+           pbHealAll rescue nil
+           for pkmn in othertrainer.party; pkmn.heal; end rescue nil
+        }
+        $PokemonGlobal.partner = nil
+        handled[0] = (decision == 1)
+      else
+        # MODO 2v1 (Dúo de Apoyo)
+        if species.is_a?(String) || species.is_a?(Symbol); species = getID(PBSpecies, species) ; end
+        genwildpoke = pbGenerateWildPokemon(species, level)
+        scene = pbNewBattleScene
+        othertrainer = PokeBattle_Trainer.new(p_info[1], p_info[0])
+        othertrainer.id = p_info[2]; othertrainer.party = p_info[3]
+        
+        # COMBINACIÓN TOTAL (6+6 = 12)
+        playerparty = $Trainer.party + othertrainer.party
+        
+        battle = PokeBattle_Battle.new(scene, playerparty, [genwildpoke], [$Trainer, othertrainer], nil)
+        battle.fullparty1 = true # ACTIVAR MODO EXTRA (6+6)
+        battle.doublebattle = true; battle.internalbattle = true
+        pbPrepareBattle(battle)
+        $PokemonGlobal.partner = p_info # Temporizar
+        decision = 0
+        pbBattleAnimation(pbGetWildBattleBGM(species)) { 
+           pbSceneStandby { decision = battle.pbStartBattle(false) }
+           pbHealAll rescue nil
+           for pkmn in othertrainer.party; pkmn.heal; end rescue nil
+        }
+        $PokemonGlobal.partner = nil
+        handled[0] = (decision == 1)
+      end
+      
+      # Restaurar estado original del interruptor Boss
+      $game_switches[855] = old_boss rescue nil
+    }
+
+    # 2. INTERCEPTOR DE COMBATES ENTRENADOR
+    Events.onTrainerPartyLoad += proc { |_sender, e|
+      trainer = e[0] # [trainerid, trainername, partyinfo, party]
+      next if pbHeizoInGym?
+      p_info = pbHeizoBuildPartnerInfo rescue nil
+      if p_info && trainer && trainer[3] && trainer[3].length > 1
+        $PokemonGlobal.partner = p_info # Forzar apoyo en combates dobles de entrenadores
+      end
+    }
+
+    # 3. LIMPIEZA POST-COMBATE
+    Events.onEndBattle += proc { |_sender, _e|
+      $PokemonGlobal.partner = nil rescue nil
+    }
+  end
+
   def pbFormLegend_FINAL(pkmn)
     return "" if !pkmn
     species_name = PBSpecies.getName(pkmn.species) rescue ""
@@ -3520,6 +3658,7 @@ end
 
 # Heizo NPC - Helpers de Seguimiento
 def pbHeizoFollowing?
+  pbHeizoInstallBattleEvents rescue nil # Asegurar ganchos de combate
   return false if !$PokemonTemp || !$PokemonTemp.dependentEvents
   return $PokemonTemp.dependentEvents.getEventByName("HeizoNPC") != nil
 end
@@ -3771,6 +3910,9 @@ end
 # Funcion de dialogo para Heizo
 module Kernel
   def self.pbHeizoDialog
+    # Asegurar que los overrides de combate se instalen (solo una vez)
+    pbHeizoInstallBattleOverrides rescue nil
+
     # 1. Definir HeizoBattle de forma dinámica para evitar errores de carga (NameError)
     if !defined?(::HeizoBattle)
       heizo_cls = Class.new(::PokeBattle_Battle) do
@@ -4128,6 +4270,15 @@ module Kernel
 
     # Identificar el evento (estático o seguidor)
     heizo_event = $game_map.events[995]
+    
+    # --- AUTO-SINCRO MERCENARIO (SOLO LÓGICA INTERNA) ---
+    # Nota: No usamos $PokemonGlobal.partner para evitar que el motor fuerce 2v2 automáticamente.
+    if pbHeizoFollowing? && $game_variables[992] == 1
+      if pbHeizoInGym?
+        # Desactivar apoyo si estamos en un gimnasio
+        $game_variables[992] = 0 rescue nil
+      end
+    end
     if !heizo_event && $PokemonTemp && $PokemonTemp.dependentEvents
        heizo_event = $PokemonTemp.dependentEvents.getEventByName("HeizoNPC")
     end
@@ -4310,21 +4461,99 @@ module Kernel
         pbMessage(_INTL("Heizo: El campeón. ¿Qué necesitas?"))
         
         $heizo_following = pbHeizoFollowing?
-        follow_label = $heizo_following ? _INTL("Nos vemos en el Centro Pokémon") : _INTL("Acompáñame")
+        follow_label = $heizo_following ? _INTL("Vuelve al Centro Pokémon") : _INTL("Acompáñame")
         
-        cmd = pbMessage(_INTL("¿Qué quieres hacer?"), [
-          _INTL("Combatir de nuevo"),
-          _INTL("Mercado Negro"),
-          follow_label,
-          _INTL("Nada por ahora")
-        ], 4)
+        main_choices = []
+        if $heizo_following
+          # Menú de Seguidor con opciones de mercenario
+          main_choices << _INTL("Mercado Negro")
+          if $game_variables[992] == 1
+            main_choices << _INTL("Cambiar Táctica")
+            main_choices << _INTL("Retirar Apoyo en Combate")
+          else
+            main_choices << _INTL("Acuerdo de Combate ($10,000)")
+          end
+          main_choices << _INTL("Cambiar Ropa")
+          main_choices << follow_label
+          main_choices << _INTL("Nada por ahora")
+        else
+          # Menú Estático
+          main_choices << _INTL("Combatir de nuevo")
+          main_choices << _INTL("Mercado Negro")
+          main_choices << follow_label
+          main_choices << _INTL("Nada por ahora")
+        end
+        
+        cmd = pbMessage(_INTL("Heizo: El campeón. ¿Qué necesitas?"), main_choices, main_choices.length - 1)
 
-        if cmd == 0 # REPETIR COMBATE
-          if $heizo_following
-            pbMessage(_INTL("Heizo: No deberíamos levantar sospechas luchando aquí en la ruta."))
-            pbMessage(_INTL("Heizo: Si quieres combatir, dímelo cuando esté de vuelta en mi asiento."))
+        if $heizo_following
+          # --- LÓGICA MENÚ SEGUIDOR ---
+          case main_choices[cmd]
+          when _INTL("Mercado Negro")
+            # Salta al bloque de Mercado Negro abajo
+          when _INTL("Acuerdo de Combate ($10,000)")
+            if pbHeizoInGym?
+              pbMessage(_INTL("Heizo: Aquí chaval te lo curras tú. No te voy a ayudar aquí, que tienes que mostrar tu valía."))
+            else
+              pbMessage(_INTL("Heizo: Si quieres, te ayudo en combate con mis Pokémon. Te ofrezco mi servicio por 10.000$."))
+              if pbConfirmMessage(_INTL("¿Contratar el apoyo de Heizo por 10.000$?"))
+                if $Trainer.money >= 10000
+                  $Trainer.money -= 10000
+                  $game_variables[992] = 1
+                  # Elegir táctica inicial
+                  t = pbMessage(_INTL("Heizo: ¿Cómo quieres mi ayuda en la naturaleza?"), 
+                                [_INTL("Dúo de Apoyo (2 vs 1)"), _INTL("Caza Doble (2 vs 2)")], 0)
+                  $game_variables[991] = t
+                  pbMessage(_INTL("Heizo: Trato hecho. Mis Pokémon están a tu disposición."))
+                else
+                  pbMessage(_INTL("Heizo: No tienes suficiente. No soy un mercenario barato."))
+                end
+              end
+            end
+            $game_map.autoplay; return
+          when _INTL("Cambiar Táctica")
+            t = pbMessage(_INTL("Heizo: ¿Qué táctica prefieres para la hierba alta?"), 
+                          [_INTL("Dúo de Apoyo (2 vs 1)"), _INTL("Caza Doble (2 vs 2)")], $game_variables[991])
+            $game_variables[991] = t
+            pbMessage(_INTL("Heizo: Cambiando táctica... listo."))
+            $game_map.autoplay; return
+          when _INTL("Retirar Apoyo en Combate")
+            if pbConfirmMessage(_INTL("Heizo: ¿Deseas que retire mi apoyo en combate por ahora?"))
+              $game_variables[992] = 0
+              pbDeregisterPartner rescue nil
+              pbMessage(_INTL("Heizo: Como quieras. Me limitaré a observar."))
+            end
+            $game_map.autoplay; return
+          when _INTL("Cambiar Ropa")
+            # Salta al bloque de Ropa abajo
+          when _INTL("Vuelve al Centro Pokémon")
+            # Salta al bloque de Quedarse abajo
+          when _INTL("Nada por ahora")
             $game_map.autoplay; return
           end
+        else
+          # --- LÓGICA MENÚ ESTÁTICO ---
+          if cmd == 0 # REPETIR COMBATE
+             # Mantener lógica original de combate
+          elsif cmd == 1 # MERCADO NEGRO
+             # Salta abajo
+          elsif cmd == 2 # ACOMPAÑAME
+             # Salta abajo
+          else
+             $game_map.autoplay; return
+          end
+        end
+
+        # REDIRECCIÓN DEL MENÚ PARA EVITAR DUPLICAR CÓDIGO
+        if main_choices[cmd] == _INTL("Mercado Negro") || cmd == 1 # Compatibilidad estática
+          # Lógica Mercado Negro (Línea 4412+)
+        elsif main_choices[cmd] == _INTL("Cambiar Ropa")
+          # Lógica Ropa (Parte de Mercado Negro en el código original)
+        elsif main_choices[cmd] == _INTL("Vuelve al Centro Pokémon") || cmd == 2
+          # Lógica Despedida (Línea 4628+)
+        end
+
+        if cmd == 0 && !$heizo_following # REPETIR COMBATE
           pbMessage(_INTL("Heizo: Así me gusta. Vamos."))
           
           # Elegir Modo de Combate (Menú de Selección)
@@ -4629,6 +4858,10 @@ module Kernel
           if $heizo_following
             pbSEPlay("VozCrisantoSigh") rescue nil
             pbMessage(_INTL("Heizo: Está bien. Nos vemos en el Centro Pokémon."))
+            
+            # Desactivar mercenario al irse
+            $game_variables[992] = 0
+            pbDeregisterPartner rescue nil
             
             # --- INICIAR CORTINA NEGRA ANTES DEL TP ---
             blink_vp = Viewport.new(0,0,Graphics.width,Graphics.height); blink_vp.z = 999999
