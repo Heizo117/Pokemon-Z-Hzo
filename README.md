@@ -138,10 +138,11 @@ Además del combate, el Mod integra mi equipo custom dentro de la **Caja 30** de
 ![Origen Zeraora](./screenshots/img_chk_zeraora.png)
 **⚡ Zeraora**
 *   **Naturaleza**: Alegre (+Vel, -Atk. Sp)
-*   **Habilidad**: Dicha
-*   *   **Objeto**: Cascabel Concha
+*   **Habilidad**: Dicha (Serene Grace)
+*   **Objeto**: Cascabel Concha
+*   **Táctica Maestro**: Especialista en parálisis. Su habilidad **Dicha** duplica la probabilidad de efecto de **Chispa** (60%), permitiendo controlar el ritmo del combate. Además, usa **Sorpresa** para asegurar un golpe prioritario al entrar.
 *   **Movimientos**: 
-    1. Puño Trueno | 2. Puños Plasma | 3. Voltio Cruel | 4. Voltiocambio | 5. A Bocajarro | 6. Puño Drenaje | 7. Patada Ígnea | 8. Chispa
+    1. Puño Trueno | 2. Chispa | 3. Voltio Cruel | 4. Voltiocambio | 5. A Bocajarro | 6. Puño Drenaje | 7. Patada Ígnea | 8. Sorpresa
 
 ---
 
