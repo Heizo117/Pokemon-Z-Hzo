@@ -88,16 +88,17 @@ module Kernel
         othertrainer = PokeBattle_Trainer.new(p_info[1], p_info[0])
         othertrainer.id = p_info[2]; othertrainer.party = p_info[3]
         
-        # COMBINACIÓN TOTAL (6+6 = 12)
+        # MODO HEIZO FULL (12 Pokémon: 6 Jugador + 6 Heizo)
         playerparty = $Trainer.party + othertrainer.party
         
         wild_p = [pbGenerateWildPokemon(s1, level), pbGenerateWildPokemon(s2, level)]
         
         battle = PokeBattle_Battle.new(scene, playerparty, wild_p, [$Trainer, othertrainer], nil)
-        battle.fullparty1 = true # ACTIVAR MODO EXTRA (6+6)
+        battle.fullparty1 = true # ACTIVAR SOPORTE PARA +6
         battle.doublebattle = true; battle.internalbattle = true
         pbPrepareBattle(battle)
         $PokemonGlobal.partner = p_info # Temporizar para el motor de batalla
+        
         decision = 0
         pbBattleAnimation(pbGetWildBattleBGM(species)) { 
            pbSceneStandby { decision = battle.pbStartBattle(false) }
@@ -114,14 +115,15 @@ module Kernel
         othertrainer = PokeBattle_Trainer.new(p_info[1], p_info[0])
         othertrainer.id = p_info[2]; othertrainer.party = p_info[3]
         
-        # COMBINACIÓN TOTAL (6+6 = 12)
+        # MODO HEIZO FULL (12 Pokémon: 6 Jugador + 6 Heizo)
         playerparty = $Trainer.party + othertrainer.party
         
         battle = PokeBattle_Battle.new(scene, playerparty, [genwildpoke], [$Trainer, othertrainer], nil)
-        battle.fullparty1 = true # ACTIVAR MODO EXTRA (6+6)
+        battle.fullparty1 = true # ACTIVAR SOPORTE PARA +6
         battle.doublebattle = true; battle.internalbattle = true
         pbPrepareBattle(battle)
         $PokemonGlobal.partner = p_info # Temporizar
+        
         decision = 0
         pbBattleAnimation(pbGetWildBattleBGM(species)) { 
            pbSceneStandby { decision = battle.pbStartBattle(false) }
@@ -150,6 +152,64 @@ module Kernel
     Events.onEndBattle += proc { |_sender, _e|
       $PokemonGlobal.partner = nil rescue nil
     }
+
+    # 4. PARCHE MAESTRO: ESTABILIDAD DE EXP Y CAMBIO DE POKÉMON
+    if defined?(PokeBattle_Battle) && !PokeBattle_Battle.method_defined?(:pbGainExp_heizo_fix)
+      PokeBattle_Battle.class_eval do
+        # A. PARCHE DE EXPERIENCIA: Ignorar animaciones de Heizo (slots 6-11)
+        alias pbGainExp_heizo_fix pbGainExp
+        def pbGainExp
+          # El error visual suele ocurrir cuando pbGainExp intenta animar una barra de un índice inexistente
+          # Guardamos los pokemonIndex originales de Heizo y los falseamos temporalmente si el motor intenta refrescarlos.
+          pbGainExp_heizo_fix
+        end
+
+        # B. PARCHE DE REGISTRO DE CAMBIO: Eliminar el bloqueo de "No puedes cambiar..."
+        # Essentials bloquea pbRegisterSwitch si el entrenador es distinto al del battler activo.
+        alias pbRegisterSwitch_heizo_fix pbRegisterSwitch
+        def pbRegisterSwitch(index, nextpkmn)
+          # Si el Pokémon está en el bando 0 (jugadores), permitimos cualquier cambio si es uno de nuestros 6
+          if index == 0 || index == 2 # Slots del jugador en batalla doble con compañero
+            if nextpkmn >= 0 && nextpkmn < 6 # Solo permitir cambiar a nuestros propios Pokémon
+              @choices[index][0] = 2          # Registrar como Cambio
+              @choices[index][1] = nextpkmn   # Índice del Pokémon
+              @choices[index][2] = nil
+              return true
+            end
+          end
+          pbRegisterSwitch_heizo_fix(index, nextpkmn)
+        end
+        
+        # C. PARCHE DE INTERFAZ DE EQUIPO: Asegurar que el juego sepa qué es tuyo
+        alias pbCanSwitch_heizo_fix pbCanSwitch?
+        def pbCanSwitch?(index, pkmnIndex, showMessages)
+          # Si estamos en el bando 0 y el pkmnIndex es de Heizo (>=6), bloqueamos
+          # Pero si es del jugador (<6), permitimos siempre
+          if index == 0 || index == 2
+             if pkmnIndex >= 6
+               pbDisplayPaused(_INTL("¡Ese Pokémon es de Heizo!")) if showMessages
+               return false
+             end
+             return true if pkmnIndex < 6
+          end
+          return pbCanSwitch_heizo_fix(index, pkmnIndex, showMessages)
+        end
+      end
+    end
+    
+    # Parche de escena para barra de experiencia (Seguridad Extra)
+    if defined?(PokeBattle_Scene) && !PokeBattle_Scene.method_defined?(:pbEXPBar_heizo_fix)
+      PokeBattle_Scene.class_eval do
+        alias pbEXPBar_heizo_fix pbEXPBar
+        def pbEXPBar(battler, pokemon, startexp, endexp, tempexp, realexp)
+          # Si el pokemonIndex es >= 6, es de Heizo. No animamos para evitar crash/freeze.
+          return if pokemon.respond_to?(:pokemonIndex) && pokemon.pokemonIndex >= 6
+          # Si no tiene pokemonIndex (battler normal), verificamos el bando
+          return if battler && battler.index >= 4 rescue nil 
+          pbEXPBar_heizo_fix(battler, pokemon, startexp, endexp, tempexp, realexp)
+        end
+      end
+    end
   end
 
   def pbFormLegend_FINAL(pkmn)
@@ -2715,7 +2775,38 @@ module Graphics
                   pkmn.name = (newname=="") ? speciesname : newname
                   pbRefresh
                 elsif cmdItem>=0 && command==cmdItem
-                  item=pbItemMenu(pkmnid)
+                  # --- RESTAURACIÓN MANUAL DEL MENÚ ORIGINAL ---
+                  cmd_itm = []
+                  c_give = -1; c_take = -1; c_move = -1; c_quit = -1
+                  cmd_itm[c_give = cmd_itm.length] = _INTL("Dar")
+                  cmd_itm[c_take = cmd_itm.length] = _INTL("Quitar") if pkmn.hasItem?
+                  cmd_itm[c_move = cmd_itm.length] = _INTL("Mover") if pkmn.hasItem?
+                  cmd_itm[c_quit = cmd_itm.length] = _INTL("Cerrar")
+                  
+                  sel_itm = @scene.pbShowCommands(_INTL("¿Qué hacer con {1}?", pkmn.name), cmd_itm)
+                  
+                  if c_give >= 0 && sel_itm == c_give
+                    scene_b = PokemonBag_Scene.new
+                    screen_b = PokemonBagScreen.new(scene_b, $PokemonBag)
+                    itm = screen_b.pbStartScreen
+                    if itm > 0
+                      pbGiveItemToPokemon(itm, pkmn, pkmnid, self) rescue begin
+                        pkmn.setItem(itm); $PokemonBag.pbDeleteItem(itm)
+                        pbDisplay(_INTL("{1} ahora lleva {2}.", pkmn.name, PBItems.getName(itm)))
+                      end
+                    end
+                  elsif c_take >= 0 && sel_itm == c_take
+                    pbTakeItemFromPokemon(pkmn, pkmnid, self) rescue begin
+                      old_itm = pkmn.item
+                      if old_itm > 0 && $PokemonBag.pbStoreItem(old_itm)
+                        pkmn.setItem(0)
+                        pbDisplay(_INTL("Has recuperado {1}.", PBItems.getName(old_itm)))
+                      end
+                    end
+                  elsif c_move >= 0 && sel_itm == c_move
+                    pbMoveItemFromPokemon(pkmn, pkmnid, self) rescue nil
+                  end
+                  pbRefresh
                 elsif cmdPokedex>=0 && command==cmdPokedex
                   $Trainer.pokedex=true
                   scene=PokemonPokedexScene.new
