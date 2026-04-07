@@ -12,6 +12,721 @@ module Kernel
       return false
     end
   end
+  # Auxiliar para detectar si el mapa actual es un Gimnasio
+  def pbHeizoInGym?
+    map_id = $game_map.map_id rescue 0
+    return false if map_id == 0
+    map_name = pbGetMapName(map_id) rescue ""
+    return map_name.downcase.include?("gimnasio") || map_name.downcase.include?("gym")
+  end
+
+  # Auxiliar para validar si una especie de Pokémon es válida en el motor actual
+  def pbHeizoValidSpecies?(species)
+    return false if !species || (species.is_a?(Numeric) && species <= 0)
+    begin
+      id = (species.is_a?(String) || species.is_a?(Symbol)) ? getID(PBSpecies, species) : species
+      return false if !id || id <= 0 || id > (PBSpecies.maxValue rescue 1000)
+      name = PBSpecies.getName(id) rescue ""
+      return name != ""
+    rescue
+      return false
+    end
+  end
+
+  # Auxiliar para generar la información de Heizo como compañero
+  def pbHeizoBuildPartnerInfo
+    return nil if !defined?(pbHeizoFollowing?) || !pbHeizoFollowing? || $game_variables[992] != 1
+    max_level = $Trainer.party.map { |p| p.level }.max rescue 5
+    heizo_party = pbGetHeizoTeam(max_level) rescue []
+    return nil if heizo_party.empty?
+    
+    heizo_trainer = PokeBattle_Trainer.new("Heizo", 35) # CAZADOR
+    heizo_party.each do |pkmn|
+      pkmn.trainerID = heizo_trainer.id
+      pkmn.ot = heizo_trainer.name
+      pkmn.calcStats
+    end
+    
+    # [trainerid, trainername, trainerid, party]
+    return [35, "Heizo", heizo_trainer.id, heizo_party]
+  end
+
+  # --- AUXILIAR: PUNTUACIÓN DE LEAD (TIPO COMO PRIORIDAD, MOVIMIENTOS COMO BONUS) ---
+  # Usa el TIPO del Pokémon directamente para garantizar el análisis incluso si no
+  # tiene movimientos asignados (Pokémon recién creados con PokeBattle_Pokemon.new).
+    def pbHeizoCalculateLeadScore(pkmn, wild)
+    return 0 if !pkmn || !wild
+    score = 0
+    begin
+      wt1 = wild.type1 rescue -1
+      wt2 = wild.type2 rescue -1
+      pt1 = pkmn.type1 rescue -1
+      pt2 = pkmn.type2 rescue -1
+      
+      wt1 = 0 if wt1 < 0
+      wt2 = wt1 if wt2 < 0
+      pt1 = 0 if pt1 < 0
+      pt2 = pt1 if pt2 < 0
+      
+      best_type_off = 0
+      [pt1, pt2].uniq.each do |pt|
+        eff = PBTypes.getCombinedEffectiveness(pt, wt1, wt2) rescue 8
+        pts = case eff
+              when 32 then 300  
+              when 16 then 150  
+              when  8 then  20  
+              when  4 then   0  
+              when  2 then -20  
+              when  0 then -50  
+              else          20
+              end
+        best_type_off = [best_type_off, pts].max
+      end
+      score += best_type_off
+      
+      best_move_off = 0
+      (pkmn.moves rescue []).each do |move|
+        next if !move || move.id == 0
+        begin
+          md = PBMoveData.new(move.id) rescue nil
+          next if !md || md.category == 2
+          eff = PBTypes.getCombinedEffectiveness(md.type, wt1, wt2) rescue 8
+          pts = case eff
+                when 32 then 60
+                when 16 then 30
+                when  8 then  5
+                when  0 then -30
+                else         -5
+                end
+          pts += 10 if md.type == pt1 || md.type == pt2
+          best_move_off = [best_move_off, pts].max
+        rescue
+        end
+      end
+      score += best_move_off
+      
+      [wt1, wt2].uniq.each do |t|
+        res = PBTypes.getCombinedEffectiveness(t, pt1, pt2) rescue 8
+        score += case res
+                 when  0 then 40   
+                 when  1 then 25   
+                 when  4 then 10   
+                 when  8 then  0   
+                 when 16 then -30  
+                 when 32 then -80  
+                 else          0
+                 end
+      end
+      score += (pkmn.hp.to_i * 2 / [pkmn.totalhp.to_i, 1].max)
+    rescue
+    end
+    return score
+  end
+
+  def pbHeizoInstallBattleEvents
+    return if defined?($heizo_events_installed_v3)
+    return if !defined?(Events) || !defined?(Events.onWildBattleOverride)
+    $heizo_events_installed_v3 = true
+
+    # 2. Hook de Di�logo Robusto a nivel de Battler (v5 - Versi�n con Memoria Antiduplicados)
+    battler_class = defined?(::PokeBattle_Battler) ? ::PokeBattle_Battler : (defined?(::Battle::Battler) ? ::Battle::Battler : nil)
+    if battler_class && !battler_class.method_defined?(:pbFaint_heizo_v5)
+      battler_class.class_eval do
+        alias pbFaint_heizo_v5 pbFaint
+        def pbFaint(*args)
+          pbFaint_heizo_v5(*args)
+          
+          return if !@battle || !@battle.instance_variable_get(:@heizo_battle) || self.index % 2 == 0
+          
+          heizo_is_partner = false
+          ((@battle.player.is_a?(Array) ? @battle.player : [@battle.player]) rescue []).each do |t|
+            heizo_is_partner = true if t && t.name == "Heizo"
+          end
+          return if heizo_is_partner 
+          
+          party = @battle.pbParty(1)
+          derrotados = 0
+          for p in party; derrotados += 1 if p && p.hp <= 0; end
+          
+          last_processed = @battle.instance_variable_get(:@heizo_last_count) || 0
+          return if derrotados <= last_processed
+          @battle.instance_variable_set(:@heizo_last_count, derrotados)
+          
+          char_id = getID(PBSpecies, :CHARIZARD) rescue nil
+          ven_id  = getID(PBSpecies, :VENUSAUR) rescue nil
+          gen_id  = getID(PBSpecies, :GENGAR) rescue nil
+          zer_id  = getID(PBSpecies, :ZERAORA) rescue nil
+          cor_id  = getID(PBSpecies, :CORVIKNIGHT) rescue nil
+          swa_id  = getID(PBSpecies, :SWAMPERT) rescue nil
+          
+          sp = self.pokemon ? self.pokemon.species : (self.respond_to?(:species) ? self.species : 0)
+          msg = nil
+          
+          case sp
+          when char_id; msg = "Heizo: Ni siquiera las llamas del inframundo han bastado... empiezas a interesarme."
+          when ven_id;  msg = "Heizo: Has superado incluso a mis toxinas."
+          when gen_id;  msg = "Heizo: �Crees que derrotar a una sombra te hace fuerte? Solo est�s retrasando lo inevitable."
+          when zer_id;  msg = "Heizo: �Has podido seguir la velocidad del rayo? Impresionante."
+          when cor_id;  msg = "Heizo: Ni siquiera la armadura m�s pesada es eterna... bien hecho."
+          when swa_id;  msg = "Heizo: El lodo se ha secado... pero tu esfuerzo ha sido digno."
+          end
+          
+          if msg.nil?
+            if derrotados == party.length
+              msg = "Heizo: Incre�ble... me has vencido limpiamente."
+            elsif derrotados == 1
+              msg = "Heizo: �Vaya! No esperaba que derrotaras a mi primer Pok�mon tan r�pido."
+            end
+          end
+
+          if msg
+            if @battle.scene.respond_to?(:pbShowOpponent)
+              @battle.scene.pbShowOpponent(0) rescue nil
+              @battle.pbDisplayPaused(_INTL(msg))
+              @battle.scene.pbHideOpponent rescue nil
+            else
+              @battle.pbDisplayPaused(_INTL(msg))
+            end
+            ::Graphics.update; pbWait(5) if defined?(pbWait)
+          end
+        end
+      end
+    end
+
+    # 3. Hook de Entrada de Pok�mon (v1 - Di�logos al salir)
+    if defined?(::PokeBattle_Battle) && !::PokeBattle_Battle.method_defined?(:pbSendOut_heizo_v1)
+      ::PokeBattle_Battle.class_eval do
+        alias pbSendOut_heizo_v1 pbSendOut
+        def pbSendOut(index, pokemon)
+          pbSendOut_heizo_v1(index, pokemon)
+          
+          heizo_is_partner_send = false
+          ((self.player.is_a?(Array) ? self.player : [self.player]) rescue []).each { |t| heizo_is_partner_send = true if t && t.name == "Heizo" }
+          
+          if self.instance_variable_get(:@heizo_battle) && index % 2 != 0 && !heizo_is_partner_send
+            char_id = getID(PBSpecies, :CHARIZARD) rescue nil
+            ven_id  = getID(PBSpecies, :VENUSAUR) rescue nil
+            gen_id  = getID(PBSpecies, :GENGAR) rescue nil
+            zer_id  = getID(PBSpecies, :ZERAORA) rescue nil
+            cor_id  = getID(PBSpecies, :CORVIKNIGHT) rescue nil
+            swa_id  = getID(PBSpecies, :SWAMPERT) rescue nil
+            
+            msg = nil
+            case pokemon.species
+            when char_id; msg = "Heizo: �Charizard! �Surca los cielos y reduce todo a cenizas con tu fuego ancestral!"
+            when ven_id;  msg = "Heizo: �Venusaur! �Despliega tus toxinas y que la naturaleza reclame lo que es suyo!"
+            when gen_id;  msg = "Heizo: �Gengar! �Sal de las sombras y arrastra a nuestro oponente a la oscuridad eterna!"
+            when zer_id;  msg = "Heizo: �Zeraora! �Demu�strales que nada es m�s r�pido que el trueno!"
+            when cor_id;  msg = "Heizo: �Corviknight! �Despliega tus alas de acero y s� nuestro escudo inquebrantable!"
+            when swa_id;  msg = "Heizo: �Swampert! �Desata la fuerza de las mareas y que la tierra tiemble ante tu poder!"
+            end
+            
+            if msg
+              if @scene.respond_to?(:pbShowOpponent)
+                @scene.pbShowOpponent(0) rescue nil
+                pbDisplayPaused(_INTL(msg))
+                @scene.pbHideOpponent rescue nil
+              else
+                pbDisplayPaused(_INTL(msg))
+              end
+            end
+          end
+        end
+      end
+    end
+
+    # --- APLICAR PARCHES NATIVOS EN TIEMPO DE EJECUCI�N ---
+    if defined?(PokeBattle_Scene) && !PokeBattle_Scene.method_defined?(:pbShowDamageNumber_heizo_fix)
+      PokeBattle_Scene.class_eval do
+        alias pbShowDamageNumber_heizo_fix pbShowDamageNumber
+        def pbShowDamageNumber(pkmn, oldhp, effectiveness, doublebattle, totalDamage)
+          sprite_missing = begin
+            s = @sprites["pokemon#{pkmn.index}"]
+            s.nil? || s.disposed? || s.bitmap.nil?
+          rescue
+            true
+          end
+          if sprite_missing
+            amount  = (totalDamage != 0) ? totalDamage : (pkmn.hp - oldhp)
+            gainsHp = (pkmn.hp - oldhp) > 0
+            amt     = amount.abs
+            text    = sprintf("%s%d", (gainsHp ? "+" : "-"), amt)
+            if pkmn.index % 2 == 0
+              cx = doublebattle ? (pkmn.index == 0 ? 80 : 160) : 128
+              cy = Graphics.height - 80
+            else
+              cx = doublebattle ? (pkmn.index == 1 ? (Graphics.width - 80) : (Graphics.width - 160)) : (Graphics.width - 128)
+              cy = (Graphics.height * 3 / 4) - 170
+            end
+            begin
+              base_color = gainsHp ? Color.new(0,204,35) : Color.new(212,176,23)
+              border_color = Color.new(255,255,255)
+              temp_bmp = Bitmap.new(1,1)
+              pbSetSystemFont(temp_bmp)
+              temp_bmp.font.size = 24
+              tw = temp_bmp.text_size(text).width
+              th = temp_bmp.text_size(text).height
+              temp_bmp.dispose
+              margin = 6
+              vp = Viewport.new(0,0,Graphics.width,Graphics.height)
+              vp.z = 99999
+              spr = BitmapSprite.new(tw + margin*2, th + margin*2, vp)
+              spr.z = vp.z + 1
+              spr.ox = (tw + margin*2) / 2
+              spr.oy = (th + margin*2) / 2
+              spr.x = cx; spr.y = cy - 60
+              pbSetSystemFont(spr.bitmap)
+              spr.bitmap.font.size = 24
+              spr.bitmap.font.bold = true
+              pbDrawOutlineText(spr.bitmap, margin, margin, tw, th, text, base_color, border_color, 1) rescue nil
+              frames = (1.5 * Graphics.frame_rate).to_i
+              frames.times do
+                spr.y -= 1 if spr.y > cy - 80
+                Graphics.update
+              end
+              spr.dispose rescue nil
+              vp.dispose rescue nil
+            rescue; end
+            return
+          end
+          pbShowDamageNumber_heizo_fix(pkmn, oldhp, effectiveness, doublebattle, totalDamage)
+        end
+      end
+    end
+
+    if defined?(PokeBattle_Scene) && !PokeBattle_Scene.method_defined?(:pbEXPBar_heizo_fix)
+      PokeBattle_Scene.class_eval do
+        alias pbEXPBar_heizo_fix pbEXPBar
+        def pbEXPBar(battler, pokemon, startexp, endexp, tempexp, realexp)
+          return if pokemon.respond_to?(:pokemonIndex) && pokemon.pokemonIndex >= 6
+          return if battler && battler.index >= 4 rescue nil 
+          pbEXPBar_heizo_fix(battler, pokemon, startexp, endexp, tempexp, realexp)
+        end
+      end
+    end
+
+    if defined?(PokeBattle_Battle) && !PokeBattle_Battle.method_defined?(:pbStartBattle_heizo_lead)
+      PokeBattle_Battle.class_eval do
+        alias pbStartBattle_heizo_lead pbStartBattle
+        def pbStartBattle(*args)
+          begin
+            @fullparty1 = true if @party1 && @party1.length > 6
+            if @party1 && @party1.length > 6 && @party2 && @party2.length > 0
+              heizo_sub = @party1[6..11].compact
+              enemies = @party2.select { |p| p && p.hp > 0 } rescue []
+              if heizo_sub.length > 0 && enemies.length > 0
+                scored = []
+                debug_log = "COMBATE INICIADO: \nEnemigo Lead: #{PBSpecies.getName(enemies[0].species)} (Type1: #{enemies[0].type1}, Type2: #{enemies[0].type2})\n\n" rescue ""
+                
+                heizo_sub.each_with_index do |pk, idx|
+                  next if !pk || pk.hp <= 0
+                  s = 0
+                  enemies.each { |en| s += pbHeizoCalculateLeadScore(pk, en) rescue 0 }
+                  scored.push([idx, s])
+                  sp_name = PBSpecies.getName(pk.species) rescue "Unknown"
+                  debug_log += "-> #{sp_name} (T1: #{pk.type1}, T2: #{pk.type2}) | Score Final: #{s}\n" rescue ""
+                end
+                
+                # Sorteamos por puntuaci�n descendente
+                scored.sort! { |a, b| b[1] <=> a[1] }
+                
+                new_order = scored.map { |item| heizo_sub[item[0]] }
+                heizo_sub.each { |p| new_order.push(p) unless new_order.include?(p) }
+                
+                new_order.each_with_index do |pk, i|
+                  @party1[6 + i] = pk if pk
+                end
+                
+                debug_log += "\n=== ORDEN FINAL ===\n"
+                new_order.each { |p| debug_log += "#{PBSpecies.getName(p.species)}\n" rescue "" }
+                File.open("heizo_battle_debug.txt", "w") { |f| f.write(debug_log) } rescue nil
+              end
+            end
+          rescue => e
+            File.open("heizo_battle_debug.txt", "w") { |f| f.write("CRASH en StartBattle: #{e.message}\n#{e.backtrace.join("\n")}") } rescue nil
+          end
+          pbStartBattle_heizo_lead(*args)
+        end
+      end
+    end
+    
+    # 1. INTERCEPTOR DE COMBATES SALVAJES
+    Events.onWildBattleOverride += proc { |_sender, e|
+      species = e[0]; level = e[1]; handled = e[2]
+      next if handled[0] != nil || pbHeizoInGym?
+      
+      p_info = pbHeizoBuildPartnerInfo rescue nil
+      next if !p_info
+      
+      # Bypass de restricción de batalla doble (Interruptor 855: BOSS)
+      old_boss = $game_switches[855] rescue false
+      $game_switches[855] = true rescue nil
+      
+      # MODO 2v2 (Variable 991 == 1)
+      if $game_variables[991] == 1
+        enctype = $PokemonEncounters.pbEncounterType rescue -1
+
+        s1 = (species.is_a?(String) || species.is_a?(Symbol)) ? getID(PBSpecies, species) : species
+        # Validar especie principal
+        next if !pbHeizoValidSpecies?(s1)
+
+        # 2. SEGUNDO POKÉMON SALVAJE (SACADO NATURALMENTE DE LA ZONA)
+        s2 = nil
+        level2 = level
+        if enctype >= 0
+          candidate = $PokemonEncounters.pbEncounteredPokemon(enctype) rescue nil
+          if candidate.is_a?(Array)
+            s2 = candidate[0]
+            level2 = candidate[1] if candidate[1].is_a?(Numeric) && candidate[1] > 0
+          elsif candidate.is_a?(PokeBattle_Pokemon)
+            s2 = candidate.species
+            level2 = candidate.level
+          else
+            s2 = candidate
+          end
+        end
+        
+        # Fallback de seguridad si no encontró un Pokémon en la zona
+        if !pbHeizoValidSpecies?(s2)
+          s2 = s1 
+          level2 = [[1, level + rand(5) - 2].max, 100].min
+        end
+        
+        # Evitar que sea un calco idéntico en nivel si es de la misma especie
+        if s1 == s2 && level == level2
+          level2 += (rand(2) == 0 ? 1 : -1)
+          level2 = 1 if level2 < 1
+        end
+        
+        scene = pbNewBattleScene
+        othertrainer = PokeBattle_Trainer.new(p_info[1], p_info[0])
+        othertrainer.id = p_info[2]; othertrainer.party = p_info[3]
+        
+        wild_p = [pbGenerateWildPokemon(s1, level), pbGenerateWildPokemon(s2, level2)]
+        
+        # SINCRONIZACIÓN DE NIVEL: Heizo iguala al Pokémon más fuerte del jugador
+        max_player_level = $Trainer.party.map { |p| p.level }.max rescue 5
+        othertrainer.party.each do |pk|
+          next if !pk
+          pk.level = max_player_level
+          pk.calcStats rescue nil
+          pk.hp = pk.totalhp
+        end
+        
+        # ELECCIÓN DE LEAD INTELIGENTE (PRE-COMBATE 2v2)
+        if othertrainer.party && othertrainer.party.length > 0 && wild_p.length > 0
+          leads = othertrainer.party[0..5] rescue []
+          scored_leads = []
+          leads.each_with_index do |pkmn, idx|
+            next if !pkmn || pkmn.hp <= 0
+            score = 0
+            wild_p.each { |w| score += pbHeizoCalculateLeadScore(pkmn, w) if w }
+            scored_leads.push([idx, score])
+          end
+          scored_leads.sort! { |a, b| b[1] <=> a[1] }
+          
+          if scored_leads.length > 0
+            new_heizo_party = []
+            best_idx = scored_leads[0][0]
+            new_heizo_party.push(othertrainer.party[best_idx])
+            othertrainer.party.each_with_index do |p, i|
+              new_heizo_party.push(p) if i != best_idx
+            end
+            othertrainer.party = new_heizo_party
+          end
+        end
+        
+        # MODO HEIZO FULL (12 Pokémon: 6 Jugador + 6 Heizo)
+        playerparty = $Trainer.party + othertrainer.party
+        
+        # --- ACTIVACIÓN DE HEIZO BATTLE (IA DE JEFE PARA EL SEGUIDOR) ---
+        battle = HeizoBattle.new(scene, playerparty, wild_p, [$Trainer, othertrainer], nil)
+        battle.instance_variable_set(:@heizo_battle, true) # Activar IA Estratega y hooks de diálogo
+        
+        battle.fullparty1 = true # ACTIVAR SOPORTE PARA +6
+        battle.doublebattle = true; battle.internalbattle = true
+        pbPrepareBattle(battle)
+        $PokemonGlobal.partner = p_info # Temporizar para el motor de batalla
+        
+        decision = 0
+        pbBattleAnimation(pbGetWildBattleBGM(species)) { 
+           pbSceneStandby { decision = battle.pbStartBattle(false) }
+           pbHealAll rescue nil
+           for pkmn in othertrainer.party; pkmn.heal; end rescue nil
+        }
+        $PokemonGlobal.partner = nil
+        handled[0] = (decision == 1)
+      else
+        # MODO 2v1 (Dúo de Apoyo)
+        if species.is_a?(String) || species.is_a?(Symbol); species = getID(PBSpecies, species) ; end
+        genwildpoke = pbGenerateWildPokemon(species, level)
+        scene = pbNewBattleScene
+        othertrainer = PokeBattle_Trainer.new(p_info[1], p_info[0])
+        othertrainer.id = p_info[2]; othertrainer.party = p_info[3]
+        
+        # SINCRONIZACIÓN DE NIVEL: Heizo iguala al Pokémon más fuerte del jugador
+        max_player_level = $Trainer.party.map { |p| p.level }.max rescue 5
+        othertrainer.party.each do |pk|
+          next if !pk
+          pk.level = max_player_level
+          pk.calcStats rescue nil
+          pk.hp = pk.totalhp
+        end
+        
+        # ELECCIÓN DE LEAD INTELIGENTE (PRE-COMBATE 2v1)
+        if othertrainer.party && othertrainer.party.length > 0 && genwildpoke
+          leads = othertrainer.party[0..5] rescue []
+          scored_leads = []
+          leads.each_with_index do |pkmn, idx|
+            next if !pkmn || pkmn.hp <= 0
+            score = pbHeizoCalculateLeadScore(pkmn, genwildpoke)
+            scored_leads.push([idx, score])
+          end
+          scored_leads.sort! { |a, b| b[1] <=> a[1] }
+          if scored_leads.length > 0
+            new_heizo_party = []
+            best_idx = scored_leads[0][0]
+            new_heizo_party.push(othertrainer.party[best_idx])
+            othertrainer.party.each_with_index { |p, i| new_heizo_party.push(p) if i != best_idx }
+            othertrainer.party = new_heizo_party
+          end
+        end
+        
+        # MODO HEIZO FULL (12 Pokémon: 6 Jugador + 6 Heizo)
+        playerparty = $Trainer.party + othertrainer.party
+        
+        battle = PokeBattle_Battle.new(scene, playerparty, [genwildpoke], [$Trainer, othertrainer], nil)
+        battle.fullparty1 = true # ACTIVAR SOPORTE PARA +6
+        battle.doublebattle = true; battle.internalbattle = true
+        pbPrepareBattle(battle)
+        $PokemonGlobal.partner = p_info # Temporizar
+        
+        decision = 0
+        pbBattleAnimation(pbGetWildBattleBGM(species)) { 
+           pbSceneStandby { decision = battle.pbStartBattle(false) }
+           pbHealAll rescue nil
+           for pkmn in othertrainer.party; pkmn.heal; end rescue nil
+        }
+        $PokemonGlobal.partner = nil
+        handled[0] = (decision == 1)
+      end
+      
+      # Restaurar estado original del interruptor Boss
+      $game_switches[855] = old_boss rescue nil
+    }
+
+    # 2. INTERCEPTOR DE COMBATES ENTRENADOR
+    # Activa a Heizo como compañero cuando el entrenador rival tiene > 1 Pokémon.
+    Events.onTrainerPartyLoad += proc { |_sender, e|
+      trainer = e[0] # [trainerid, trainername, partyinfo, party]
+      next if pbHeizoInGym?
+      p_info = pbHeizoBuildPartnerInfo rescue nil
+      if p_info && trainer && trainer[3] && trainer[3].length > 1
+        $PokemonGlobal.partner = p_info
+      end
+    }
+
+    # 3. LIMPIEZA POST-COMBATE
+    Events.onEndBattle += proc { |_sender, _e|
+      $PokemonGlobal.partner = nil rescue nil
+    }
+
+    # 4. PARCHE MAESTRO: ESTABILIDAD DE EXP Y CAMBIO DE POKÉMON
+    if defined?(PokeBattle_Battle) && !PokeBattle_Battle.method_defined?(:pbGainExp_heizo_fix)
+      PokeBattle_Battle.class_eval do
+        # A. PARCHE DE EXPERIENCIA: Ignorar animaciones de Heizo (slots 6-11)
+        alias pbGainExp_heizo_fix pbGainExp
+        def pbGainExp
+          # El error visual suele ocurrir cuando pbGainExp intenta animar una barra de un índice inexistente
+          # Guardamos los pokemonIndex originales de Heizo y los falseamos temporalmente si el motor intenta refrescarlos.
+          pbGainExp_heizo_fix
+        end
+
+        # B. PARCHE DE REGISTRO DE CAMBIO: Eliminar el bloqueo de "No puedes cambiar..."
+        # Essentials bloquea pbRegisterSwitch si el entrenador es distinto al del battler activo.
+        alias pbRegisterSwitch_heizo_fix pbRegisterSwitch
+        def pbRegisterSwitch(index, nextpkmn)
+          # Si el Pokémon está en el bando 0 (jugadores), permitimos cualquier cambio si es uno de nuestros 6
+          if index == 0 || index == 2 # Slots del jugador en batalla doble con compañero
+            if nextpkmn >= 0 && nextpkmn < 6 # Solo permitir cambiar a nuestros propios Pokémon
+              @choices[index][0] = 2          # Registrar como Cambio
+              @choices[index][1] = nextpkmn   # Índice del Pokémon
+              @choices[index][2] = nil
+              return true
+            end
+          end
+          pbRegisterSwitch_heizo_fix(index, nextpkmn)
+        end
+        
+        # C. PARCHE DE INTERFAZ DE EQUIPO: Asegurar que el juego sepa qué es tuyo
+        alias pbCanSwitch_heizo_fix pbCanSwitch?
+        def pbCanSwitch?(index, pkmnIndex, showMessages)
+          # Si estamos en el bando 0 y el pkmnIndex es de Heizo (>=6), bloqueamos
+          # Pero si es del jugador (<6), permitimos siempre
+          if index == 0 || index == 2
+             if pkmnIndex >= 6
+               pbDisplayPaused(_INTL("¡Ese Pokémon es de Heizo!")) if showMessages
+               return false
+             end
+             return true if pkmnIndex < 6
+          end
+          return pbCanSwitch_heizo_fix(index, pkmnIndex, showMessages)
+        end
+      end
+    end
+
+    # D. PARCHE DE VALIDACIÓN DE EQUIPO: Permitir >6 Pokémon cuando Heizo es compañero.
+    # El motor (y Combate Inverso) valida que @party1.length <= 6, pero con Heizo
+    # el equipo tiene 12. Activamos @fullparty1 antes de que llegue la validación.
+    if !PokeBattle_Battle.method_defined?(:pbStartBattleCore_heizo_size_fix)
+      PokeBattle_Battle.class_eval do
+        alias pbStartBattleCore_heizo_size_fix pbStartBattleCore
+        def pbStartBattleCore(*args)
+          @fullparty1 = true if @party1 && @party1.length > 6
+          pbStartBattleCore_heizo_size_fix(*args)
+        end
+      end
+    end
+    
+    # E. PARCHE DE NÚMEROS DE DAÑO (Heizo como compañero)
+    # La función pbShowDamageNumber del motor busca @sprites["pokemon#{pkmn.index}"].
+    # En batallas 2v1/2v2 con Heizo, el sprite en índice 2 puede ser nil si la escena
+    # no lo inicializó, causando que las coordenadas queden nil y el número aparezca
+    # en la esquina del enemigo. Este parche lo hace null-safe.
+    if defined?(PokeBattle_Scene) && !PokeBattle_Scene.method_defined?(:pbShowDamageNumber_heizo_fix)
+      PokeBattle_Scene.class_eval do
+        alias pbShowDamageNumber_heizo_fix pbShowDamageNumber
+        def pbShowDamageNumber(pkmn, oldhp, effectiveness, doublebattle, totalDamage)
+          # Verificar si el sprite del battler existe antes de llamar al original
+          sprite_missing = begin
+            s = @sprites["pokemon#{pkmn.index}"]
+            s.nil? || s.disposed? || s.bitmap.nil?
+          rescue
+            true
+          end
+          if sprite_missing
+            # Sprite no disponible: calcular posición basada en el índice/bando del battler
+            # índice par = bando del jugador (abajo), impar = bando del rival (arriba)
+            amount  = (totalDamage != 0) ? totalDamage : (pkmn.hp - oldhp)
+            gainsHp = (pkmn.hp - oldhp) > 0
+            amt     = amount.abs
+            text    = sprintf("%s%d", (gainsHp ? "+" : "-"), amt)
+            
+            # Coordenadas de fallback según bando
+            if pkmn.index % 2 == 0
+              # Nuestro bando (jugador / Heizo compañero) → abajo
+              cx = doublebattle ? (pkmn.index == 0 ? 80 : 160) : 128
+              cy = Graphics.height - 80
+            else
+              # Bando rival → arriba  
+              cx = doublebattle ? (pkmn.index == 1 ? (Graphics.width - 80) : (Graphics.width - 160)) : (Graphics.width - 128)
+              cy = (Graphics.height * 3 / 4) - 170
+            end
+            
+            # Dibujar el número en las coordenadas calculadas
+            begin
+              base_color = gainsHp ? Color.new(0,204,35) : Color.new(212,176,23)
+              border_color = Color.new(255,255,255)
+              temp_bmp = Bitmap.new(1,1)
+              pbSetSystemFont(temp_bmp)
+              temp_bmp.font.size = 24
+              tw = temp_bmp.text_size(text).width
+              th = temp_bmp.text_size(text).height
+              temp_bmp.dispose
+              margin = 6
+              vp = Viewport.new(0,0,Graphics.width,Graphics.height)
+              vp.z = 99999
+              spr = BitmapSprite.new(tw + margin*2, th + margin*2, vp)
+              spr.z = vp.z + 1
+              spr.ox = (tw + margin*2) / 2
+              spr.oy = (th + margin*2) / 2
+              spr.x = cx; spr.y = cy - 60
+              pbSetSystemFont(spr.bitmap)
+              spr.bitmap.font.size = 24
+              spr.bitmap.font.bold = true
+              pbDrawOutlineText(spr.bitmap, margin, margin, tw, th, text, base_color, border_color, 1) rescue nil
+              frames = (1.5 * Graphics.frame_rate).to_i
+              frames.times do
+                spr.y -= 1 if spr.y > cy - 80
+                Graphics.update
+              end
+              spr.dispose rescue nil
+              vp.dispose rescue nil
+            rescue; end
+            return
+          end
+          # Si el sprite existe, llamar al método original sin problemas
+          pbShowDamageNumber_heizo_fix(pkmn, oldhp, effectiveness, doublebattle, totalDamage)
+        end
+      end
+    end
+
+    if defined?(PokeBattle_Scene) && !PokeBattle_Scene.method_defined?(:pbEXPBar_heizo_fix)
+      PokeBattle_Scene.class_eval do
+        alias pbEXPBar_heizo_fix pbEXPBar
+        def pbEXPBar(battler, pokemon, startexp, endexp, tempexp, realexp)
+          # Si el pokemonIndex es >= 6, es de Heizo. No animamos para evitar crash/freeze.
+          return if pokemon.respond_to?(:pokemonIndex) && pokemon.pokemonIndex >= 6
+          # Si no tiene pokemonIndex (battler normal), verificamos el bando
+          return if battler && battler.index >= 4 rescue nil 
+          pbEXPBar_heizo_fix(battler, pokemon, startexp, endexp, tempexp, realexp)
+        end
+      end
+    end
+  end
+
+  # ================================================================
+  # PARCHE NUCLEAR: pbStartBattle en PokeBattle_Battle
+  # Se ejecuta al inicio de CUALQUIER combate, sin importar cómo se creó.
+  # Detecta si Heizo es compañero por tamaño de party (>6) y reordena
+  # sus Pokémon (slots 6-11) usando puntuación de tipo ofensivo.
+  # ================================================================
+  if defined?(PokeBattle_Battle) && !PokeBattle_Battle.method_defined?(:pbStartBattle_heizo_lead)
+    PokeBattle_Battle.class_eval do
+      alias pbStartBattle_heizo_lead pbStartBattle
+      def pbStartBattle(*args)
+        begin
+          # Activar soporte de partido extendido si Heizo está present
+          @fullparty1 = true if @party1 && @party1.length > 6
+          
+          # Solo aplicar si hay al menos 12 Pokémon en party1 (jugador + Heizo)
+          if @party1 && @party1.length > 6 && @party2 && @party2.length > 0
+            # Obtener los Pokémon de Heizo (slots 6-11)
+            heizo_sub = @party1[6..11].compact
+            
+            # Obtener los oponentes activos para puntuar contra ellos
+            enemies = @party2.select { |p| p && p.hp > 0 } rescue []
+            
+            if heizo_sub.length > 0 && enemies.length > 0
+              # Puntuar cada Pokémon de Heizo contra los oponentes
+              scored = []
+              heizo_sub.each_with_index do |pk, idx|
+                next if !pk || pk.hp <= 0
+                s = 0
+                enemies.each { |en| s += pbHeizoCalculateLeadScore(pk, en) rescue 0 }
+                scored.push([idx, s])
+              end
+              scored.sort! { |a, b| b[1] <=> a[1] }
+              
+              # Reconstruir el orden
+              new_order = scored.map { |item| heizo_sub[item[0]] }
+              heizo_sub.each { |p| new_order.push(p) unless new_order.include?(p) }
+              
+              # Inyectar en party1 directamente
+              new_order.each_with_index do |pk, i|
+                @party1[6 + i] = pk if pk
+              end
+            end
+          end
+        rescue => e
+          # Nunca crashear, el combate debe continuar aunque falle el sorting
+        end
+        
+        pbStartBattle_heizo_lead(*args)
+      end
+    end
+  end
+
 
   def pbFormLegend_FINAL(pkmn)
     return "" if !pkmn
@@ -2513,4 +3228,9 @@ begin
 
   end
 rescue
+endcue
 end
+
+
+
+
