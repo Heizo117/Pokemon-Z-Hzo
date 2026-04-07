@@ -167,12 +167,13 @@ module Kernel
     }
 
     # 2. INTERCEPTOR DE COMBATES ENTRENADOR
+    # Activa a Heizo como compañero cuando el entrenador rival tiene > 1 Pokémon.
     Events.onTrainerPartyLoad += proc { |_sender, e|
       trainer = e[0] # [trainerid, trainername, partyinfo, party]
       next if pbHeizoInGym?
       p_info = pbHeizoBuildPartnerInfo rescue nil
       if p_info && trainer && trainer[3] && trainer[3].length > 1
-        $PokemonGlobal.partner = p_info # Forzar apoyo en combates dobles de entrenadores
+        $PokemonGlobal.partner = p_info
       end
     }
 
@@ -221,6 +222,19 @@ module Kernel
              return true if pkmnIndex < 6
           end
           return pbCanSwitch_heizo_fix(index, pkmnIndex, showMessages)
+        end
+      end
+    end
+
+    # D. PARCHE DE VALIDACIÓN DE EQUIPO: Permitir >6 Pokémon cuando Heizo es compañero.
+    # El motor (y Combate Inverso) valida que @party1.length <= 6, pero con Heizo
+    # el equipo tiene 12. Activamos @fullparty1 antes de que llegue la validación.
+    if !PokeBattle_Battle.method_defined?(:pbStartBattleCore_heizo_size_fix)
+      PokeBattle_Battle.class_eval do
+        alias pbStartBattleCore_heizo_size_fix pbStartBattleCore
+        def pbStartBattleCore(*args)
+          @fullparty1 = true if @party1 && @party1.length > 6
+          pbStartBattleCore_heizo_size_fix(*args)
         end
       end
     end
