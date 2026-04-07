@@ -82,7 +82,7 @@ He configurado el motor del juego para que funcione en **modo totalmente portabl
 
 He integrado un nuevo encuentro especial como guiño al desarrollo del juego:
 
--   **NPC Heizo (El Mercader del negro)**:
+-   **NPC Heizo (El Mercader del Mercado Negro)**:
     *   **Encuentro Épico**: He diseñado un combate cinemático contra el propio "Heizo" (basado en el usuario), con una secuencia de pre-batalla que utiliza control de cámaras (`viewports`) y efectos de fundido.
     *   **Mercado Negro**: Al derrotar a Heizo en combate, se desbloquea el acceso permanente a su **Mercado Negro**.
     *   **Economía de Contrabando (Custom Mart)**:
@@ -120,4 +120,5 @@ He integrado un nuevo encuentro especial como guiño al desarrollo del juego:
 
 ---
 *He implementado todos estos cambios mediante inyecciones dinámicas en `preload.rb`, asegurando que el contenido sea compatible con cualquier versión del juego base sin corromper los scripts originales.*
+
 
