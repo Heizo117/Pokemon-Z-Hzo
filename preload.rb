@@ -53,6 +53,48 @@ module Kernel
     return [35, "Heizo", heizo_trainer.id, heizo_party]
   end
 
+  # --- AUXILIAR: PUNTUACIÓN DE LEAD (Ofensivo + Defensivo) ---
+  # Devuelve un número; más alto = mejor matchup para pkmn contra wild.
+  def pbHeizoCalculateLeadScore(pkmn, wild)
+    return 0 if !pkmn || !wild
+    score = 0
+    begin
+      wild_t1 = wild.type1 rescue -1
+      wild_t2 = wild.type2 rescue -1
+      pkmn_t1 = pkmn.type1 rescue -1
+      pkmn_t2 = pkmn.type2 rescue -1
+
+      # OFENSIVO: efectividad de los movimientos de Heizo contra el rival
+      for move in pkmn.moves
+        next if !move || move.id == 0
+        begin
+          eff = PBTypes.getCombinedEffectiveness(move.type, wild_t1, wild_t2)
+          score += eff            # 16=4x, 8=2x, 4=normal, 2=1/2x
+          score += 4 if pkmn.hasType?(move.type) && eff > 8 # Bonus STAB superefectivo
+        rescue
+        end
+      end
+
+      # DEFENSIVO: cuánto daño recibe Heizo por los tipos del rival
+      [wild_t1, wild_t2].each do |t|
+        next if !t || t < 0
+        begin
+          res = PBTypes.getCombinedEffectiveness(t, pkmn_t1, pkmn_t2)
+          if res == 0;   score += 20   # Inmune
+          elsif res < 8; score += 10   # Resiste
+          elsif res > 8; score -= 14   # Débil (penalty fuerte)
+          end
+        rescue
+        end
+      end
+
+      # Bonus proporcional a HP actual
+      score += (pkmn.hp * 8 / [pkmn.totalhp, 1].max).to_i
+    rescue
+    end
+    return score
+  end
+
   # --- AUXILIAR: REGISTRO SEGURO DE EVENTOS (LAZY LOADING) ---
   def pbHeizoInstallBattleEvents
     return if defined?($heizo_events_installed_v3)
@@ -74,15 +116,24 @@ module Kernel
       # MODO 2v2 (Variable 991 == 1)
       if $game_variables[991] == 1
         enctype = $PokemonEncounters.pbEncounterType rescue -1
-        genwild2 = (enctype >= 0) ? ($PokemonEncounters.pbEncounteredPokemon(enctype) rescue nil) : nil
-        
+
         s1 = (species.is_a?(String) || species.is_a?(Symbol)) ? getID(PBSpecies, species) : species
         # Validar especie principal
         next if !pbHeizoValidSpecies?(s1)
-        
-        # Determinar especie secundaria y validar
-        s2 = (genwild2.is_a?(PokeBattle_Pokemon) ? genwild2.species : genwild2) rescue nil
-        s2 = s1 if !pbHeizoValidSpecies?(s2) # Fallback al primero si el segundo es inválido (ej: ID 1018)
+
+        # Determinar especie secundaria: reintentar hasta 5 veces para conseguir una DISTINTA
+        s2 = nil
+        if enctype >= 0
+          5.times do
+            candidate = $PokemonEncounters.pbEncounteredPokemon(enctype) rescue nil
+            cid = (candidate.is_a?(PokeBattle_Pokemon) ? candidate.species : candidate) rescue nil
+            if pbHeizoValidSpecies?(cid) && cid != s1
+              s2 = cid
+              break
+            end
+          end
+        end
+        s2 = s1 if !pbHeizoValidSpecies?(s2) # Fallback solo si todos los intentos fallaron
         
         scene = pbNewBattleScene
         othertrainer = PokeBattle_Trainer.new(p_info[1], p_info[0])
