@@ -4194,3 +4194,1801 @@ end
 
 
 
+
+
+# Heizo NPC - Helpers de Seguimiento
+def pbHeizoFollowing?
+  pbHeizoInstallBattleEvents rescue nil # Asegurar ganchos de combate
+  return false if !$PokemonTemp || !$PokemonTemp.dependentEvents
+  return $PokemonTemp.dependentEvents.getEventByName("HeizoNPC") != nil
+end
+
+# Registra al evento estático de Heizo (ID 995) en el sistema DependentEvents
+# para que siga al jugador por el mapa.
+def pbStartHeizoFollowing
+  return if !$PokemonTemp || !$PokemonTemp.dependentEvents
+  return if pbHeizoFollowing? # Ya está siguiendo, nada que hacer
+
+  # Obtener o crear el evento estático en el mapa actual
+  heizo_event = $game_map.events[995] rescue nil
+
+  if !heizo_event
+    # Si aún no existe (mapa sin spawn), lo creamos junto al jugador
+    begin
+      px = $game_player.x
+      py = $game_player.y + 1
+      re = RPG::Event.new(px, py)
+      re.id = 995
+      re.name = "HeizoNPC"
+      page = RPG::Event::Page.new
+      page.graphic.character_name = "cazadorow"
+      page.graphic.direction = 2
+      page.graphic.opacity = 255
+      page.trigger = 0
+      page.list = [
+        RPG::EventCommand.new(355, 0, ["Kernel.pbHeizoDialog"]),
+        RPG::EventCommand.new(0, 0, [])
+      ]
+      re.pages = [page]
+      heizo_event = Game_Event.new($game_map.map_id, re, $game_map)
+      $game_map.events[995] = heizo_event
+      heizo_event.refresh
+    rescue
+      return
+    end
+  end
+
+  begin
+    # addEvent registra en $PokemonGlobal.dependentEvents y llama a event.erase
+    $PokemonTemp.dependentEvents.addEvent(heizo_event, "HeizoNPC", nil)
+    # Limpiar el slot estático para evitar duplicado visual
+    $game_map.events.delete(995) rescue nil
+    $heizo_spawned = false
+  rescue
+  end
+end
+
+# Elimina a Heizo del sistema DependentEvents y reactiva el spawn estático.
+def pbStopHeizoFollowing
+  return if !$PokemonTemp || !$PokemonTemp.dependentEvents
+  begin
+    $PokemonTemp.dependentEvents.removeEventByName("HeizoNPC")
+    $game_map.events.delete(995) rescue nil
+    $heizo_spawned = false # Permitir re-spawn estático en el próximo frame
+  rescue
+  end
+end
+
+# Heizo NPC - Integrado directamente
+$heizo_maps = [10, 18, 30, 45, 60, 82, 104, 114, 134, 142, 164]
+$heizo_last_map = 0
+$heizo_spawned = false
+
+module Graphics
+  class << self
+    alias heizo_upd_final update
+    def update
+      heizo_upd_final
+      # Crear Heizo inmediatamente al cargar el mapa
+      spawn_heizo_final
+      
+      # Parche en tiempo de ejecución para evitar problemas de orden de carga
+      if !@heizo_patched_player
+        if defined?(::Game_Player)
+          @heizo_patched_player = true
+          ::Game_Player.class_eval do
+            if !method_defined?(:heizo_old_character_name)
+              alias heizo_old_character_name character_name
+              def character_name
+                # Si los ropajes están activos y no estamos en bici/surf/buceo
+                if $game_variables && $game_variables[994] == 1
+                  if $PokemonGlobal && !$PokemonGlobal.bicycle && !$PokemonGlobal.surfing && !$PokemonGlobal.diving
+                    return "cazadorow"
+                  end
+                end
+                # Comportamiento normal
+                return heizo_old_character_name
+              end
+            end
+
+            # Parche para poder hablarle al seguidor Heizo
+            if !method_defined?(:heizo_check_event_trigger_there)
+              alias heizo_check_event_trigger_there check_event_trigger_there
+              def check_event_trigger_there(triggers)
+                # 1. Comprobar eventos normales (estáticos)
+                ret = heizo_check_event_trigger_there(triggers)
+                return ret if ret
+                
+                # 2. Si no hay evento normal en frente, comprobar seguidores de Heizo
+                return false if $game_system.map_interpreter.running?
+                if triggers.include?(0) # Botón Acción (C)
+                  # Comprobamos hasta 3 tiles en frente para encontrar a Heizo en la fila
+                  for dist in 1..3
+                    new_x = @x + (@direction == 6 ? dist : @direction == 4 ? -dist : 0)
+                    new_y = @y + (@direction == 2 ? dist : @direction == 8 ? -dist : 0)
+                    
+                    if $PokemonTemp && $PokemonTemp.dependentEvents
+                      evts = $PokemonTemp.dependentEvents.realEvents rescue []
+                      data_list = $PokemonGlobal.dependentEvents rescue []
+                      for i in 0...data_list.length
+                        event = evts[i]
+                        data = data_list[i]
+                        if event && event.x == new_x && event.y == new_y && data && data[8] == "HeizoNPC"
+                          Kernel.pbHeizoDialog
+                          return true
+                        end
+                      end
+                    end
+                  end
+                end
+                return false
+              end
+            end
+          end
+        end
+      end
+      
+      if !@heizo_patched_dependent
+        if defined?(::DependentEvents)
+          @heizo_patched_dependent = true
+          ::DependentEvents.class_eval do
+            if !method_defined?(:heizo_createEvent)
+              alias heizo_createEvent createEvent
+              def createEvent(eventData)
+                newEvent = heizo_createEvent(eventData)
+                
+                # REGLA GENERAL: Ocultar si surfeamos, buceamos o vamos en bici
+                if $PokemonGlobal && ($PokemonGlobal.surfing || $PokemonGlobal.diving || $PokemonGlobal.bicycle)
+                  newEvent.transparent = true rescue nil
+                  newEvent.opacity = 0 rescue nil
+                end
+
+                if eventData[8] == "HeizoNPC"
+                  list = [
+                    RPG::EventCommand.new(355, 0, ["Kernel.pbHeizoDialog"]),
+                    RPG::EventCommand.new(0, 0, [])
+                  ]
+                  rpg_evt = newEvent.instance_variable_get(:@event)
+                  rpg_evt.pages[0].list = list if rpg_evt && rpg_evt.respond_to?(:pages) && rpg_evt.pages && rpg_evt.pages[0]
+                  if newEvent.respond_to?(:refresh)
+                    newEvent.refresh
+                  end
+                end
+                return newEvent
+              end
+            end
+
+            if !method_defined?(:heizo_refresh_sprite)
+              alias heizo_refresh_sprite refresh_sprite
+              def refresh_sprite(animation=false)
+                heizo_refresh_sprite(animation)
+                
+                # Sincronizar visibilidad por medio de transporte
+                hide_all = $PokemonGlobal && ($PokemonGlobal.surfing || $PokemonGlobal.diving || $PokemonGlobal.bicycle)
+                
+                evts = @realEvents rescue []
+                for evt in evts
+                  next if !evt
+                  if hide_all
+                    evt.transparent = true rescue nil
+                    evt.opacity = 0 rescue nil
+                  else
+                    evt.transparent = false rescue nil
+                    evt.opacity = 255 rescue nil
+                  end
+                end
+              end
+            end
+
+            if !method_defined?(:heizo_update_dep)
+              alias heizo_update_dep updateDependentEvents
+              def updateDependentEvents
+                heizo_update_dep
+                # REGLA SIMPLE: Ocultar todo si se surfea, bucea o va en bici (sin lag)
+                is_surfing = $PokemonGlobal && $PokemonGlobal.surfing rescue false
+                is_diving = $PokemonGlobal && $PokemonGlobal.diving rescue false
+                is_biking = $PokemonGlobal && $PokemonGlobal.bicycle rescue false
+                hide_all = is_surfing || is_diving || is_biking
+                
+                evts = (@realEvents || []) rescue []
+                if hide_all
+                  for evt in evts
+                    next if !evt
+                    evt.transparent = true rescue nil
+                    evt.opacity = 0 rescue nil
+                  end
+                else
+                  # Restaurar visibilidad normal en tierra firme
+                  for evt in evts
+                    next if !evt
+                    # Solo tocamos transparencia si no hay otro sistema (como invisibilidad)
+                    evt.transparent = $game_player.transparent rescue false
+                    evt.opacity = 255 rescue nil
+                  end
+                end
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+end
+
+def spawn_heizo_final
+  return if !$game_map
+  
+  # SI ESTÁ SIGUIENDO, ELIMINAR EL CLON ESTÁTICO
+  if pbHeizoFollowing?
+    if $game_map.events[995]
+      # Borramos el evento y su representación
+      $game_map.events.delete(995) rescue nil
+      $heizo_spawned = false
+    end
+    return
+  end
+
+  current_map = $game_map.map_id
+  
+  if current_map != $heizo_last_map
+    $heizo_last_map = current_map
+    $heizo_spawned = false
+  end
+  
+  return if !$heizo_maps.include?(current_map)
+  return if $heizo_spawned
+  return if $game_map.events[995]
+  
+  # Posición fija (3, 11) (5 más a la izquierda de la anterior (8,11))
+  x, y = 3, 11
+  
+  begin
+    re = RPG::Event.new(x, y)
+    re.id = 995
+    re.name = "HeizoNPC"
+    
+    page = RPG::Event::Page.new
+    page.graphic.character_name = "cazadorow"
+    page.graphic.direction = 2
+    page.graphic.opacity = 255
+    page.trigger = 0
+    
+    # Configuración de movimiento (comentado)
+    # page.move_type = 1        # 0=fijo, 1=aleatorio, 2=hacia jugador, 3=custom
+    # page.move_speed = 2       # Velocidad: 1=lento, 2=normal, 3=rapido, 4=muy rápido
+    # page.move_frequency = 2    # Frecuencia: 1=baja, 2=normal, 3=alta
+    # page.walk_anime = true   # Animación al caminar
+    # page.step_anime = false  # Animación al detenerse
+    # page.direction_fix = false # Fijar dirección
+    # page.through = false     # Atravesar
+    # page.always_on_top = false # Siempre encima
+    
+    # Configuración de sombra (comentado - para añadir sombra)
+    # page.graphic.character_name = "cazadorow/noShadow"  # Para quitar sombra
+    
+    page.list = [
+      RPG::EventCommand.new(355, 0, ["Kernel.pbHeizoDialog"]),
+      RPG::EventCommand.new(0, 0, [])
+    ]
+    
+    re.pages = [page]
+    
+    ge = Game_Event.new($game_map.map_id, re, $game_map)
+    $game_map.events[995] = ge
+    ge.refresh
+    
+    # Añadir sombra específica para Heizo
+    if $scene.is_a?(Scene_Map) && $scene.spriteset
+      begin
+        vp = $scene.spriteset.instance_variable_get(:@viewport1)
+        if vp
+          # Crear sprite y sombra al mismo tiempo
+          spr = Sprite_Character.new(vp, ge)
+          arr = $scene.spriteset.instance_variable_get(:@character_sprites)
+          arr.push(spr) if arr
+          
+          # Crear sombra para Heizo inmediatamente
+          heizo_shadow = ShadowSprite.new(spr, ge, vp, $game_map, "HeizoNPC", true)
+          shadow_sprites = $scene.spriteset.instance_variable_get(:@shadowSprites) rescue []
+          shadow_sprites.push(heizo_shadow) if shadow_sprites
+        end
+      rescue => e
+        Kernel.pbMessage("Error al crear sombra para Heizo: #{e.message}")
+      end
+    end
+    
+    $heizo_spawned = true
+  rescue
+  end
+end
+
+
+# Funcion de dialogo para Heizo
+module Kernel
+  def self.pbHeizoDialog
+    # Asegurar que los overrides de combate se instalen (solo una vez)
+    pbHeizoInstallBattleOverrides rescue nil
+
+    # 1. Definir HeizoBattle de forma dinámica para evitar errores de carga (NameError)
+    if !defined?(::HeizoBattle)
+      heizo_cls = Class.new(::PokeBattle_Battle) do
+        # --- IA PERSONALIZADA PARA HEIZO ---
+        
+        # Función de Puntuación Avanzada (Ofensiva y Defensiva)
+        def pbHeizoScorePokemon(pkmn, opponent)
+          score = 0
+          # PUNTUACIÓN OFENSIVA: Basada en la efectividad de sus movimientos contra el rival activo
+          for move in pkmn.moves
+            next if !move || move.id == 0
+            begin
+              eff = PBTypes.getCombinedEffectiveness(move.type, opponent.type1, opponent.type2)
+            rescue
+              eff = 8 # Normal
+            end
+            score += eff
+            score += 4 if pkmn.hasType?(move.type) && eff > 8 # Bonus STAB
+          end
+
+          # PUNTUACIÓN DEFENSIVA: Resistencias de Heizo contra los tipos del rival
+          [opponent.type1, opponent.type2].each do |t|
+            next if t.nil? || t < 0
+            begin
+              res = PBTypes.getCombinedEffectiveness(t, pkmn.type1, pkmn.type2)
+              if res == 0;      score += 20 # Inmunidad
+              elsif res < 8;    score += 12 # Resistencia
+              elsif res > 12;   score -= 15 # Debilidad Crítica
+              end
+            rescue
+            end
+          end
+          score += (pkmn.hp * 15 / pkmn.totalhp).to_i if pkmn.totalhp > 0
+          return score
+        end
+
+        # Selección de Lead Inteligente (Soportar Individual, Doble, Jefe o Compañero)
+        def pbStartBattle(*args)
+          # Detectar en qué bando y qué índice de entrenador está Heizo
+          heizo_side = -1; heizo_t_idx = -1
+          for side in 0..1
+            for i in 0...(@trainers[side].length rescue 0)
+              if @trainers[side][i] && @trainers[side][i].name == "Heizo"
+                heizo_side = side; heizo_t_idx = i; break
+              end
+            end
+            break if heizo_side >= 0
+          end
+
+          if heizo_side >= 0
+            # Mi equipo
+            my_party = pbParty(heizo_side)
+            # Identificar oponentes (el bando contrario)
+            opp_side = 1 - heizo_side
+            opp_party = pbParty(opp_side).select { |p| p && p.hp > 0 && !p.isEgg? }
+            
+            if opp_party.length > 0
+              candidates = []
+              num_leads = @doublebattle ? 2 : 1
+              opp_leads = opp_party[0...num_leads]
+              
+              # Ajuste: Si Heizo es compañero (side 0), sus Pokémon suelen estar tras los del jugador (offset 6)
+              # Si es el oponente principal (side 1), el offset es 0.
+              start_idx = (heizo_side == 0 && @trainers[0].length > 1) ? 6 : 0
+              end_idx = start_idx + 5
+              
+              sub_party = my_party[start_idx..end_idx] || []
+              
+              sub_party.each_with_index do |pkmn, i|
+                next if !pkmn || pkmn.hp <= 0 || pkmn.isEgg?
+                t_score = 0
+                opp_leads.each { |ol| t_score += pbHeizoScorePokemon(pkmn, ol) }
+                candidates.push([i, t_score / opp_leads.length])
+              end
+              
+              candidates.sort! { |a, b| b[1] <=> a[1] }
+              
+              if candidates.length > 0
+                new_sub = []
+                tops = candidates[0...num_leads].map { |c| c[0] }
+                tops.each { |idx| new_sub.push(sub_party[idx]) }
+                sub_party.each_with_index { |p, idx| new_sub.push(p) unless tops.include?(idx) }
+                
+                # Reinyectar en la party principal para que el juego saque al mejor lead
+                for i in 0..5
+                  my_party[start_idx + i] = new_sub[i] if new_sub[i]
+                end
+              end
+            end
+          end
+          super(*args)
+        end
+
+        # Cambio por Derrota con Factor de Caos
+        def pbChooseBestNewEnemy(index, party, enemies)
+          return -1 if !enemies || enemies.length == 0
+          opponent = @battlers[index].pbOppositeOpposing
+          opponent = opponent.pbPartner if opponent.isFainted?
+          return super if !opponent || opponent.isFainted?
+          scored_enemies = []
+          for e in enemies
+            score = pbHeizoScorePokemon(party[e], opponent)
+            scored_enemies.push([e, score])
+          end
+          scored_enemies.sort! { |a, b| b[1] <=> a[1] }
+          if scored_enemies.length > 1 && pbAIRandom(100) < 20
+            return scored_enemies[1][0]
+          end
+          return scored_enemies[0][0]
+        end
+
+        # --- IA ESTRATÉGICA FINAL (COMBOS Y TÁCTICAS) ---
+        def pbGetMoveScore(move, attacker, opponent, score=5)
+          score = super
+          
+          # 1. Combo de Sueño (Hipnosis, Espora, Yoste)
+          hip_id = getID(PBMoves, :HYPNOSIS) rescue 95
+          spo_id = getID(PBMoves, :SPORE) rescue 147
+          yawn_id = getID(PBMoves, :YAWN) rescue 281
+          
+          if [hip_id, spo_id, yawn_id].include?(move.id)
+            if opponent.status == 0 && opponent.pbCanSleep?(attacker, false)
+              score += 100 # Prioridad máxima a dormir
+            else
+              score -= 100 # No intentar si ya tiene estado
+            end
+          end
+
+          # 2. Capitalización de Sueño (Comer Sueños, Pesadilla)
+          dream_id = getID(PBMoves, :DREAMEATER) rescue 138
+          night_id = getID(PBMoves, :NIGHTMARE) rescue 171
+          if [dream_id, night_id].include?(move.id)
+            if opponent.status == PBStatuses::SLEEP
+              score += 120 # Castigo severo si duerme
+            else
+              score -= 120 # Inútil si está despierto
+            end
+          end
+
+          # 3. Hazards (Trampa Rocas)
+          rock_id = getID(PBMoves, :STEALTHROCK) rescue 446
+          if move.id == rock_id
+            if opponent.pbOwnSide.effects[PBEffects::StealthRock]
+              score -= 100
+            else
+              score += 50 if attacker.turncount < 3
+            end
+          end
+
+          # 4. Recuperación (Respiro, Síntesis, Gigadrenado, Drenadoras)
+          # Roost=435, Synthesis=232, Giga Drain=202, Leech Seed=73
+          recovery = [(getID(PBMoves, :ROOST) rescue 435), 
+                      (getID(PBMoves, :SYNTHESIS) rescue 232), 
+                      (getID(PBMoves, :GIGADRAIN) rescue 202),
+                      (getID(PBMoves, :LEECHSEED) rescue 73)]
+          if recovery.include?(move.id)
+            if attacker.hp < attacker.totalhp / 2
+              score += 40
+            end
+          end
+
+          # 5. Mismo Destino (Destiny Bond) - Destiny Bond=194
+          destiny_id = getID(PBMoves, :DESTINYBOND) rescue 194
+          if move.id == destiny_id
+            if attacker.hp < attacker.totalhp / 3
+              score += 80 # Intentar llevarse al rival si va a morir
+            end
+          end
+
+          # 6. Targeting Inteligente (Dobles) - Priorizar remates para superioridad numérica
+          if @doublebattle && opponent && opponent.hp < (opponent.totalhp / 3)
+            score += 40
+          end
+
+          return score
+        end
+
+        # Cambios Proactivos (IA Inteligente y Justa)
+
+        def pbEnemyShouldWithdrawEx?(index, alwaysSwitch)
+          return true if alwaysSwitch
+          battler = @battlers[index]
+          return false if battler.turncount <= 0
+          
+          # Encontrar oponentes activos (Soporta Individual y Dobles)
+          active_opponents = []
+          opp1 = battler.pbOppositeOpposing
+          active_opponents.push(opp1) if opp1 && !opp1.isFainted?
+          opp2 = (opp1 && opp1.pbPartner) ? opp1.pbPartner : nil
+          active_opponents.push(opp2) if opp2 && !opp2.isFainted?
+          
+          return false if active_opponents.empty?
+          
+          begin
+            # 1. FILTRO DE KO: Si ALGÚN rival está herido y tenemos ventaja ofensiva, nos quedamos.
+            for opp in active_opponents
+              if opp.hp < opp.totalhp * 0.75
+                for m in battler.moves
+                  next if !m || m.id == 0 || m.basedamage == 0
+                  eff = PBTypes.getCombinedEffectiveness(m.type, opp.type1, opp.type2)
+                  if eff > 12 # Súper efectivo
+                    return false if pbAIRandom(100) < 80 # 80% de quedarse a intentar el KO
+                  end
+                end
+              end
+            end
+
+            # 2. FACTOR DE AGALLAS (30% de quedarse por pura agresividad)
+            return false if pbAIRandom(100) < 30
+
+            # 3. FILTRO "FODDER" (Sacrificio táctico)
+            # Solo si el rival más rápido puede matarnos
+            fastest_opp = active_opponents.max_by { |o| o.speed }
+            if battler.hp < (battler.totalhp / 4) && battler.speed < fastest_opp.speed
+              return false 
+            end
+
+            # 4. CONCIENCIA DE AMENAZA DUAL
+            # Buscamos si CUALQUIERA de los oponentes tiene una ventaja de tipo crítica
+            main_threat = nil
+            for opp in active_opponents
+              eff1 = PBTypes.getCombinedEffectiveness(opp.type1, battler.type1, battler.type2)
+              eff2 = (opp.type1 != opp.type2) ? PBTypes.getCombinedEffectiveness(opp.type2, battler.type1, battler.type2) : 0
+              if eff1 > 12 || eff2 > 12
+                main_threat = opp
+                break
+              end
+            end
+            
+            # Solo buscamos cambio si detectamos una amenaza seria
+            if main_threat
+              party = pbParty(index)
+              current_score = pbHeizoScorePokemon(battler.pokemon, main_threat)
+              
+              best_bench_index = -1
+              max_bench_score = current_score
+
+              for i in 0...party.length
+                next if !pbCanSwitch?(index, i, false)
+                # Puntuación contra la amenaza principal
+                bench_score = pbHeizoScorePokemon(party[i], main_threat)
+                if bench_score > max_bench_score
+                  max_bench_score = bench_score
+                  best_bench_index = i
+                end
+              end
+              
+              # UMBRAL DE VENTAJA: Solo cambia si el banquillo es sustancialmente mejor contra la amenaza
+              if best_bench_index != -1 && max_bench_score > current_score + 50
+                return pbRegisterSwitch(index, best_bench_index)
+              end
+            end
+          rescue
+          end
+          return super
+        end
+
+      end # end Class.new block
+      Object.const_set(:HeizoBattle, heizo_cls)
+    end # end if !defined?
+
+    # 2. Hook de Diálogo Robusto a nivel de Battler (v5 - Versión con Memoria Antiduplicados)
+    battler_class = defined?(::PokeBattle_Battler) ? ::PokeBattle_Battler : (defined?(::Battle::Battler) ? ::Battle::Battler : nil)
+    if battler_class && !battler_class.method_defined?(:pbFaint_heizo_v5)
+      battler_class.class_eval do
+        alias pbFaint_heizo_v5 pbFaint
+        def pbFaint(*args)
+          # 1. Ejecutar desmayo original primero
+          pbFaint_heizo_v5(*args)
+          
+          # 2. Verificación de combate de Heizo y bando rival
+          return if !@battle || !@battle.instance_variable_get(:@heizo_battle) || self.index % 2 == 0
+          
+          # COMPROBACIÓN DE BANDO: Si Heizo es compañero (lado 0), NO decir frases de derrota
+          heizo_is_partner = false
+          ((@battle.player.is_a?(Array) ? @battle.player : [@battle.player]) rescue []).each do |t|
+            heizo_is_partner = true if t && t.name == "Heizo"
+          end
+          return if heizo_is_partner # Heizo no llora si está en nuestro equipo
+          
+          # 3. Contar derrotados actualmente
+          party = @battle.pbParty(1)
+          derrotados = 0
+          for p in party; derrotados += 1 if p && p.hp <= 0; end
+          
+          # 4. SISTEMA ANTIDUPLICADOS: Solo disparar si el contador ha subido
+          # Esto evita que se repita el diálogo si el motor llama a pbFaint varias veces para el mismo Pokémon
+          last_processed = @battle.instance_variable_get(:@heizo_last_count) || 0
+          return if derrotados <= last_processed
+          @battle.instance_variable_set(:@heizo_last_count, derrotados)
+          
+          # 5. Selección de mensaje (PRIORIDAD: ESPECIES)
+          char_id = getID(PBSpecies, :CHARIZARD) rescue nil
+          ven_id  = getID(PBSpecies, :VENUSAUR) rescue nil
+          gen_id  = getID(PBSpecies, :GENGAR) rescue nil
+          zer_id  = getID(PBSpecies, :ZERAORA) rescue nil
+          cor_id  = getID(PBSpecies, :CORVIKNIGHT) rescue nil
+          swa_id  = getID(PBSpecies, :SWAMPERT) rescue nil
+          
+          sp = self.pokemon ? self.pokemon.species : (self.respond_to?(:species) ? self.species : 0)
+          msg = nil
+          
+          # Prioridad absoluta a las frases de especie solicitadas
+          case sp
+          when char_id; msg = "Heizo: Ni siquiera las llamas del inframundo han bastado... empiezas a interesarme."
+          when ven_id;  msg = "Heizo: Has superado incluso a mis toxinas."
+          when gen_id;  msg = "Heizo: ¿Crees que derrotar a una sombra te hace fuerte? Solo estás retrasando lo inevitable."
+          when zer_id;  msg = "Heizo: ¿Has podido seguir la velocidad del rayo? Impresionante."
+          when cor_id;  msg = "Heizo: Ni siquiera la armadura más pesada es eterna... bien hecho."
+          when swa_id;  msg = "Heizo: El lodo se ha secado... pero tu esfuerzo ha sido digno."
+          end
+          
+          # Si no es ninguna de esas especies (fallback de seguridad por conteo)
+          if msg.nil?
+            if derrotados == party.length
+              msg = "Heizo: Increíble... me has vencido limpiamente."
+            elsif derrotados == 1
+              msg = "Heizo: ¡Vaya! No esperaba que derrotaras a mi primer Pokémon tan rápido."
+            end
+          end
+
+          # 6. Mostrar Diálogo Cinemático
+          if msg
+            if @battle.scene.respond_to?(:pbShowOpponent)
+              @battle.scene.pbShowOpponent(0) rescue nil
+              @battle.pbDisplayPaused(_INTL(msg))
+              @battle.scene.pbHideOpponent rescue nil
+            else
+              @battle.pbDisplayPaused(_INTL(msg))
+            end
+            ::Graphics.update; pbWait(5) if defined?(pbWait)
+          end
+        end
+      end
+    end
+
+    # 3. Hook de Entrada de Pokémon (v1 - Diálogos al salir)
+    if !::PokeBattle_Battle.method_defined?(:pbSendOut_heizo_v1)
+      ::PokeBattle_Battle.class_eval do
+        alias pbSendOut_heizo_v1 pbSendOut
+        def pbSendOut(index, pokemon)
+          # Ejecutar el comando de salida original
+          pbSendOut_heizo_v1(index, pokemon)
+          
+          # Solo si es combate de Heizo, es un Pokémon rival (índice impar), Y Heizo es el JEFE (no compañero)
+          heizo_is_partner_send = false
+          ((self.player.is_a?(Array) ? self.player : [self.player]) rescue []).each { |t| heizo_is_partner_send = true if t && t.name == "Heizo" }
+          if self.instance_variable_get(:@heizo_battle) && index % 2 != 0 && !heizo_is_partner_send
+            char_id = getID(PBSpecies, :CHARIZARD) rescue nil
+            ven_id  = getID(PBSpecies, :VENUSAUR) rescue nil
+            gen_id  = getID(PBSpecies, :GENGAR) rescue nil
+            zer_id  = getID(PBSpecies, :ZERAORA) rescue nil
+            cor_id  = getID(PBSpecies, :CORVIKNIGHT) rescue nil
+            swa_id  = getID(PBSpecies, :SWAMPERT) rescue nil
+            
+            msg = nil
+            case pokemon.species
+            when char_id; msg = "Heizo: ¡Charizard! ¡Surca los cielos y reduce todo a cenizas con tu fuego ancestral!"
+            when ven_id;  msg = "Heizo: ¡Venusaur! ¡Despliega tus toxinas y que la naturaleza reclame lo que es suyo!"
+            when gen_id;  msg = "Heizo: ¡Gengar! ¡Sal de las sombras y arrastra a nuestro oponente a la oscuridad eterna!"
+            when zer_id;  msg = "Heizo: ¡Zeraora! ¡Demuéstrales que nada es más rápido que el trueno!"
+            when cor_id;  msg = "Heizo: ¡Corviknight! ¡Despliega tus alas de acero y sé nuestro escudo inquebrantable!"
+            when swa_id;  msg = "Heizo: ¡Swampert! ¡Desata la fuerza de las mareas y que la tierra tiemble ante tu poder!"
+            end
+            
+            if msg
+              if @scene.respond_to?(:pbShowOpponent)
+                @scene.pbShowOpponent(0) rescue nil
+                pbDisplayPaused(_INTL(msg))
+                @scene.pbHideOpponent rescue nil
+              else
+                pbDisplayPaused(_INTL(msg))
+              end
+              ::Graphics.update; pbWait(5) if defined?(pbWait)
+            end
+          end
+        end
+      end
+    end
+
+    # Identificar el evento (estático o seguidor)
+    heizo_event = $game_map.events[995]
+    
+    # --- AUTO-SINCRO MERCENARIO (SOLO LÓGICA INTERNA) ---
+    # Nota: No usamos $PokemonGlobal.partner para evitar que el motor fuerce 2v2 automáticamente.
+    if pbHeizoFollowing? && $game_variables[992] == 1
+      if pbHeizoInGym?
+        # Desactivar apoyo si estamos en un gimnasio
+        $game_variables[992] = 0 rescue nil
+      end
+    end
+    if !heizo_event && $PokemonTemp && $PokemonTemp.dependentEvents
+       heizo_event = $PokemonTemp.dependentEvents.getEventByName("HeizoNPC")
+    end
+    
+    # EFECTO VISUAL Y SONORO DE ATENCIÓN
+    if heizo_event
+      if !pbHeizoFollowing?
+        # Solo mostrar exclamación si NO está siguiendo (estático)
+        fake_event = Struct.new(:x, :y).new(heizo_event.x, heizo_event.y - 1)
+        pbExclaim(fake_event, 3) rescue nil 
+      end
+      pbSEPlay("VozCrisantoWhat") rescue nil
+    end
+
+    if $game_variables[995] == 0
+      # --- MÚSICA DE ENCUENTRO ---
+      pbBGMPlay("Acertijos") # MÚSICA PARA DIÁLOGOS DE HEIZO
+      # Capturar ubicación del encuentro original
+      $game_variables[996] = $game_map.map_id
+      $game_variables[997] = [$game_player.x, $game_player.y, $game_player.direction]
+      $game_variables[998] = [heizo_event.x, heizo_event.y, heizo_event.direction] if heizo_event
+      
+      pbMessage(_INTL("..."))
+      pbMessage(_INTL("Soy Heizo. El creador de este Mod."))
+      pbMessage(_INTL("No vine a hacer amigos. Vine a desafiar."))
+      pbMessage(_INTL("Si me vences, te abro las puertas de mi mercado negro."))
+      
+      if pbConfirmMessage(_INTL("Acepto el desafío"))
+        pbMessage(_INTL("Bien. Prepara tu equipo. No empezaremos aún."))
+        pbMessage(_INTL("Me quedaré aquí con mi hidromiel. Habla conmigo cuando estés listo."))
+        $game_variables[995] = 1
+      else
+        pbMessage(_INTL("..."))
+        pbMessage(_INTL("Como esperaba. Vuelve cuando te atrevas."))
+        $game_map.autoplay # Restaurar música del mapa al rechazar
+      end
+      $game_map.autoplay if $game_variables[995] == 1
+      return
+    
+    # ESTADO 1: Esperando confirmación para luchar
+    elsif $game_variables[995] == 1
+      if pbConfirmMessage(_INTL("¿Estás listo para el combate?"))
+        # Elegir Modo de Combate (Menú de Selección)
+        cmd_mode = pbMessage(_INTL("Heizo: ¿Cómo prefieres combatir?"), [
+          _INTL("Individual"),
+          _INTL("Doble")
+        ], 0)
+        is_double = (cmd_mode == 1)
+
+        if is_double
+          # Comprobación de seguridad: ¿Tiene el jugador al menos 2 Pokémon sanos?
+          player_healthy = $Trainer.party.count { |p| p && p.hp > 0 && !p.isEgg? }
+          if player_healthy < 2
+            pbMessage(_INTL("Heizo: Tipo, es imposible que me ganes así... no perdamos el tiempo."))
+            pbMessage(_INTL("Heizo: Vuelve cuando tengas al menos dos Pokémon en condiciones."))
+            $game_map.autoplay; return
+          end
+        end
+
+        pbMessage(_INTL("Heizo: Bien. Que empiece."))
+        
+        if heizo_event
+          pbMoveRoute($game_player, [
+            PBMoveRoute::ChangeSpeed, 2, 
+            PBMoveRoute::Right, PBMoveRoute::Right, PBMoveRoute::Right, PBMoveRoute::Right, PBMoveRoute::Right
+          ])
+          pbMoveRoute(heizo_event, [
+            PBMoveRoute::ChangeSpeed, 2, 
+            PBMoveRoute::Wait, 32, # Esperar un poco para "tardar en activarse"
+            PBMoveRoute::Right, PBMoveRoute::Right, PBMoveRoute::Right, PBMoveRoute::Right, PBMoveRoute::Right, PBMoveRoute::Right
+          ], true) 
+        end
+        pbWait(40) 
+
+        # 1. Crear fundido a negro MANUAL (para evitar microcortes y pantalla negra perpetua)
+        black_vp = Viewport.new(0,0,Graphics.width,Graphics.height)
+        black_vp.z = 999999
+        col = Color.new(0,0,0,0)
+        for j in 0..17
+          col.set(0,0,0,j*15); black_vp.color = col
+          Graphics.update; Input.update
+        end
+
+        # 2. RESETAR FÍSICAS y Teletransporte INVISIBLE (mientras está en negro)
+        # Limpiamos estados forzados para recuperar colisiones y físicas
+        $game_player.instance_variable_set(:@through, false)
+        $game_player.instance_variable_set(:@move_route_forcing, false)
+        $game_player.instance_variable_set(:@walk_anime, true)
+        
+        if heizo_event
+          heizo_event.instance_variable_set(:@through, false)
+          heizo_event.instance_variable_set(:@move_route_forcing, false)
+          heizo_event.instance_variable_set(:@walk_anime, true)
+        end
+        
+        p_pos = $game_variables[997]
+        h_pos = $game_variables[998]
+        
+        $game_player.moveto(p_pos[0], p_pos[1])
+        $game_player.instance_variable_set(:@direction, p_pos[2])
+        if heizo_event
+          heizo_event.moveto(h_pos[0], h_pos[1])
+          heizo_event.instance_variable_set(:@direction, h_pos[2])
+        end
+        
+        # Un pequeño refresco del mapa nos asegura que el cambio "se vea" al quitar el negro
+        $game_map.need_refresh = true
+        $game_player.straighten
+ 
+        # 3. Preparar equipo de Heizo
+        max_level = $Trainer.party.map { |p| p.level }.max || 5
+        heizo_opponent = PokeBattle_Trainer.new("Heizo", 35) 
+        heizo_opponent.party = pbGetHeizoTeam(max_level)
+        
+        # 4. Iniciar animación y combate
+        bgm = "CombateLider" # MÚSICA DE COMBATE LÍDER
+        $PokemonGlobal.nextBattleBack = "Pantano"
+        
+        $game_player.straighten
+        heizo_event.straighten if heizo_event
+        
+        decision = 0
+        pbBattleAnimation(bgm) { 
+          # ELIMINAR EL NEGRO justo cuando empieza la transición de batalla
+          black_vp.dispose
+          
+          scene = pbNewBattleScene
+          # USAR LA ETIQUETA HEIZO BATTLE DESDE EL PRIMER COMBATE
+          battle = HeizoBattle.new(scene, $Trainer.party, heizo_opponent.party, $Trainer, heizo_opponent)
+          battle.doublebattle = is_double
+          battle.instance_variable_set(:@heizo_battle, true) # ETIQUETA ROBUSTA
+          battle.instance_variable_set(:@endspeech, "No es posible... mi magnífico equipo ha caído. No esperaba que alguien pudiera superar tal grado de maestría.") # FIX CAJA VACIA
+          battle.internalbattle = true
+          pbPrepareBattle(battle)
+          pbSceneStandby { decision = battle.pbStartBattle }
+        }
+        
+        # 5. Manejo de resultados
+        $game_player.instance_variable_set(:@through, false)
+        $game_player.instance_variable_set(:@move_route_forcing, false)
+        heizo_event.instance_variable_set(:@through, false) if heizo_event
+        heizo_event.instance_variable_set(:@move_route_forcing, false) if heizo_event
+        $game_player.straighten
+        heizo_event.straighten if heizo_event
+        
+        if decision == 1 # Victoria
+          pbMessage(_INTL("Heizo: Has ganado. El mercado negro es tuyo."))
+          pbMessage(_INTL("Heizo: Estaré aquí con mi hidromiel. Cuando quieras, vuelve."))
+          
+          # Cambiamos a Estado 2 (Victoria/Tienda desbloqueada)
+          $game_variables[995] = 2 
+        else
+          pbMessage(_INTL("Heizo: Bien jugado. He ganado esta vez."))
+          pbStartOver
+        end
+        
+        # Volver a la mesa y forzar posición inicial (solo si no es seguidor)
+        h_pos = $game_variables[998]
+        if !pbHeizoFollowing? && heizo_event && h_pos
+          heizo_event.moveto(h_pos[0], h_pos[1])
+          heizo_event.instance_variable_set(:@direction, h_pos[2])
+        end
+        return
+      else
+        pbMessage(_INTL("Bien. Veamos si tu preparación ha servido de algo."))
+        $game_map.autoplay # Restaurar música del mapa al no querer combatir
+        return
+      end
+
+    # ESTADO 2: MENÚ POST-DERROTA (Elección entre Luchar o Comprar)
+    elsif $game_variables[995] == 2
+      pbBGMPlay("Acertijos") # MÚSICA PARA DIÁLOGOS
+        # Aseguramos posición inicial en la mesa (solo si NO está siguiendo)
+        h_pos = $game_variables[998]
+        if !pbHeizoFollowing? && heizo_event && h_pos
+          heizo_event.moveto(h_pos[0], h_pos[1])
+          heizo_event.instance_variable_set(:@direction, h_pos[2])
+        end
+
+        pbMessage(_INTL("Heizo: El campeón. ¿Qué necesitas?"))
+        
+        $heizo_following = pbHeizoFollowing?
+        follow_label = $heizo_following ? _INTL("Vuelve al Centro Pokémon") : _INTL("Acompáñame")
+        
+        main_choices = []
+        if $heizo_following
+          # Menú de Seguidor con opciones de mercenario
+          main_choices << _INTL("Mercado Negro")
+          if $game_variables[992] == 1
+            main_choices << _INTL("Cambiar Táctica")
+            main_choices << _INTL("Retirar Apoyo en Combate")
+          else
+            main_choices << _INTL("Acuerdo de Combate ($10,000)")
+          end
+          main_choices << _INTL("Cambiar Ropa")
+          main_choices << follow_label
+          main_choices << _INTL("Nada por ahora")
+        else
+          # Menú Estático
+          main_choices << _INTL("Combatir de nuevo")
+          main_choices << _INTL("Mercado Negro")
+          main_choices << follow_label
+          main_choices << _INTL("Nada por ahora")
+        end
+        
+        cmd = pbMessage(_INTL("Heizo: El campeón. ¿Qué necesitas?"), main_choices, main_choices.length - 1)
+
+        if $heizo_following
+          # --- LÓGICA MENÚ SEGUIDOR ---
+          case main_choices[cmd]
+          when _INTL("Mercado Negro")
+            # Salta al bloque de Mercado Negro abajo
+          when _INTL("Acuerdo de Combate ($10,000)")
+            if pbHeizoInGym?
+              pbMessage(_INTL("Heizo: Aquí chaval te lo curras tú. No te voy a ayudar aquí, que tienes que mostrar tu valía."))
+            else
+              pbMessage(_INTL("Heizo: Si quieres, te ayudo en combate con mis Pokémon. Te ofrezco mi servicio por 10.000$."))
+              if pbConfirmMessage(_INTL("¿Contratar el apoyo de Heizo por 10.000$?"))
+                if $Trainer.money >= 10000
+                  $Trainer.money -= 10000
+                  $game_variables[992] = 1
+                  # Elegir táctica inicial
+                  t = pbMessage(_INTL("Heizo: ¿Cómo quieres mi ayuda en la naturaleza?"), 
+                                [_INTL("Dúo de Apoyo (2 vs 1)"), _INTL("Caza Doble (2 vs 2)")], 0)
+                  $game_variables[991] = t
+                  pbMessage(_INTL("Heizo: Trato hecho. Mis Pokémon están a tu disposición."))
+                else
+                  pbMessage(_INTL("Heizo: No tienes suficiente. No soy un mercenario barato."))
+                end
+              end
+            end
+            $game_map.autoplay; return
+          when _INTL("Cambiar Táctica")
+            t = pbMessage(_INTL("Heizo: ¿Qué táctica prefieres para la hierba alta?"), 
+                          [_INTL("Dúo de Apoyo (2 vs 1)"), _INTL("Caza Doble (2 vs 2)")], $game_variables[991])
+            $game_variables[991] = t
+            pbMessage(_INTL("Heizo: Cambiando táctica... listo."))
+            $game_map.autoplay; return
+          when _INTL("Retirar Apoyo en Combate")
+            if pbConfirmMessage(_INTL("Heizo: ¿Deseas que retire mi apoyo en combate por ahora?"))
+              $game_variables[992] = 0
+              pbDeregisterPartner rescue nil
+              pbMessage(_INTL("Heizo: Como quieras. Me limitaré a observar."))
+            end
+            $game_map.autoplay; return
+          when _INTL("Cambiar Ropa")
+            # Salta al bloque de Ropa abajo
+          when _INTL("Vuelve al Centro Pokémon")
+            # Salta al bloque de Quedarse abajo
+          when _INTL("Nada por ahora")
+            $game_map.autoplay; return
+          end
+        else
+          # --- LÓGICA MENÚ ESTÁTICO ---
+          if cmd == 0 # REPETIR COMBATE
+             # Mantener lógica original de combate
+          elsif cmd == 1 # MERCADO NEGRO
+             # Salta abajo
+          elsif cmd == 2 # ACOMPAÑAME
+             # Salta abajo
+          else
+             $game_map.autoplay; return
+          end
+        end
+
+        # REDIRECCIÓN DEL MENÚ SEGURA (ROBUSTA POR ETIQUETA)
+        choice_text = main_choices[cmd]
+        
+        if choice_text == _INTL("Mercado Negro") || cmd == 1 # Soporte de tienda
+          # Lógica Mercado Negro (Sistema de Categorías)
+          $game_temp.mart_prices = {}
+          _heizo_open_shop = lambda do |syms, half_price_all, special_prices|
+            items = []
+            syms.each do |sym|
+              item_id = getID(PBItems, sym) rescue nil
+              next if !item_id || item_id <= 0
+              next if pbIsImportantItem?(item_id) && $PokemonBag.pbQuantity(item_id) > 0
+              items.push(item_id)
+              base = (pbGetPrice(item_id) rescue 200).to_i
+              base = 200 if base <= 0
+              price = special_prices[sym] || (half_price_all ? [(base / 2).to_i, 10].max : base)
+              $game_temp.mart_prices[item_id] = [price, -1]
+            end
+            if !items.empty?
+              scene = PokemonMartScene.new; screen = PokemonMartScreen.new(scene, items); screen.pbBuyScreen
+            end
+          end
+
+          loop do
+            pbBGMPlay("Acertijos")
+            cat = Kernel.pbHeizoShopCategoryMenu
+            break if cat == 6
+            case cat
+            when 0 # BALLS
+              _heizo_open_shop.call([:POKEBALL, :GREATBALL, :ULTRABALL, :NETBALL, :DIVEBALL, :NESTBALL, :REPEATBALL, :TIMERBALL, :LUXURYBALL, :DUSKBALL, :HEALBALL, :QUICKBALL, :FASTBALL, :LEVELBALL, :LUREBALL, :HEAVYBALL, :LOVEBALL, :FRIENDBALL, :MOONBALL, :POKEBALLCASERA, :SUPERBALLCASERA, :ULTRABALLCASERA, :MASTERBALL], true, { :MASTERBALL => 50000 })
+            when 1 # CURA
+              _heizo_open_shop.call([:POTION, :SUPERPOTION, :HYPERPOTION, :MAXPOTION, :FULLRESTORE, :REVIVE, :MAXREVIVE, :FULLHEAL, :ETHER, :MAXETHER, :ELIXIR, :MAXELIXIR, :ANTIDOTE, :BURNHEAL, :PARLYZHEAL, :ICEHEAL, :AWAKENING, :SITRUSBERRY, :ORANBERRY, :LUMBERRY, :LEPPABERRY, :CHESTOBERRY, :PECHABERRY, :RAWSTBERRY, :ASPEARBERRY, :CHERIBERRY, :PERSIMBERRY, :FIGYBERRY, :WIKIBERRY, :MAGOBERRY, :AGUAVBERRY, :IAPAPABERRY, :LIECHIBERRY, :GANLONBERRY, :SALACBERRY, :PETAYABERRY, :APICOTBERRY, :CUSTAPBERRY, :LANSATBERRY, :STARFBERRY, :MICLEBERRY, :ENIGMABERRY], true, {})
+            when 2 # MATS
+              _heizo_open_shop.call([:REPEL, :SUPERREPEL, :MAXREPEL, :FIRESTONE, :WATERSTONE, :THUNDERSTONE, :LEAFSTONE, :MOONSTONE, :SUNSTONE, :DUSKSTONE, :DAWNSTONE, :SHINYSTONE, :EVERSTONE, :DRAGONSCALE, :FRASCOCRISTALINO, :MADERA, :GUIJARRO, :TROZODEHIERRO, :POLVODEHUESO, :ESPECIASEXOTICAS, :POLVOEXPLOSIVO, :HPUP, :PROTEIN, :IRON, :CALCIUM, :ZINC, :CARBOS, :PPUP, :PPMAX, :LUCKYEGG, :EXPSHARE, :AMULETCOIN, :SHINYZADOR], true, { :SHINYZADOR => 5000 })
+            when 3 # COMBATE
+              _heizo_open_shop.call([:LEFTOVERS, :BLACKSLUDGE, :SHELLBELL, :BIGROOT, :LIFEORB, :EXPERTBELT, :MUSCLEBAND, :WISEGLASSES, :CHOICEBAND, :CHOICESPECS, :CHOICESCARF, :FOCUSSASH, :FOCUSBAND, :WHITEHERB, :POWERHERB, :MENTALHERB, :AIRBALLOON, :ROCKYHELMET, :EJECTBUTTON, :REDCARD, :EVIOLITE, :QUICKCLAW, :RAZORCLAW, :SCOPELENS, :WIDELENS, :ZOOMLENS, :BRIGHTPOWDER, :HEATROCK, :DAMPROCK, :SMOOTHROCK, :ICYROCK, :LIGHTCLAY, :FLAMEORB, :TOXICORB, :DESTINYKNOT, :KINGSROCK, :RAZORFANG, :METRONOME, :GRIPCLAW, :BINDINGBAND, :FLOATSTONE, :ABSORBBULB, :CELLBATTERY, :SHEDSHELL, :SMOKEBALL, :IRONBALL, :RINGTARGET, :LAGGINGTAIL], true, {})
+            when 4 # TIPOS
+              _heizo_open_shop.call([:FLAMEPLATE, :SPLASHPLATE, :ZAPPLATE, :MEADOWPLATE, :ICICLEPLATE, :FISTPLATE, :TOXICPLATE, :EARTHPLATE, :SKYPLATE, :MINDPLATE, :INSECTPLATE, :STONEPLATE, :SPOOKYPLATE, :DRACOPLATE, :DREADPLATE, :IRONPLATE, :CHARCOAL, :MYSTICWATER, :MAGNET, :MIRACLESEED, :NEVERMELTICE, :BLACKBELT, :POISONBARB, :SOFTSAND, :SHARPBEAK, :TWISTEDSPOON, :SILVERPOWDER, :HARDSTONE, :SPELLTAG, :DRAGONFANG, :BLACKGLASSES, :METALCOAT, :SILKSCARF, :FIREGEM, :WATERGEM, :ELECTRICGEM, :GRASSGEM, :ICEGEM, :FIGHTINGGEM, :POISONGEM, :GROUNDGEM, :FLYINGGEM, :PSYCHICGEM, :BUGGEM, :ROCKGEM, :GHOSTGEM, :DRAGONGEM, :DARKGEM, :STEELGEM, :NORMALGEM, :SEAINCENSE, :WAVEINCENSE, :ROSEINCENSE, :ODDINCENSE, :ROCKINCENSE, :LAXINCENSE, :FULLINCENSE], true, {})
+            when 5 # ROPA
+              pbHeizoClanClothesV2 rescue nil
+            end
+          end
+          $game_map.autoplay; return
+
+        elsif choice_text == _INTL("Cambiar Ropa")
+          pbHeizoClanClothesV2 rescue nil
+          $game_map.autoplay; return
+
+        elsif choice_text == _INTL("Vuelve al Centro Pokémon") || choice_text == _INTL("Acompáñame") || (cmd == 2 && !$heizo_following)
+          # Lógica Despedida/Seguimiento
+          if pbHeizoFollowing?
+            pbMessage(_INTL("Heizo: Bien. Volveré a por más hidromiel. Cuídate."))
+            pbStopHeizoFollowing rescue nil
+            pbWait(10); spawn_heizo_final rescue nil
+          else
+            pbMessage(_INTL("Heizo: Bien. Vamos a ver de qué pasta estás hecho."))
+            pbStartHeizoFollowing rescue nil
+          end
+          $game_map.autoplay; return
+        end
+
+        if cmd == 0 && !$heizo_following # REPETIR COMBATE
+          pbMessage(_INTL("Heizo: Así me gusta. Vamos."))
+          
+          # Elegir Modo de Combate (Menú de Selección)
+          cmd_mode = pbMessage(_INTL("Heizo: ¿Cómo quieres luchar esta vez?"), [
+            _INTL("Individual"),
+            _INTL("Doble")
+          ], 0)
+          is_double = (cmd_mode == 1)
+
+          if is_double
+            # Comprobación de seguridad
+            player_healthy = $Trainer.party.count { |p| p && p.hp > 0 && !p.isEgg? }
+            if player_healthy < 2
+              pbMessage(_INTL("Heizo: Tipo, es imposible que me ganes así... no perdamos el tiempo."))
+              pbMessage(_INTL("Heizo: Vuelve cuando tengas al menos dos Pokémon en condiciones."))
+              $game_map.autoplay; return
+            end
+          end
+
+          # --- REPETICIÓN DE CINEMÁTICA Y COMBATE ---
+          if heizo_event
+            pbMoveRoute($game_player, [
+              PBMoveRoute::ChangeSpeed, 2, 
+              PBMoveRoute::Right, PBMoveRoute::Right, PBMoveRoute::Right, PBMoveRoute::Right, PBMoveRoute::Right
+            ])
+            pbMoveRoute(heizo_event, [
+              PBMoveRoute::ChangeSpeed, 2, 
+              PBMoveRoute::Wait, 32,
+              PBMoveRoute::Right, PBMoveRoute::Right, PBMoveRoute::Right, PBMoveRoute::Right, PBMoveRoute::Right, PBMoveRoute::Right
+            ], true) 
+          end
+          pbWait(40) 
+
+          # Fundido y TP
+          black_vp = Viewport.new(0,0,Graphics.width,Graphics.height); black_vp.z = 999999
+          col = Color.new(0,0,0,0)
+          for j in 0..17; col.set(0,0,0,j*15); black_vp.color = col; Graphics.update; Input.update; end
+
+          $game_player.instance_variable_set(:@through, false); $game_player.instance_variable_set(:@move_route_forcing, false)
+          heizo_event.instance_variable_set(:@through, false); heizo_event.instance_variable_set(:@move_route_forcing, false) if heizo_event
+          
+          p_pos = $game_variables[997]; h_pos = $game_variables[998]
+          $game_player.moveto(p_pos[0], p_pos[1]); $game_player.instance_variable_set(:@direction, p_pos[2])
+          if heizo_event; heizo_event.moveto(h_pos[0], h_pos[1]); heizo_event.instance_variable_set(:@direction, h_pos[2]); end
+          $game_map.need_refresh = true; $game_player.straighten
+
+          # Preparar Batalla
+          max_level = $Trainer.party.map { |p| p.level }.max || 5
+          heizo_opponent = PokeBattle_Trainer.new("Heizo", 35)
+          heizo_opponent.party = pbGetHeizoTeam(max_level)
+          bgm = "CombateLider" # MÚSICA DE COMBATE LÍDER
+          $PokemonGlobal.nextBattleBack = "Pantano"
+          
+          decision = 0
+          pbBattleAnimation(bgm) { 
+            black_vp.dispose
+            scene = pbNewBattleScene
+            # USAR LA ETIQUETA HEIZO BATTLE PARA LOS DIÁLOGOS
+            battle = HeizoBattle.new(scene, $Trainer.party, heizo_opponent.party, $Trainer, heizo_opponent)
+            battle.doublebattle = is_double
+            battle.instance_variable_set(:@heizo_battle, true) # ETIQUETA ROBUSTA
+            battle.instance_variable_set(:@endspeech, "¿Cómo ha podido ser esto...? Mi equipo magnífico ha sido derrotado. Me has dejado sin palabras... por ahora.") # FIX CAJA VACIA
+            battle.internalbattle = true; pbPrepareBattle(battle); pbSceneStandby { decision = battle.pbStartBattle }
+          }
+          
+          # Resultado
+          if decision == 1
+            pbMessage(_INTL("Heizo: Otra vez derrotado. Bien jugado."))
+          else
+            pbMessage(_INTL("Heizo: He ganado. Vuelve cuando quieras la revancha."))
+            pbStartOver
+          end
+          # Volver a la mesa
+          if heizo_event && h_pos; heizo_event.moveto(h_pos[0], h_pos[1]); heizo_event.instance_variable_set(:@direction, h_pos[2]); end
+          return
+          
+        elsif cmd == 1 # MERCADO NEGRO - Sistema de Categorías
+          # Inicializar precios globales compartidos entre categorías
+          $game_temp.mart_prices = {}
+
+          # Helper lambda: construye stock y abre la pantalla de COMPRA directamente
+          _heizo_open_shop = lambda do |syms, half_price_all, special_prices|
+            items = []
+            syms.each do |sym|
+              item_id = getID(PBItems, sym) rescue nil
+              next if !item_id || item_id <= 0
+              next if pbIsImportantItem?(item_id) && $PokemonBag.pbQuantity(item_id) > 0
+              items.push(item_id)
+              base = (pbGetPrice(item_id) rescue 200).to_i
+              base = 200 if base <= 0
+              if special_prices.key?(sym)
+                price = special_prices[sym]
+              elsif half_price_all
+                price = [(base / 2).to_i, 10].max
+              else
+                price = base
+              end
+              $game_temp.mart_prices[item_id] = [price, -1]
+            end
+            if !items.empty?
+              scene = PokemonMartScene.new
+              screen = PokemonMartScreen.new(scene, items)
+              screen.pbBuyScreen
+            end
+          end
+
+          if $heizo_following
+            pbMessage(_INTL("Heizo: Ya que te sigo, puedo soltar algo de mi bolsa... pero no esperes regalos. ¿Qué buscas?"))
+          else
+            pbMessage(_INTL("Heizo: Todo a mitad de precio. Elige una sección... o lárgate."))
+          end
+          # --- BUCLE DE CATEGORÍAS ---
+          loop do
+            pbBGMPlay("Acertijos")
+            cat = Kernel.pbHeizoShopCategoryMenu # NUEVO MENÚ CON ICONOS
+            
+            break if cat == 6 # Salir
+
+            case cat
+            # -------------------------------------------------------
+            when 0 # POKÉ BALLS
+              _heizo_open_shop.call([
+                :POKEBALL, :GREATBALL, :ULTRABALL,
+                :NETBALL, :DIVEBALL, :NESTBALL, :REPEATBALL, :TIMERBALL,
+                :LUXURYBALL, :DUSKBALL, :HEALBALL, :QUICKBALL,
+                :FASTBALL, :LEVELBALL, :LUREBALL, :HEAVYBALL,
+                :LOVEBALL, :FRIENDBALL, :MOONBALL,
+                :POKEBALLCASERA, :SUPERBALLCASERA, :ULTRABALLCASERA,
+                :MASTERBALL
+              ], true, { :MASTERBALL => 50000 })
+
+            # -------------------------------------------------------
+            when 1 # BAYAS Y CURACIÓN
+              _heizo_open_shop.call([
+                # Pociones y Revivir
+                :POTION, :SUPERPOTION, :HYPERPOTION, :MAXPOTION, :FULLRESTORE,
+                :REVIVE, :MAXREVIVE, :FULLHEAL,
+                # Éteres y Elixires
+                :ETHER, :MAXETHER, :ELIXIR, :MAXELIXIR,
+                # Curaciones de estado
+                :ANTIDOTE, :BURNHEAL, :PARLYZHEAL, :ICEHEAL, :AWAKENING,
+                # Bayas de curación y estado
+                :SITRUSBERRY, :ORANBERRY, :LUMBERRY, :LEPPABERRY,
+                :CHESTOBERRY, :PECHABERRY, :RAWSTBERRY, :ASPEARBERRY, :CHERIBERRY,
+                :PERSIMBERRY, :FIGYBERRY, :WIKIBERRY, :MAGOBERRY, :AGUAVBERRY, :IAPAPABERRY,
+                # Bayas de stat boost
+                :LIECHIBERRY, :GANLONBERRY, :SALACBERRY, :PETAYABERRY, :APICOTBERRY,
+                :CUSTAPBERRY, :LANSATBERRY, :STARFBERRY, :MICLEBERRY, :ENIGMABERRY
+              ], true, {})
+
+            # -------------------------------------------------------
+            when 2 # MATERIALES, VITAMINAS Y EVOLUCIÓN
+              _heizo_open_shop.call([
+                # Repelentes y Mapas
+                :REPEL, :SUPERREPEL, :MAXREPEL,
+                # Piedras evolutivas
+                :FIRESTONE, :WATERSTONE, :THUNDERSTONE, :LEAFSTONE,
+                :MOONSTONE, :SUNSTONE, :DUSKSTONE, :DAWNSTONE, :SHINYSTONE,
+                :EVERSTONE, :DRAGONSCALE,
+                # Materiales de crafteo
+                :FRASCOCRISTALINO, :MADERA, :GUIJARRO, :TROZODEHIERRO,
+                :POLVODEHUESO, :ESPECIASEXOTICAS, :POLVOEXPLOSIVO,
+                # Vitaminas
+                :HPUP, :PROTEIN, :IRON, :CALCIUM, :ZINC, :CARBOS,
+                :PPUP, :PPMAX,
+                # Utilidad
+                :LUCKYEGG, :EXPSHARE, :AMULETCOIN,
+                :SHINYZADOR
+              ], true, { :SHINYZADOR => 5000 })
+
+            # -------------------------------------------------------
+            when 3 # OBJETOS DE COMBATE
+              _heizo_open_shop.call([
+                :LEFTOVERS, :BLACKSLUDGE, :SHELLBELL, :BIGROOT,
+                :LIFEORB, :EXPERTBELT, :MUSCLEBAND, :WISEGLASSES,
+                :CHOICEBAND, :CHOICESPECS, :CHOICESCARF,
+                :FOCUSSASH, :FOCUSBAND, :WHITEHERB, :POWERHERB, :MENTALHERB,
+                :AIRBALLOON, :ROCKYHELMET, :EJECTBUTTON, :REDCARD, :EVIOLITE,
+                :QUICKCLAW, :RAZORCLAW, :SCOPELENS, :WIDELENS, :ZOOMLENS, :BRIGHTPOWDER,
+                :HEATROCK, :DAMPROCK, :SMOOTHROCK, :ICYROCK, :LIGHTCLAY,
+                :FLAMEORB, :TOXICORB, :DESTINYKNOT, :KINGSROCK, :RAZORFANG,
+                :METRONOME, :GRIPCLAW, :BINDINGBAND, :FLOATSTONE,
+                :ABSORBBULB, :CELLBATTERY, :SHEDSHELL, :SMOKEBALL,
+                :IRONBALL, :RINGTARGET, :LAGGINGTAIL
+              ], true, {})
+
+            # -------------------------------------------------------
+            when 4 # POTENCIADORES DE TIPO
+              _heizo_open_shop.call([
+                # Placas
+                :FLAMEPLATE, :SPLASHPLATE, :ZAPPLATE, :MEADOWPLATE, :ICICLEPLATE,
+                :FISTPLATE, :TOXICPLATE, :EARTHPLATE, :SKYPLATE, :MINDPLATE,
+                :INSECTPLATE, :STONEPLATE, :SPOOKYPLATE, :DRACOPLATE, :DREADPLATE, :IRONPLATE,
+                # Objetos de tipo
+                :CHARCOAL, :MYSTICWATER, :MAGNET, :MIRACLESEED, :NEVERMELTICE,
+                :BLACKBELT, :POISONBARB, :SOFTSAND, :SHARPBEAK, :TWISTEDSPOON,
+                :SILVERPOWDER, :HARDSTONE, :SPELLTAG, :DRAGONFANG,
+                :BLACKGLASSES, :METALCOAT, :SILKSCARF,
+                # Gemas
+                :FIREGEM, :WATERGEM, :ELECTRICGEM, :GRASSGEM, :ICEGEM,
+                :FIGHTINGGEM, :POISONGEM, :GROUNDGEM, :FLYINGGEM, :PSYCHICGEM,
+                :BUGGEM, :ROCKGEM, :GHOSTGEM, :DRAGONGEM, :DARKGEM, :STEELGEM, :NORMALGEM,
+                # Inciensos
+                :SEAINCENSE, :WAVEINCENSE, :ROSEINCENSE, :ODDINCENSE, :ROCKINCENSE,
+                :LAXINCENSE, :FULLINCENSE
+              ], true, {})
+              
+            # -------------------------------------------------------
+            when 5 # ROPAJES DEL CLAN CAZADOR
+              # --- Helper robusto para cambiar el sprite del jugador en mkxp-z ---
+              _heizo_set_player_sprite = lambda do |sprite_name|
+                begin
+                  $game_player.instance_variable_set(:@character_name, sprite_name)
+                  $game_player.instance_variable_set(:@tile_id, 0)
+                  $game_player.character_name = sprite_name rescue nil
+                  if $scene.is_a?(Scene_Map) && $scene.respond_to?(:spriteset)
+                    sp = $scene.spriteset
+                    begin
+                      arr = sp.instance_variable_get(:@character_sprites) rescue []
+                      arr.each do |s|
+                        next unless s.respond_to?(:update)
+                        ch = s.instance_variable_get(:@character) rescue nil
+                        if ch == $game_player
+                          s.instance_variable_set(:@character_name, nil) rescue nil
+                          s.instance_variable_set(:@tile_id, nil) rescue nil
+                          s.update rescue nil
+                          break
+                        end
+                      end
+                    rescue; end
+                  end
+                  $game_map.need_refresh = true rescue nil
+                  Graphics.update rescue nil
+                rescue => e
+                  $game_player.character_name = sprite_name rescue nil
+                end
+              end
+
+              if $game_variables[994] == 1
+                # --- DEVOLVER ROPAJES ---
+                pbMessage(_INTL("Heizo: Devolviendo los ropajes del clan."))
+                if pbConfirmMessage(_INTL("¿Devolver los ropajes del clan cazador?"))
+                  original_sprite = $game_variables[993].to_s
+                  if original_sprite != "" && original_sprite != "cazadorow"
+                    restore_sprite = original_sprite
+                  else
+                    begin
+                      restore_sprite = ($Trainer.female ? "girl_walk" : "boy_walk")
+                    rescue
+                      restore_sprite = "boy_walk"
+                    end
+                  end
+                  _heizo_set_player_sprite.call(restore_sprite)
+                  $game_variables[994] = 0
+                  $game_variables[993] = ""
+                  pbSEPlay("PRSFX- Shadow Claw2") rescue nil
+                  pbMessage(_INTL("Heizo: Bien. Vuelven donde deben estar."))
+                  pbMessage(_INTL("Heizo: Cuídate en la ruta. Sin la marca del clan, estás a merced del tiempo."))
+                else
+                  pbMessage(_INTL("Heizo: Sigue llevándolos. Son tuyos mientras los honres."))
+                end
+              else
+                # --- COMPRAR ROPAJES ---
+                pbMessage(_INTL("Heizo: ¿Los ropajes del clan?"))
+                pbMessage(_INTL("Heizo: No son exactamente los míos. Son del clan de cazadores al que pertenezco."))
+                pbMessage(_INTL("Heizo: Cuero curtido en frío. Resistentes al viento, a la lluvia y a las inclemencias de cualquier ruta."))
+                pbMessage(_INTL("Heizo: Los llevamos en expedición. Para la aventura, no para el salón."))
+                pbMessage(_INTL("Heizo: 100$. Y no porque necesite el dinero."))
+
+                if pbConfirmMessage(_INTL("¿Comprar los ropajes del clan cazador por 100$?"))
+                  if $Trainer.money >= 100
+                    $Trainer.money -= 100
+                    current_sprite = $game_player.character_name.to_s
+                    current_sprite = "boy_walk" if current_sprite == "" || current_sprite == "cazadorow"
+                    $game_variables[993] = current_sprite
+                    _heizo_set_player_sprite.call("cazadorow")
+                    $game_variables[994] = 1
+                    Kernel.pbUpdateVehicle rescue nil
+                    pbSEPlay("PRSFX- Shadow Claw2") rescue nil
+                    pbMessage(_INTL("Heizo: Tómalos."))
+                    pbMessage(_INTL("Heizo: Ahora llevas la marca del clan. Cada ruta te lo agradecerá."))
+                  else
+                    pbMessage(_INTL("Heizo: No tienes suficiente."))
+                    pbMessage(_INTL("Heizo: 100$. El clan no regala sus ropajes."))
+                  end
+                else
+                  pbMessage(_INTL("Heizo: Como quieras. No son para todo el mundo."))
+                end
+              end
+            end # case cat
+          end # loop categorías
+
+          $game_temp.mart_prices = nil
+          if $heizo_following
+            pbMessage(_INTL("Heizo: Negocio cerrado. Sigamos."))
+          else
+            pbMessage(_INTL("Heizo: Buen provecho. Ya sabes dónde encontrarme."))
+          end
+          $game_map.autoplay; return
+
+        elsif cmd == 2 # ACOMPAÑAR / QUEDARSE
+          if $heizo_following
+            pbSEPlay("VozCrisantoSigh") rescue nil
+            pbMessage(_INTL("Heizo: Está bien. Nos vemos en el Centro Pokémon."))
+            
+            # Desactivar mercenario al irse
+            $game_variables[992] = 0
+            pbDeregisterPartner rescue nil
+            
+            # --- INICIAR CORTINA NEGRA ANTES DEL TP ---
+            blink_vp = Viewport.new(0,0,Graphics.width,Graphics.height); blink_vp.z = 999999
+            blink_col = Color.new(0,0,0,0)
+            for j in 0..12 # Aumentamos un poco más la duración del fundido de entrada
+              blink_col.set(0,0,0,j*22)
+              blink_vp.color = blink_col
+              Graphics.update
+              Input.update
+            end
+            
+            # EL MOMENTO DEL TP (con la pantalla totalmente negra)
+            pbRemoveDependency2("HeizoNPC") rescue nil
+            
+            # Re-activar el evento si estamos en el mapa base
+            if $game_map.events[995]
+              ge = $game_map.events[995]
+              ge.instance_variable_set(:@erased, false)
+              ge.refresh rescue nil
+              h_pos = $game_variables[998] || [3, 11, 2]
+              ge.moveto(h_pos[0], h_pos[1])
+              ge.instance_variable_set(:@direction, h_pos[2])
+              $game_player.straighten rescue nil
+            else
+              $heizo_spawned = false
+            end
+            
+            # Un pequeño parpadeo extra en negro puro para asegurar
+            pbWait(5) if defined?(pbWait)
+            
+            # Fundido de salida
+            for j in 0..12
+              blink_col.set(0,0,0,255 - j*22)
+              blink_vp.color = blink_col
+              Graphics.update
+              Input.update
+            end
+            blink_vp.dispose
+            # ------------------------------------------
+            
+            $game_map.autoplay; return
+          else
+            pbMessage(_INTL("Heizo: ¿Quieres mi compañía? Bien."))
+            pbMessage(_INTL("Heizo: Me mantendré al margen en tus combates, pero seguiré vendiéndote mercancía."))
+            begin
+              pbAddDependency2(995, "HeizoNPC", nil)
+            rescue => e
+              pbMessage(_INTL("Heizo: Mmm... parece que no puedo seguirte en las condiciones actuales."))
+            end
+            $game_map.autoplay; return
+          end
+          
+        elsif cmd == 3 # NADA POR AHORA
+          pbMessage(_INTL("Heizo: Estaré aquí conteniendo el aliento. Sin prisa."))
+          $game_map.autoplay; return
+        end
+    end
+  end
+end
+
+# ==============================================================================
+# --- SISTEMA DE LEYENDAS Y EQUIPO DE HEIZO ---
+# ==============================================================================
+
+# Añadir atributo de leyenda a los Pokémon
+class PokeBattle_Pokemon
+  attr_accessor :heizo_legend
+end
+
+# Evaluación de IA mejorada para Heizo (Óptimo)
+def pbHeizoCalculateLeadScore(pkmn, opponent)
+  return -999 if !pkmn || !opponent || pkmn.hp <= 0
+  score = 0
+  
+  # 1. ANALISIS OFENSIVO (¡Priorizar 4x agresivamente!)
+  for move in pkmn.moves
+    next if !move || move.id == 0
+    # Calcular eficacia contra tipos del rival
+    eff = PBTypes.getCombinedEffectiveness(move.type, opponent.type1, opponent.type2) rescue 8
+    
+    if eff > 12 # Súper efectivo (x2 o x4)
+      score += (eff == 32) ? 200 : 80 # Multiplicador bestial para 4x (ej: Planta vs Quagsire)
+      score += 30 if pkmn.hasType?(move.type) # Bonus STAB
+    elsif eff < 8 && eff > 0 # Resistido
+      score -= 30
+    elsif eff == 0 # Inmune
+      score -= 100
+    end
+  end
+
+  # 2. ANALISIS DEFENSIVO (Resistencias e Inmunidades)
+  # ¿Es Heizo inmune a los tipos del rival? (ej: Corviknight vs Tierra)
+  [opponent.type1, opponent.type2].each do |t|
+    next if t.nil? || t < 0
+    res = PBTypes.getCombinedEffectiveness(t, pkmn.type1, pkmn.type2) rescue 8
+    if res == 0;      score += 60 # Inmunidad (Muy útil para leads defensivos como Corviknight)
+    elsif res < 8;    score += 25 # Resistencia
+    elsif res > 12;   score -= 50 # Debilidad crítica (Peligro)
+    end
+  end
+
+  # 3. Factor de Nivel y Salud
+  score += pkmn.level * 2
+  score += (pkmn.hp * 50 / pkmn.totalhp).to_i if pkmn.totalhp > 0
+  
+  return score
+end
+
+# Helper para cambiar ropa (limpio)
+def pbHeizoClanClothesV2
+  ropajes_label = ($game_variables[994] == 1) ? _INTL("Devolver ropajes") : _INTL("Ropajes del Clan")
+  # (Lógica original de ropa simplificada para el menú)
+  if $game_variables[994] == 1
+    # Devolver
+    original = $game_variables[993].to_s
+    original = ($Trainer.female ? "girl_walk" : "boy_walk") if original == "" || original == "cazadorow"
+    $game_player.character_name = original
+    $game_variables[994] = 0
+    pbMessage(_INTL("Heizo: Vuelto a la normalidad."))
+  else
+    # Poner
+    $game_variables[993] = $game_player.character_name
+    $game_player.character_name = "cazadorow"
+    $game_variables[994] = 1
+    pbMessage(_INTL("Heizo: Bienvenido al clan."))
+  end
+end
+
+def pbGetHeizoTeam(max_level)
+  team = []
+  fire_type = getID(PBTypes, :FIRE) rescue 2
+  dragon_type = getID(PBTypes, :DRAGON) rescue 16
+
+  # 1. Corviknight
+  cor = PokeBattle_Pokemon.new(:CORVIKNIGHT, max_level, $Trainer)
+  cor.setNature(getID(PBNatures,:IMPISH)); cor.iv = [31,31,31,31,31,31]; cor.ev = [252, 4, 252, 0, 0, 0]
+  cor.setItem(:LEFTOVERS); cor.setAbility(getID(PBAbilities,:MIRRORARMOR))
+  c_mov = [:ROOST, :IRONDEFENSE, :BRAVEBIRD, :IRONHEAD, :UTURN, :DEFOG, :TAUNT, :DRILLPECK]
+  c_mov.each_with_index { |m, idx| cor.moves[idx] = PBMove.new(getID(PBMoves, m)) rescue nil }; cor.calcStats
+  cor.heizo_legend = "Forjado en las cenizas del Gran Colapso; el único veterano que no huyó cuando las sombras devoraron la ciudad."
+  team.push(cor)
+
+  # 2. Swampert (Mega Visual / Stats Base)
+  swa = PokeBattle_Pokemon.new(:SWAMPERT, max_level, $Trainer)
+  swa.setNature(getID(PBNatures,:ADAMANT)); swa.iv = [31,31,31,31,31,31]; swa.ev = [252, 252, 4, 0, 0, 0]
+  swa.setItem(:EXPERTBELT); swa.setAbility(getID(PBAbilities,:INTIMIDATE))
+  s_mov = [:WATERFALL, :EARTHQUAKE, :ICEPUNCH, :STONEEDGE, :SUPERPOWER, :BRICKBREAK, :YAWN, :STEALTHROCK]
+  s_mov.each_with_index { |m, idx| swa.moves[idx] = PBMove.new(getID(PBMoves, m)) rescue nil }
+  swa.form = 1 # MEGA VISUAL
+  swa.instance_variable_set(:@form_sprite_only_final, true)
+  swa.calcStats # Recalculate to enforce base stats
+  swa.heizo_legend = "Titán de las marismas tóxicas que Heizo rescató. Su fuerza es tan vasta que no necesita despertar su poder para vencer."
+  team.push(swa)
+
+  # 3. Venusaur
+  ven = PokeBattle_Pokemon.new(:VENUSAUR, max_level, $Trainer)
+  ven.setNature(getID(PBNatures,:CALM)); ven.iv = [31,31,31,31,31,31]; ven.ev = [252, 0, 0, 0, 4, 252]
+  ven.setItem(:BIGROOT); ven.setAbility(getID(PBAbilities,:POISONPOINT))
+  v_mov = [:GIGADRAIN, :SLUDGEBOMB, :LEECHSEED, :SPORE, :SYNTHESIS, :SOLARBEAM, :TOXIC, :VENOSHOCK]
+  v_mov.each_with_index { |m, idx| ven.moves[idx] = PBMove.new(getID(PBMoves, m)) rescue nil }; ven.calcStats
+  ven.heizo_legend = "Surgió de la primera semilla tras la devastación. Heizo lo crió entre ruinas, convirtiéndolo en guardián de lo que queda."
+  team.push(ven)
+  # 4. Charizard (Shiny / Mega-Y Visual / Stats Base / Fuego-Dragón + Dragon Boost)
+  cha = PokeBattle_Pokemon.new(:CHARIZARD, max_level, $Trainer)
+  cha.makeShiny
+  cha.setNature(getID(PBNatures,:RASH)); cha.iv = [31,31,31,31,31,31]; cha.ev = [0, 252, 0, 252, 0, 6]
+  cha.setItem(:DRAGONFANG); cha.setAbility(getID(PBAbilities,:ADAPTABILITY))
+  cha_mov = [:FIREFANG, :FLAMETHROWER, :DRAGONCLAW, :DRAGONPULSE, :ROOST, :CRUNCH, :DRAGONDANCE, :AIRSLASH]
+  cha_mov.each_with_index { |m, idx| cha.moves[idx] = PBMove.new(getID(PBMoves, m)) rescue nil }
+  
+  cha.form = 2 # MEGA Y VISUAL (Stats Base)
+  cha.instance_variable_set(:@form_sprite_only_final, true)
+  cha.calcStats # Recalculate to enforce base stats
+  
+  # Forzar tipo Fuego/Dragón
+  cha.instance_variable_set(:@type1, fire_type); cha.instance_variable_set(:@type2, dragon_type)
+  cha.instance_variable_set(:@custom_type1, fire_type); cha.instance_variable_set(:@custom_type2, dragon_type)
+  cha.heizo_legend = "Descendió de cielos rojos cuando el mundo ardió. Heizo lo domó compartiendo su fuego e hidromiel bajo una lluvia de ceniza."
+  team.push(cha)
+
+  # 5. Gengar
+  gen = PokeBattle_Pokemon.new(:GENGAR, max_level, $Trainer)
+  gen.setNature(getID(PBNatures,:TIMID)); gen.iv = [31,31,31,31,31,31]; gen.ev = [4, 0, 0, 252, 252, 0]
+  gen.setItem(:AIRBALLOON); gen.setAbility(getID(PBAbilities,:PRANKSTER))
+  g_mov = [:SHADOWBALL, :SLUDGEBOMB, :DESTINYBOND, :DARKPULSE, :HYPNOSIS, :DREAMEATER, :TOXIC, :NIGHTMARE]
+  g_mov.each_with_index { |m, idx| gen.moves[idx] = PBMove.new(getID(PBMoves, m)) rescue nil }; gen.calcStats
+  gen.heizo_legend = "Sombra huérfana del Eclipse Eterno. Ahora flota sobre un globo de helio, canalizando bromas pesadas de la ultratumba para sumir a sus rivales en un sueño eterno."
+  team.push(gen)
+
+  # 6. Zeraora
+  zer = PokeBattle_Pokemon.new(:ZERAORA, max_level, $Trainer)
+  zer.setNature(getID(PBNatures,:JOLLY)); zer.iv = [31,31,31,31,31,31]; zer.ev = [4, 252, 0, 252, 0, 0]
+  zer.setItem(:SHELLBELL); zer.setAbility(getID(PBAbilities,:SERENEGRACE))
+  z_mov = [:THUNDERPUNCH, :SPARK, :WILDCHARGE, :VOLTSWITCH, :CLOSECOMBAT, :DRAINPUNCH, :BLAZEKICK, :FAKEOUT]
+  z_mov.each_with_index { |m, idx| zer.moves[idx] = PBMove.new(getID(PBMoves, m)) rescue nil }; zer.calcStats
+  zer.heizo_legend = "El rayo errante de la Montaña Blanca. No es un siervo, es un aliado unido a Heizo por una promesa inquebrantable."
+  team.push(zer)
+
+  return team
+end
+
+# Parche para mostrar las Leyendas en el Resumen
+def pbApplyHeizoSummaryPatch
+  return if !defined?(PokemonSummaryScene)
+  return if PokemonSummaryScene.method_defined?(:drawPageTwo_heizo_legend)
+  
+  PokemonSummaryScene.class_eval do
+    alias drawPageTwo_heizo_legend drawPageTwo
+    def drawPageTwo(pokemon)
+      drawPageTwo_heizo_legend(pokemon)
+      return if !pokemon.respond_to?(:heizo_legend) || !pokemon.heizo_legend
+      
+      overlay = @sprites["overlay"].bitmap
+      # Limpiar el área de notas de entrenador para que el texto épico de Heizo no se superponga
+      overlay.clear_rect(232, 74, 280, 260) rescue nil
+      
+      # Escribir la leyenda
+      epic_text = "<c3=F83820,E09890>Origen:\n<c3=404040,B0B0B0>" + pokemon.heizo_legend
+      drawFormattedTextEx(overlay, 232, 78, 276, epic_text)
+    end
+  end
+end
+
+# ==============================================================================
+# --- CAJA DE REFERENCIA DE HEIZO (PC CAJA 30) ---
+# ==============================================================================
+
+# Parche robusto para la interfaz del PC (Bloquea mover, pero permite ver ataques/datos)
+def pbApplyHeizoPC_Lockdown
+  return if !defined?(PokemonStorageScreen)
+  return if PokemonStorageScreen.method_defined?(:pbStartScreen_heizo_lock)
+  
+  begin
+    Object.const_get(:PokemonStorageScreen).class_eval do
+      # 1. Gancho de inicio
+      alias pbStartScreen_heizo_lock pbStartScreen
+      def pbStartScreen(command)
+        pbSetupHeizoReferenceBox(@storage)
+        pbStartScreen_heizo_lock(command)
+      end
+
+      # 2. Bloqueo de Retirada (Modificado: Consultar datos en lugar de solo bloquear)
+      alias pbWithdraw_heizo_lock pbWithdraw
+      def pbWithdraw(selected, heldpoke)
+        if selected && selected[0] == 29
+          pokemon = @storage[selected[0], selected[1]]
+          pbSummary(selected, nil) if pokemon
+          return false
+        end
+        pbWithdraw_heizo_lock(selected, heldpoke)
+      end
+
+      # 3. Bloqueo de Mover (Modificado: Abrir Datos en lugar de error al hacer clic)
+      alias pbHold_heizo_lock pbHold
+      def pbHold(selected)
+        if selected && selected[0] == 29
+          pokemon = @storage[selected[0], selected[1]]
+          pbSummary(selected, nil) if pokemon
+          return
+        end
+        pbHold_heizo_lock(selected)
+      end
+
+      # 4. Bloqueo de Intercambio
+      alias pbSwap_heizo_lock pbSwap
+      def pbSwap(selected)
+        if selected && selected[0] == 29
+          pbDisplay(_INTL("Heizo: Solo para referencia. No puedes mover mis Pokémon."))
+          return false
+        end
+        pbSwap_heizo_lock(selected)
+      end
+
+      # 5. Bloqueo de Depósito
+      alias pbPlace_heizo_lock pbPlace
+      def pbPlace(selected)
+        if selected && selected[0] == 29
+          pbDisplay(_INTL("Heizo: Caja bloqueada. No puedes dejar Pokémon aquí."))
+          return
+        end
+        pbPlace_heizo_lock(selected)
+      end
+
+      # 3. Menú contextual optimizado (Datos visibles para ver ataques)
+      alias pbShowCommands_heizo_lock pbShowCommands
+      def pbShowCommands(msg, commands)
+        if @storage && @storage.currentBox == 29
+          new_cmds = []
+          # Permitirmos "Datos", variantes de "Salir/Cerrar", y comandos de la Caja (Saltar, Paisaje, Nombre)
+          allowed = ["datos", "summary", "información", "informacion", "salir", "cancel", "cerrar", "saltar", "paisaje", "nombre"]
+          for c in commands
+            clean_c = c.gsub(/<.*?>/, "").strip rescue c
+            new_cmds << c if allowed.any? { |a| clean_c.downcase.include?(a) }
+          end
+          return pbShowCommands_heizo_lock(msg, new_cmds.empty? ? commands : new_cmds)
+        end
+        pbShowCommands_heizo_lock(msg, commands)
+      end
+
+      # 7. Hook de Datos (Mostrar resumen directamente)
+      alias pbSummary_heizo_lock pbSummary
+      def pbSummary(selected, pokemon)
+        pbSummary_heizo_lock(selected, pokemon)
+      end
+    end
+  rescue => e
+    pbPrint("Error en Heizo PC Patch: #{e.message}") if $DEBUG
+  end
+end
+
+# Generador del equipo en la Caja 30
+def pbSetupHeizoReferenceBox(storage)
+  return if !storage
+  pbApplyHeizoPC_Lockdown
+  pbApplyHeizoSummaryPatch
+  
+  box_index = 29 
+  # Set default name and background only if it hasn't been customized yet
+  if storage[box_index].name == "Caja 30" || storage[box_index].name == "Box 30" || storage[box_index].name == ""
+    storage[box_index].name = "EQUIPO HEIZO"
+    storage[box_index].background = "box17"
+  end
+  # Si ya tenía el nombre puesto pero el fondo sigue siendo el por defecto (box5), lo forzamos a Alma una vez.
+  if storage[box_index].name == "EQUIPO HEIZO" && storage[box_index].background == "box5"
+    storage[box_index].background = "box17"
+  end
+  
+  max_level = PBExperience::MAXLEVEL
+  
+  heizo_party = pbGetHeizoTeam(max_level)
+  heizo_party.each_with_index do |pkmn, i|
+    storage[box_index, i] = pkmn
+  end
+end
+
+# ===============================================================================
+# INTERFAZ GRÁFICA DEL MERCADO NEGRO DE HEIZO
+# ===============================================================================
+
+module Kernel
+  def self.pbHeizoShopCategoryMenu
+    # DEFINICIÓN DINÁMICA: Evita NameError al arrancar el juego
+    # (Window_CommandPokemon no existe hasta que cargan los scripts base)
+    if !defined?(Window_HeizoShopCategory)
+      cls = Class.new(Window_CommandPokemon) do
+        def initialize(commands, x, y)
+          @icons = [
+            "Graphics/Icons/item275", # Poke Ball
+            "Graphics/Icons/item217", # Poción
+            "Graphics/Icons/item033", # Piedra Fuego (Materiales)
+            "Graphics/Icons/item212", # Choice Band (Combate)
+            "Graphics/Icons/item245", # Tabla Llama (Tipo)
+            "Graphics/Icons/item513", # Ropajes (Mochila)
+            nil                       # Salir
+          ]
+          super(commands, 330)
+          self.x = x
+          self.y = y
+          self.z = 99999
+        end
+
+        def drawItem(index, count, rect)
+          icon_path = @icons[index]
+          if icon_path
+            begin
+              bmp_path = pbBitmapName(icon_path)
+              if bmp_path
+                bitmap_full = AnimatedBitmap.new(bmp_path)
+                bitmap = bitmap_full.bitmap
+                dest_rect = Rect.new(rect.x + 8, rect.y + (rect.height - 24) / 2, 24, 24)
+                src_rect = Rect.new(0, 0, bitmap.width, bitmap.height)
+                self.contents.stretch_blt(dest_rect, bitmap, src_rect)
+                bitmap_full.dispose
+              end
+            rescue
+            end
+          end
+          text_rect = Rect.new(rect.x + 44, rect.y, rect.width - 44, rect.height)
+          super(index, count, text_rect)
+        end
+      end
+      Object.const_set(:Window_HeizoShopCategory, cls)
+    end
+
+    ropajes_label = ($game_variables[994] == 1) ? _INTL("Devolver ropajes") : _INTL("Ropajes del Clan")
+    commands = [
+      _INTL("Poke Balls"),
+      _INTL("Bayas y Curacion"),
+      _INTL("Materiales y Evolucion"),
+      _INTL("Objetos de Combate"),
+      _INTL("Potenciadores de Tipo"),
+      ropajes_label,
+      _INTL("Salir")
+    ]
+    
+    # Viewport para el fondo oscurecido "Premium"
+    viewport = Viewport.new(0, 0, Graphics.width, Graphics.height)
+    viewport.z = 99998
+    
+    # Sombreado de fondo
+    bg_sprite = Sprite.new(viewport)
+    bg_sprite.bitmap = Bitmap.new(Graphics.width, Graphics.height)
+    bg_sprite.bitmap.fill_rect(0, 0, Graphics.width, Graphics.height, Color.new(0, 0, 0, 160))
+    
+    # Ventana de selección
+    w = 330
+    h = commands.length * 32 + 32
+    x = (Graphics.width - w) / 2
+    y = (Graphics.height - h) / 2
+    
+    window = Window_HeizoShopCategory.new(commands, x, y)
+    window.viewport = viewport
+    
+    # Animación rápida de entrada
+    window.opacity = 0
+    window.contents_opacity = 0
+    for i in 0..6
+      window.opacity += 40
+      window.contents_opacity += 40
+      Graphics.update
+    end
+    
+    pbSEPlay("GUI menu open")
+    
+    result = -1
+    loop do
+      Graphics.update
+      Input.update
+      window.update
+      
+      if Input.trigger?(Input::B)
+        pbSEPlay("GUI menu close")
+        result = 6 # Salir
+        break
+      end
+      
+      if Input.trigger?(Input::C)
+        pbSEPlay("GUI menu selection")
+        result = window.index
+        break
+      end
+    end
+    
+    # Limpieza
+    window.dispose
+    bg_sprite.bitmap.dispose
+    bg_sprite.dispose
+    viewport.dispose
+    
+    return result
+  end
+end
+
+
+
+
+
