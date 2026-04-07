@@ -88,12 +88,40 @@ module Kernel
         othertrainer = PokeBattle_Trainer.new(p_info[1], p_info[0])
         othertrainer.id = p_info[2]; othertrainer.party = p_info[3]
         
+        # 3. GENERAR RIVALES PRIMERO (PARA ESCANEAR AMENAZAS)
+        wild_p = [pbGenerateWildPokemon(s1, level), pbGenerateWildPokemon(s2, level)]
+        
+        # 4. ELECCIÓN DE LEAD INTELIGENTE (PRE-COMBATE)
+        if othertrainer.party && othertrainer.party.length > 0 && wild_p.length > 0
+          # Calcular puntuaciones contra el primer rival (o ambos)
+          leads = othertrainer.party[0..5] rescue []
+          scored_leads = []
+          leads.each_with_index do |pkmn, idx|
+            next if !pkmn || pkmn.hp <= 0
+            score = 0
+            wild_p.each { |w| score += pbHeizoCalculateLeadScore(pkmn, w) if w }
+            scored_leads.push([idx, score])
+          end
+          scored_leads.sort! { |a, b| b[1] <=> a[1] }
+          
+          if scored_leads.length > 0
+            new_heizo_party = []
+            best_idx = scored_leads[0][0]
+            new_heizo_party.push(othertrainer.party[best_idx])
+            othertrainer.party.each_with_index do |p, i|
+              new_heizo_party.push(p) if i != best_idx
+            end
+            othertrainer.party = new_heizo_party
+          end
+        end
+        
         # MODO HEIZO FULL (12 Pokémon: 6 Jugador + 6 Heizo)
         playerparty = $Trainer.party + othertrainer.party
         
-        wild_p = [pbGenerateWildPokemon(s1, level), pbGenerateWildPokemon(s2, level)]
+        # --- ACTIVACIÓN DE HEIZO BATTLE (IA DE JEFE PARA EL SEGUIDOR) ---
+        battle = HeizoBattle.new(scene, playerparty, wild_p, [$Trainer, othertrainer], nil)
+        battle.instance_variable_set(:@heizo_battle, true) # Activar IA Estratega y hooks de diálogo
         
-        battle = PokeBattle_Battle.new(scene, playerparty, wild_p, [$Trainer, othertrainer], nil)
         battle.fullparty1 = true # ACTIVAR SOPORTE PARA +6
         battle.doublebattle = true; battle.internalbattle = true
         pbPrepareBattle(battle)
@@ -3754,6 +3782,62 @@ def pbHeizoFollowing?
   return $PokemonTemp.dependentEvents.getEventByName("HeizoNPC") != nil
 end
 
+# Registra al evento estático de Heizo (ID 995) en el sistema DependentEvents
+# para que siga al jugador por el mapa.
+def pbStartHeizoFollowing
+  return if !$PokemonTemp || !$PokemonTemp.dependentEvents
+  return if pbHeizoFollowing? # Ya está siguiendo, nada que hacer
+
+  # Obtener o crear el evento estático en el mapa actual
+  heizo_event = $game_map.events[995] rescue nil
+
+  if !heizo_event
+    # Si aún no existe (mapa sin spawn), lo creamos junto al jugador
+    begin
+      px = $game_player.x
+      py = $game_player.y + 1
+      re = RPG::Event.new(px, py)
+      re.id = 995
+      re.name = "HeizoNPC"
+      page = RPG::Event::Page.new
+      page.graphic.character_name = "cazadorow"
+      page.graphic.direction = 2
+      page.graphic.opacity = 255
+      page.trigger = 0
+      page.list = [
+        RPG::EventCommand.new(355, 0, ["Kernel.pbHeizoDialog"]),
+        RPG::EventCommand.new(0, 0, [])
+      ]
+      re.pages = [page]
+      heizo_event = Game_Event.new($game_map.map_id, re, $game_map)
+      $game_map.events[995] = heizo_event
+      heizo_event.refresh
+    rescue
+      return
+    end
+  end
+
+  begin
+    # addEvent registra en $PokemonGlobal.dependentEvents y llama a event.erase
+    $PokemonTemp.dependentEvents.addEvent(heizo_event, "HeizoNPC", nil)
+    # Limpiar el slot estático para evitar duplicado visual
+    $game_map.events.delete(995) rescue nil
+    $heizo_spawned = false
+  rescue
+  end
+end
+
+# Elimina a Heizo del sistema DependentEvents y reactiva el spawn estático.
+def pbStopHeizoFollowing
+  return if !$PokemonTemp || !$PokemonTemp.dependentEvents
+  begin
+    $PokemonTemp.dependentEvents.removeEventByName("HeizoNPC")
+    $game_map.events.delete(995) rescue nil
+    $heizo_spawned = false # Permitir re-spawn estático en el próximo frame
+  rescue
+  end
+end
+
 # Heizo NPC - Integrado directamente
 $heizo_maps = [10, 18, 30, 45, 60, 82, 104, 114, 134, 142, 164]
 $heizo_last_map = 0
@@ -4040,45 +4124,61 @@ module Kernel
           return score
         end
 
-        # Selección de Lead Inteligente (Soportar Individual y Doble)
-        def pbStartBattle
-          my_party = pbParty(1)
-          player_party = pbParty(0).select { |p| p && p.hp > 0 && !p.isEgg? }
-          
-          if player_party.length > 0
-            candidates = []
-            num_leads = @doublebattle ? 2 : 1
-            player_leads = player_party[0...num_leads]
-            
-            my_party.each_with_index do |pkmn, i|
-              next if !pkmn || pkmn.hp <= 0 || pkmn.isEgg?
-              # Puntuación media contra todos los líderes del jugador
-              total_score = 0
-              player_leads.each { |pl| total_score += pbHeizoScorePokemon(pkmn, pl) }
-              avg_score = total_score / player_leads.length
-              candidates.push([i, avg_score])
+        # Selección de Lead Inteligente (Soportar Individual, Doble, Jefe o Compañero)
+        def pbStartBattle(*args)
+          # Detectar en qué bando y qué índice de entrenador está Heizo
+          heizo_side = -1; heizo_t_idx = -1
+          for side in 0..1
+            for i in 0...(@trainers[side].length rescue 0)
+              if @trainers[side][i] && @trainers[side][i].name == "Heizo"
+                heizo_side = side; heizo_t_idx = i; break
+              end
             end
+            break if heizo_side >= 0
+          end
+
+          if heizo_side >= 0
+            # Mi equipo
+            my_party = pbParty(heizo_side)
+            # Identificar oponentes (el bando contrario)
+            opp_side = 1 - heizo_side
+            opp_party = pbParty(opp_side).select { |p| p && p.hp > 0 && !p.isEgg? }
             
-            candidates.sort! { |a, b| b[1] <=> a[1] }
-            
-            # Reposicionar a los mejores candidatos al frente
-            if candidates.length > 0
-              new_party = []
-              top_indices = candidates[0...num_leads].map { |c| c[0] }
+            if opp_party.length > 0
+              candidates = []
+              num_leads = @doublebattle ? 2 : 1
+              opp_leads = opp_party[0...num_leads]
               
-              # Meter a los mejores primero
-              top_indices.each { |idx| new_party.push(my_party[idx]) }
+              # Ajuste: Si Heizo es compañero (side 0), sus Pokémon suelen estar tras los del jugador (offset 6)
+              # Si es el oponente principal (side 1), el offset es 0.
+              start_idx = (heizo_side == 0 && @trainers[0].length > 1) ? 6 : 0
+              end_idx = start_idx + 5
               
-              # Rellenar con los demás
-              my_party.each_with_index do |p, idx|
-                new_party.push(p) unless top_indices.include?(idx)
+              sub_party = my_party[start_idx..end_idx] || []
+              
+              sub_party.each_with_index do |pkmn, i|
+                next if !pkmn || pkmn.hp <= 0 || pkmn.isEgg?
+                t_score = 0
+                opp_leads.each { |ol| t_score += pbHeizoScorePokemon(pkmn, ol) }
+                candidates.push([i, t_score / opp_leads.length])
               end
               
-              # Aplicar cambios al equipo de Heizo
-              my_party.replace(new_party)
+              candidates.sort! { |a, b| b[1] <=> a[1] }
+              
+              if candidates.length > 0
+                new_sub = []
+                tops = candidates[0...num_leads].map { |c| c[0] }
+                tops.each { |idx| new_sub.push(sub_party[idx]) }
+                sub_party.each_with_index { |p, idx| new_sub.push(p) unless tops.include?(idx) }
+                
+                # Reinyectar en la party principal para que el juego saque al mejor lead
+                for i in 0..5
+                  my_party[start_idx + i] = new_sub[i] if new_sub[i]
+                end
+              end
             end
           end
-          super
+          super(*args)
         end
 
         # Cambio por Derrota con Factor de Caos
@@ -4635,13 +4735,65 @@ module Kernel
           end
         end
 
-        # REDIRECCIÓN DEL MENÚ PARA EVITAR DUPLICAR CÓDIGO
-        if main_choices[cmd] == _INTL("Mercado Negro") || cmd == 1 # Compatibilidad estática
-          # Lógica Mercado Negro (Línea 4412+)
-        elsif main_choices[cmd] == _INTL("Cambiar Ropa")
-          # Lógica Ropa (Parte de Mercado Negro en el código original)
-        elsif main_choices[cmd] == _INTL("Vuelve al Centro Pokémon") || cmd == 2
-          # Lógica Despedida (Línea 4628+)
+        # REDIRECCIÓN DEL MENÚ SEGURA (ROBUSTA POR ETIQUETA)
+        choice_text = main_choices[cmd]
+        
+        if choice_text == _INTL("Mercado Negro") || cmd == 1 # Soporte de tienda
+          # Lógica Mercado Negro (Sistema de Categorías)
+          $game_temp.mart_prices = {}
+          _heizo_open_shop = lambda do |syms, half_price_all, special_prices|
+            items = []
+            syms.each do |sym|
+              item_id = getID(PBItems, sym) rescue nil
+              next if !item_id || item_id <= 0
+              next if pbIsImportantItem?(item_id) && $PokemonBag.pbQuantity(item_id) > 0
+              items.push(item_id)
+              base = (pbGetPrice(item_id) rescue 200).to_i
+              base = 200 if base <= 0
+              price = special_prices[sym] || (half_price_all ? [(base / 2).to_i, 10].max : base)
+              $game_temp.mart_prices[item_id] = [price, -1]
+            end
+            if !items.empty?
+              scene = PokemonMartScene.new; screen = PokemonMartScreen.new(scene, items); screen.pbBuyScreen
+            end
+          end
+
+          loop do
+            pbBGMPlay("Acertijos")
+            cat = Kernel.pbHeizoShopCategoryMenu
+            break if cat == 6
+            case cat
+            when 0 # BALLS
+              _heizo_open_shop.call([:POKEBALL, :GREATBALL, :ULTRABALL, :NETBALL, :DIVEBALL, :NESTBALL, :REPEATBALL, :TIMERBALL, :LUXURYBALL, :DUSKBALL, :HEALBALL, :QUICKBALL, :FASTBALL, :LEVELBALL, :LUREBALL, :HEAVYBALL, :LOVEBALL, :FRIENDBALL, :MOONBALL, :POKEBALLCASERA, :SUPERBALLCASERA, :ULTRABALLCASERA, :MASTERBALL], true, { :MASTERBALL => 50000 })
+            when 1 # CURA
+              _heizo_open_shop.call([:POTION, :SUPERPOTION, :HYPERPOTION, :MAXPOTION, :FULLRESTORE, :REVIVE, :MAXREVIVE, :FULLHEAL, :ETHER, :MAXETHER, :ELIXIR, :MAXELIXIR, :ANTIDOTE, :BURNHEAL, :PARLYZHEAL, :ICEHEAL, :AWAKENING, :SITRUSBERRY, :ORANBERRY, :LUMBERRY, :LEPPABERRY, :CHESTOBERRY, :PECHABERRY, :RAWSTBERRY, :ASPEARBERRY, :CHERIBERRY, :PERSIMBERRY, :FIGYBERRY, :WIKIBERRY, :MAGOBERRY, :AGUAVBERRY, :IAPAPABERRY, :LIECHIBERRY, :GANLONBERRY, :SALACBERRY, :PETAYABERRY, :APICOTBERRY, :CUSTAPBERRY, :LANSATBERRY, :STARFBERRY, :MICLEBERRY, :ENIGMABERRY], true, {})
+            when 2 # MATS
+              _heizo_open_shop.call([:REPEL, :SUPERREPEL, :MAXREPEL, :FIRESTONE, :WATERSTONE, :THUNDERSTONE, :LEAFSTONE, :MOONSTONE, :SUNSTONE, :DUSKSTONE, :DAWNSTONE, :SHINYSTONE, :EVERSTONE, :DRAGONSCALE, :FRASCOCRISTALINO, :MADERA, :GUIJARRO, :TROZODEHIERRO, :POLVODEHUESO, :ESPECIASEXOTICAS, :POLVOEXPLOSIVO, :HPUP, :PROTEIN, :IRON, :CALCIUM, :ZINC, :CARBOS, :PPUP, :PPMAX, :LUCKYEGG, :EXPSHARE, :AMULETCOIN, :SHINYZADOR], true, { :SHINYZADOR => 5000 })
+            when 3 # COMBATE
+              _heizo_open_shop.call([:LEFTOVERS, :BLACKSLUDGE, :SHELLBELL, :BIGROOT, :LIFEORB, :EXPERTBELT, :MUSCLEBAND, :WISEGLASSES, :CHOICEBAND, :CHOICESPECS, :CHOICESCARF, :FOCUSSASH, :FOCUSBAND, :WHITEHERB, :POWERHERB, :MENTALHERB, :AIRBALLOON, :ROCKYHELMET, :EJECTBUTTON, :REDCARD, :EVIOLITE, :QUICKCLAW, :RAZORCLAW, :SCOPELENS, :WIDELENS, :ZOOMLENS, :BRIGHTPOWDER, :HEATROCK, :DAMPROCK, :SMOOTHROCK, :ICYROCK, :LIGHTCLAY, :FLAMEORB, :TOXICORB, :DESTINYKNOT, :KINGSROCK, :RAZORFANG, :METRONOME, :GRIPCLAW, :BINDINGBAND, :FLOATSTONE, :ABSORBBULB, :CELLBATTERY, :SHEDSHELL, :SMOKEBALL, :IRONBALL, :RINGTARGET, :LAGGINGTAIL], true, {})
+            when 4 # TIPOS
+              _heizo_open_shop.call([:FLAMEPLATE, :SPLASHPLATE, :ZAPPLATE, :MEADOWPLATE, :ICICLEPLATE, :FISTPLATE, :TOXICPLATE, :EARTHPLATE, :SKYPLATE, :MINDPLATE, :INSECTPLATE, :STONEPLATE, :SPOOKYPLATE, :DRACOPLATE, :DREADPLATE, :IRONPLATE, :CHARCOAL, :MYSTICWATER, :MAGNET, :MIRACLESEED, :NEVERMELTICE, :BLACKBELT, :POISONBARB, :SOFTSAND, :SHARPBEAK, :TWISTEDSPOON, :SILVERPOWDER, :HARDSTONE, :SPELLTAG, :DRAGONFANG, :BLACKGLASSES, :METALCOAT, :SILKSCARF, :FIREGEM, :WATERGEM, :ELECTRICGEM, :GRASSGEM, :ICEGEM, :FIGHTINGGEM, :POISONGEM, :GROUNDGEM, :FLYINGGEM, :PSYCHICGEM, :BUGGEM, :ROCKGEM, :GHOSTGEM, :DRAGONGEM, :DARKGEM, :STEELGEM, :NORMALGEM, :SEAINCENSE, :WAVEINCENSE, :ROSEINCENSE, :ODDINCENSE, :ROCKINCENSE, :LAXINCENSE, :FULLINCENSE], true, {})
+            when 5 # ROPA
+              pbHeizoClanClothesV2 rescue nil
+            end
+          end
+          $game_map.autoplay; return
+
+        elsif choice_text == _INTL("Cambiar Ropa")
+          pbHeizoClanClothesV2 rescue nil
+          $game_map.autoplay; return
+
+        elsif choice_text == _INTL("Vuelve al Centro Pokémon") || choice_text == _INTL("Acompáñame") || (cmd == 2 && !$heizo_following)
+          # Lógica Despedida/Seguimiento
+          if pbHeizoFollowing?
+            pbMessage(_INTL("Heizo: Bien. Volveré a por más hidromiel. Cuídate."))
+            pbStopHeizoFollowing rescue nil
+            pbWait(10); spawn_heizo_final rescue nil
+          else
+            pbMessage(_INTL("Heizo: Bien. Vamos a ver de qué pasta estás hecho."))
+            pbStartHeizoFollowing rescue nil
+          end
+          $game_map.autoplay; return
         end
 
         if cmd == 0 && !$heizo_following # REPETIR COMBATE
@@ -5022,7 +5174,65 @@ class PokeBattle_Pokemon
   attr_accessor :heizo_legend
 end
 
-# Generador centralizado del equipo
+# Evaluación de IA mejorada para Heizo (Óptimo)
+def pbHeizoCalculateLeadScore(pkmn, opponent)
+  return -999 if !pkmn || !opponent || pkmn.hp <= 0
+  score = 0
+  
+  # 1. ANALISIS OFENSIVO (¡Priorizar 4x agresivamente!)
+  for move in pkmn.moves
+    next if !move || move.id == 0
+    # Calcular eficacia contra tipos del rival
+    eff = PBTypes.getCombinedEffectiveness(move.type, opponent.type1, opponent.type2) rescue 8
+    
+    if eff > 12 # Súper efectivo (x2 o x4)
+      score += (eff == 32) ? 200 : 80 # Multiplicador bestial para 4x (ej: Planta vs Quagsire)
+      score += 30 if pkmn.hasType?(move.type) # Bonus STAB
+    elsif eff < 8 && eff > 0 # Resistido
+      score -= 30
+    elsif eff == 0 # Inmune
+      score -= 100
+    end
+  end
+
+  # 2. ANALISIS DEFENSIVO (Resistencias e Inmunidades)
+  # ¿Es Heizo inmune a los tipos del rival? (ej: Corviknight vs Tierra)
+  [opponent.type1, opponent.type2].each do |t|
+    next if t.nil? || t < 0
+    res = PBTypes.getCombinedEffectiveness(t, pkmn.type1, pkmn.type2) rescue 8
+    if res == 0;      score += 60 # Inmunidad (Muy útil para leads defensivos como Corviknight)
+    elsif res < 8;    score += 25 # Resistencia
+    elsif res > 12;   score -= 50 # Debilidad crítica (Peligro)
+    end
+  end
+
+  # 3. Factor de Nivel y Salud
+  score += pkmn.level * 2
+  score += (pkmn.hp * 50 / pkmn.totalhp).to_i if pkmn.totalhp > 0
+  
+  return score
+end
+
+# Helper para cambiar ropa (limpio)
+def pbHeizoClanClothesV2
+  ropajes_label = ($game_variables[994] == 1) ? _INTL("Devolver ropajes") : _INTL("Ropajes del Clan")
+  # (Lógica original de ropa simplificada para el menú)
+  if $game_variables[994] == 1
+    # Devolver
+    original = $game_variables[993].to_s
+    original = ($Trainer.female ? "girl_walk" : "boy_walk") if original == "" || original == "cazadorow"
+    $game_player.character_name = original
+    $game_variables[994] = 0
+    pbMessage(_INTL("Heizo: Vuelto a la normalidad."))
+  else
+    # Poner
+    $game_variables[993] = $game_player.character_name
+    $game_player.character_name = "cazadorow"
+    $game_variables[994] = 1
+    pbMessage(_INTL("Heizo: Bienvenido al clan."))
+  end
+end
+
 def pbGetHeizoTeam(max_level)
   team = []
   fire_type = getID(PBTypes, :FIRE) rescue 2
