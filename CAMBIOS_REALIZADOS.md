@@ -120,3 +120,4 @@ He integrado un nuevo encuentro especial como guiño al desarrollo del juego:
 
 ---
 *He implementado todos estos cambios mediante inyecciones dinámicas en `preload.rb`, asegurando que el contenido sea compatible con cualquier versión del juego base sin corromper los scripts originales.*
+
