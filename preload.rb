@@ -2511,6 +2511,7 @@ module Graphics
               cw.battler = battler
               $_fight_menu_battler = battler # Soporte para eficacia visual
               $_fight_menu_battle = @battle   # Soporte para eficacia visual
+              $_fight_menu_scene = self       # Referencia dinamica para dobles
               lastIndex = @lastmove[index]
               # Asegurar que empezamos en la página correcta si el último índice fue > 3
               if lastIndex >= 4 && lastIndex < 8
@@ -2821,9 +2822,26 @@ module Graphics
                 self.bitmap.font.size = old_size
               end
               
-              # --- LÓGICA DE EFECTIVIDAD (Cálculos de botones) ---
+              # --- LOGICA DE EFECTIVIDAD (Calculos de botones) ---
               return if !$_fight_menu_battler || !$_fight_menu_battle
               attacker = $_fight_menu_battler; battle = $_fight_menu_battle
+              
+              # Detectar objetivo actual mirando sprites de la escena
+              target_battler = nil
+              begin
+                if defined?($_fight_menu_scene) && $_fight_menu_scene && $_fight_menu_scene.respond_to?(:sprites)
+                  for j in 0...4
+                    sp = $_fight_menu_scene.sprites["battler#{j}"] rescue nil
+                    if sp && sp.respond_to?(:selected) && sp.selected
+                      b = battle.battlers[j] rescue nil
+                      target_battler = b if b && !b.isFainted? && b.pbIsOpposing?(attacker.index)
+                      break
+                    end
+                  end
+                end
+              rescue
+                target_battler = nil
+              end
               
               opponents = []
               for i in 0...4
@@ -2841,125 +2859,100 @@ module Graphics
                 y += UPPERGAP
                 
                 target = move.target
-                next if target == PBTargets::User || target == PBTargets::UserSide || 
-                        target == PBTargets::Partner || target == PBTargets::UserOrPartner || 
+                next if target == PBTargets::User || target == PBTargets::UserSide ||
+                        target == PBTargets::Partner || target == PBTargets::UserOrPartner ||
                         target == PBTargets::NoTarget
                         
                 best_mod = -1
                 worst_mod = 999
                 is_leech_seed_immune = false
                 
-                for opp in opponents
-                  real_type = move.pbType(move.type, attacker, opp)
-                  mod = move.pbTypeModifier(real_type, attacker, opp)
-                  
-                  best_mod = mod if mod > best_mod
-                  worst_mod = mod if mod < worst_mod
-                  
-                if move.function == 0xDC && opp.pbHasType?(:GRASS)
-                  is_leech_seed_immune = true
-                end
-              end
-              
-              has_stab = attacker.pbHasType?(move.type)
-              
-              str = ""
-              curtain_text = ""
-              color = Color.new(255,255,255)
-              
-              if move.pbIsStatus?
-                if worst_mod == 0 || is_leech_seed_immune
-                  str = "(X)"
-                  curtain_text = "INMUNE"
-                  color = Color.new(200, 200, 200)
+                if target_battler
+                  real_type = move.pbType(move.type, attacker, target_battler)
+                  best_mod = move.pbTypeModifier(real_type, attacker, target_battler)
+                  worst_mod = best_mod
+                  if move.function == 0xDC && target_battler.pbHasType?(:GRASS)
+                    is_leech_seed_immune = true
+                  end
                 else
-                  next
+                  for opp in opponents
+                    real_type = move.pbType(move.type, attacker, opp)
+                    mod = move.pbTypeModifier(real_type, attacker, opp)
+                    best_mod = mod if mod > best_mod
+                    worst_mod = mod if mod < worst_mod
+                    if move.function == 0xDC && opp.pbHasType?(:GRASS)
+                      is_leech_seed_immune = true
+                    end
+                  end
                 end
-              else
-                if best_mod > 8
-                  str = "(+)"
-                  curtain_text = "SÚPER EFICAZ"
-                  color = Color.new(120, 255, 120) # Verde pastel
-                elsif best_mod == 0
-                  str = "(X)"
-                  curtain_text = "INMUNE"
-                  color = Color.new(200, 200, 200) # Gris
-                elsif best_mod < 8
-                  str = "(-)"
-                  curtain_text = "POCO EFICAZ"
-                  color = Color.new(255, 150, 150) # Rojo claro
+              
+                has_stab = attacker.pbHasType?(move.type)
+                str = ""
+                curtain_text = ""
+                color = Color.new(255,255,255)
+                
+                if move.pbIsStatus?
+                  if worst_mod == 0 || is_leech_seed_immune
+                    str = "(X)"
+                    curtain_text = "INMUNE"
+                    color = Color.new(200, 200, 200)
+                  else
+                    next
+                  end
                 else
-                  # Aunque el ataque sea x1 (neutro), si tiene STAB no hacemos 'next' 
-                  # para poder mostrarle el pulso de caja, aunque no tenga texto especial.
+                  if best_mod > 8
+                    str = (worst_mod < 8 && !target_battler) ? "(+/-)" : "(+)"
+                    curtain_text = (worst_mod < 8 && !target_battler) ? "EFIC. MIXTA" : "SUPER EFICAZ"
+                    color = Color.new(120, 255, 120)
+                  elsif best_mod == 0
+                    str = "(X)"
+                    curtain_text = "INMUNE"
+                    color = Color.new(200, 200, 200)
+                  elsif best_mod < 8
+                    str = "(-)"
+                    curtain_text = "POCO EFICAZ"
+                    color = Color.new(255, 150, 150)
+                  end
+                end
+          
+                pulse = (Math.sin((@global_frame || 0) / 10.0) + 1.0) / 2.0
+                glow_r = color.red + ((255 - color.red) * (pulse * 0.7))
+                glow_g = color.green + ((255 - color.green) * (pulse * 0.7))
+                glow_b = color.blue + ((255 - color.blue) * (pulse * 0.7))
+                
+                if i == index
+                  frame = @hover_frame || 12
+                  progress = frame / 12.0
+                  ease = 1.0 - (1.0 - progress) * (1.0 - progress)
+                  self.bitmap.clear_rect(x, y, 192, 46)
+                  self.bitmap.blt(x, y, @buttonbitmap.bitmap, Rect.new(192, move.type*46, 192, 46))
+                  anim_y_name = (curtain_text != "") ? (y + 8 - (10 * ease).to_i) : (y + 8)
+                  self.bitmap.font.size = old_size
+                  pbDrawTextPositions(self.bitmap, [[_INTL("{1}", move.name), x+96, anim_y_name, 2,
+                     PokeBattle_SceneConstants::MENUBASECOLOR, PokeBattle_SceneConstants::MENUSHADOWCOLOR]])
+                  if curtain_text != ""
+                    anim_y_eff = y + 26 - (6 * ease).to_i
+                    alpha = (255 * ease).to_i
+                    eff_col = Color.new(glow_r.to_i, glow_g.to_i, glow_b.to_i, alpha)
+                    eff_sha = Color.new(0, 0, 0, alpha)
+                    self.bitmap.font.size = 20
+                    pbDrawTextPositions(self.bitmap, [[curtain_text, x+96, anim_y_eff, 2, eff_col, eff_sha]])
+                  end
+                else
+                  if has_stab && best_mod > 8 && !move.pbIsStatus?
+                    box_glow_alpha = (140 * pulse).to_i
+                    self.bitmap.blt(x, y, @buttonbitmap.bitmap, Rect.new(192, move.type*46, 192, 46), box_glow_alpha)
+                  end
+                  if str != ""
+                    self.bitmap.font.size = 18
+                    chapa_x = x + 172
+                    chapa_y = y + 6
+                    glow_color = Color.new(glow_r.to_i, glow_g.to_i, glow_b.to_i, 255)
+                    pbDrawTextPositions(self.bitmap, [[str, chapa_x, chapa_y, 1, glow_color, Color.new(0, 0, 0, 255)]])
+                  end
                 end
               end
-        
-              # Animación de brillo constante (Glow Web) compartida por ambos estados
-              pulse = (Math.sin((@global_frame || 0) / 10.0) + 1.0) / 2.0 # Oscila de 0.0 a 1.0 lentamente
-              
-              glow_r = color.red + ( (255 - color.red) * (pulse * 0.7) )
-              glow_g = color.green + ( (255 - color.green) * (pulse * 0.7) )
-              glow_b = color.blue + ( (255 - color.blue) * (pulse * 0.7) )
-              
-              if i == index
-                # Cálculo de frames para la animación "CSS"
-                frame = @hover_frame || 12
-                progress = frame / 12.0
-                # Ease-out quad para un movimiento suave
-                ease = 1.0 - (1.0 - progress) * (1.0 - progress)
-                
-                # 1. Limpiar completamente el área del botón para borrar el texto antiguo
-                self.bitmap.clear_rect(x, y, 192, 46)
-                
-                # 2. Redibujamos la textura base del botón pulsado
-                self.bitmap.blt(x, y, @buttonbitmap.bitmap, Rect.new(192, move.type*46, 192, 46))
-                
-                # 3. Reescribimos el nombre del ataque desplazado hacia ARRIBA animado
-                # Si el ataque tiene texto de efectividad (ej. Súper Eficaz), lo desplazamos
-                anim_y_name = (curtain_text != "") ? (y + 8 - (10 * ease).to_i) : (y + 8)
-                
-                self.bitmap.font.size = old_size
-                pbDrawTextPositions(self.bitmap, [[_INTL("{1}", move.name), x+96, anim_y_name, 2, 
-                   PokeBattle_SceneConstants::MENUBASECOLOR, PokeBattle_SceneConstants::MENUSHADOWCOLOR]])
-                   
-                # 4. Ponemos el texto de efectividad emergiendo (Fade-in + Slide-up) Y CON BRILLO
-                if curtain_text != ""
-                  anim_y_eff = y + 26 - (6 * ease).to_i
-                  alpha = (255 * ease).to_i
-                  
-                  eff_col = Color.new(glow_r.to_i, glow_g.to_i, glow_b.to_i, alpha)
-                  eff_sha = Color.new(0, 0, 0, alpha)
-                  
-                  self.bitmap.font.size = 20
-                  pbDrawTextPositions(self.bitmap, [[curtain_text, x+96, anim_y_eff, 2, eff_col, eff_sha]])
-                end
-              else
-                # Botones INACTIVOS
-                
-                # === INDICADOR STAB SÚPER EFICAZ (Daño Devastador) ===
-                # Si el ataque tiene STAB *y además* es Súper Eficaz contra al menos un oponente,
-                # mezclamos su versión "hover" brillante encima para que la caja entera parezca palpitar.
-                if has_stab && best_mod > 8 && !move.pbIsStatus?
-                  box_glow_alpha = (140 * pulse).to_i 
-                  self.bitmap.blt(x, y, @buttonbitmap.bitmap, Rect.new(192, move.type*46, 192, 46), box_glow_alpha)
-                end
-                
-                # === INDICADOR EFECTIVIDAD (Chapita Oculta) ===
-                if str != ""
-                  self.bitmap.font.size = 18
-                  
-                  # Posición ajustada para integrarse sin tocar los bordes (Alineación Derecha = 1)
-                  chapa_x = x + 172
-                  chapa_y = y + 6 # Lo bajamos ligeramente
-                  
-                  glow_color = Color.new(glow_r.to_i, glow_g.to_i, glow_b.to_i, 255)
-                  
-                  pbDrawTextPositions(self.bitmap, [[str, chapa_x, chapa_y, 1, glow_color, Color.new(0, 0, 0, 255)]])
-                end
-              end
-            end
-            
-            self.bitmap.font.size = old_size # Restaurar
+              self.bitmap.font.size = old_size # Restaurar
           end
         end
           
