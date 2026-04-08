@@ -1636,7 +1636,7 @@ module Graphics
 
             def numMoves
               ret = 0
-              for i in 0...8 # Ampliado a 8
+              for i in 0...@moves.length # Dinámico
                 ret += 1 if @moves[i] && @moves[i].id != 0
               end
               return ret
@@ -1646,7 +1646,7 @@ module Graphics
               if move.is_a?(String) || move.is_a?(Symbol)
                 move = getID(PBMoves, move)
               end
-              for i in 0...8
+              for i in 0...@moves.length
                 return true if @moves[i] && @moves[i].id == move
               end
               return false
@@ -1657,7 +1657,7 @@ module Graphics
                 move = getID(PBMoves, move)
               end
               return false if hasMove?(move)
-              for i in 0...8
+              for i in 0...@moves.length
                 if !@moves[i] || @moves[i].id == 0
                   @moves[i] = PBMove.new(move)
                   return true
@@ -1667,10 +1667,34 @@ module Graphics
             end
 
             def pbDeleteMoveAtIndex(index)
-              return if index < 0 || index >= 8
+              return if index < 0 || index >= @moves.length
               @moves[index] = PBMove.new(0)
               @moves.compact!
               @moves.push(PBMove.new(0)) while @moves.length < 8
+            end
+            
+            def healPP(index=-1)
+              return if isEgg?
+              if index >= 0
+                @moves[index].pp = @moves[index].totalpp if @moves[index]
+              else
+                for i in 0...@moves.length
+                  @moves[i].pp = @moves[i].totalpp if @moves[i] && @moves[i].id > 0
+                end
+              end
+            end
+            
+            def pbDeleteAllMoves
+              for i in 0...@moves.length
+                @moves[i] = PBMove.new(0)
+              end
+            end
+            
+            def pbRecordFirstMoves
+              @firstmoves = []
+              for i in 0...@moves.length
+                @firstmoves.push(@moves[i].id) if @moves[i] && @moves[i].id > 0
+              end
             end
           end
           unless method_defined?(:pbCheckPokemonBitmapFiles_H)
