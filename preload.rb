@@ -5276,19 +5276,87 @@ module Kernel
           loop do
             pbBGMPlay("Acertijos")
             cat = Kernel.pbHeizoShopCategoryMenu
-            break if cat == 6
+            break if cat == 9 # Salir
             case cat
-            when 0 # BALLS
+            when 0 # POKE BALLS
               _heizo_open_shop.call([:POKEBALL, :GREATBALL, :ULTRABALL, :NETBALL, :DIVEBALL, :NESTBALL, :REPEATBALL, :TIMERBALL, :LUXURYBALL, :DUSKBALL, :HEALBALL, :QUICKBALL, :FASTBALL, :LEVELBALL, :LUREBALL, :HEAVYBALL, :LOVEBALL, :FRIENDBALL, :MOONBALL, :POKEBALLCASERA, :SUPERBALLCASERA, :ULTRABALLCASERA, :MASTERBALL], true, { :MASTERBALL => 50000 })
-            when 1 # CURA
-              _heizo_open_shop.call([:POTION, :SUPERPOTION, :HYPERPOTION, :MAXPOTION, :FULLRESTORE, :REVIVE, :MAXREVIVE, :FULLHEAL, :ETHER, :MAXETHER, :ELIXIR, :MAXELIXIR, :ANTIDOTE, :BURNHEAL, :PARLYZHEAL, :ICEHEAL, :AWAKENING, :SITRUSBERRY, :ORANBERRY, :LUMBERRY, :LEPPABERRY, :CHESTOBERRY, :PECHABERRY, :RAWSTBERRY, :ASPEARBERRY, :CHERIBERRY, :PERSIMBERRY, :FIGYBERRY, :WIKIBERRY, :MAGOBERRY, :AGUAVBERRY, :IAPAPABERRY, :LIECHIBERRY, :GANLONBERRY, :SALACBERRY, :PETAYABERRY, :APICOTBERRY, :CUSTAPBERRY, :LANSATBERRY, :STARFBERRY, :MICLEBERRY, :ENIGMABERRY], true, {})
-            when 2 # MATS
+            when 1 # OBJETOS DE CURACION (sin bayas)
+              _heizo_open_shop.call([:POTION, :SUPERPOTION, :HYPERPOTION, :MAXPOTION, :FULLRESTORE, :REVIVE, :MAXREVIVE, :FULLHEAL, :ETHER, :MAXETHER, :ELIXIR, :MAXELIXIR, :ANTIDOTE, :BURNHEAL, :PARLYZHEAL, :ICEHEAL, :AWAKENING], true, {})
+            when 2 # BAYAS (precio fijo: 100)
+              items = []
+              max_items = PBItems.maxValue rescue 1000
+              for i in 1..max_items
+                next if i <= 0
+                begin
+                  name = PBItems.getName(i) rescue ""
+                  if name.include?("Baya") || name.include?("Berry")
+                    items.push(i)
+                    $game_temp.mart_prices[i] = [100, -1]
+                  end
+                rescue; end
+              end
+              if !items.empty?
+                items.sort! { |a, b| PBItems.getName(a) <=> PBItems.getName(b) }
+                scene = PokemonMartScene.new
+                screen = PokemonMartScreen.new(scene, items)
+                screen.pbBuyScreen
+              end
+            when 3 # TODAS LAS MT (precio fijo: 1000, ordenadas por numero)
+              items = []
+              max_items = PBItems.maxValue rescue 1000
+              for i in 1..max_items
+                next if i <= 0
+                begin
+                  name = PBItems.getName(i) rescue ""
+                  if name.start_with?("MT", "TM", "MO", "HM")
+                    items.push(i)
+                    $game_temp.mart_prices[i] = [1000, -1]
+                  end
+                rescue; end
+              end
+              if !items.empty?
+                items.sort! do |a, b|
+                  n1 = PBItems.getName(a) rescue ""
+                  n2 = PBItems.getName(b) rescue ""
+                  t1 = (n1.start_with?("MO", "HM")) ? 1 : 0
+                  t2 = (n2.start_with?("MO", "HM")) ? 1 : 0
+                  if t1 != t2; t1 <=> t2
+                  else
+                    num1 = n1.gsub(/[^0-9]/, "").to_i
+                    num2 = n2.gsub(/[^0-9]/, "").to_i
+                    num1 <=> num2
+                  end
+                end
+                scene = PokemonMartScene.new
+                screen = PokemonMartScreen.new(scene, items)
+                screen.pbBuyScreen
+              end
+            when 4 # MEGA-PIEDRAS (precio fijo: 5000)
+              items = []
+              max_items = PBItems.maxValue rescue 1000
+              for i in 1..max_items
+                next if i <= 0
+                begin
+                  name = PBItems.getName(i) rescue ""
+                  if (name.end_with?("ita") || name.end_with?("ite")) && !name.include?("Evolut") && !name.include?("Mineral")
+                    items.push(i)
+                    $game_temp.mart_prices[i] = [5000, -1]
+                  end
+                rescue; end
+              end
+              if !items.empty?
+                items.sort! { |a, b| PBItems.getName(a) <=> PBItems.getName(b) }
+                scene = PokemonMartScene.new
+                screen = PokemonMartScreen.new(scene, items)
+                screen.pbBuyScreen
+              end
+            when 5 # MATS
               _heizo_open_shop.call([:REPEL, :SUPERREPEL, :MAXREPEL, :FIRESTONE, :WATERSTONE, :THUNDERSTONE, :LEAFSTONE, :MOONSTONE, :SUNSTONE, :DUSKSTONE, :DAWNSTONE, :SHINYSTONE, :EVERSTONE, :DRAGONSCALE, :FRASCOCRISTALINO, :MADERA, :GUIJARRO, :TROZODEHIERRO, :POLVODEHUESO, :ESPECIASEXOTICAS, :POLVOEXPLOSIVO, :HPUP, :PROTEIN, :IRON, :CALCIUM, :ZINC, :CARBOS, :PPUP, :PPMAX, :LUCKYEGG, :EXPSHARE, :AMULETCOIN, :SHINYZADOR], true, { :SHINYZADOR => 5000 })
-            when 3 # COMBATE
+            when 6 # COMBATE
               _heizo_open_shop.call([:LEFTOVERS, :BLACKSLUDGE, :SHELLBELL, :BIGROOT, :LIFEORB, :EXPERTBELT, :MUSCLEBAND, :WISEGLASSES, :CHOICEBAND, :CHOICESPECS, :CHOICESCARF, :FOCUSSASH, :FOCUSBAND, :WHITEHERB, :POWERHERB, :MENTALHERB, :AIRBALLOON, :ROCKYHELMET, :EJECTBUTTON, :REDCARD, :EVIOLITE, :QUICKCLAW, :RAZORCLAW, :SCOPELENS, :WIDELENS, :ZOOMLENS, :BRIGHTPOWDER, :HEATROCK, :DAMPROCK, :SMOOTHROCK, :ICYROCK, :LIGHTCLAY, :FLAMEORB, :TOXICORB, :DESTINYKNOT, :KINGSROCK, :RAZORFANG, :METRONOME, :GRIPCLAW, :BINDINGBAND, :FLOATSTONE, :ABSORBBULB, :CELLBATTERY, :SHEDSHELL, :SMOKEBALL, :IRONBALL, :RINGTARGET, :LAGGINGTAIL], true, {})
-            when 4 # TIPOS
+            when 7 # TIPOS
               _heizo_open_shop.call([:FLAMEPLATE, :SPLASHPLATE, :ZAPPLATE, :MEADOWPLATE, :ICICLEPLATE, :FISTPLATE, :TOXICPLATE, :EARTHPLATE, :SKYPLATE, :MINDPLATE, :INSECTPLATE, :STONEPLATE, :SPOOKYPLATE, :DRACOPLATE, :DREADPLATE, :IRONPLATE, :CHARCOAL, :MYSTICWATER, :MAGNET, :MIRACLESEED, :NEVERMELTICE, :BLACKBELT, :POISONBARB, :SOFTSAND, :SHARPBEAK, :TWISTEDSPOON, :SILVERPOWDER, :HARDSTONE, :SPELLTAG, :DRAGONFANG, :BLACKGLASSES, :METALCOAT, :SILKSCARF, :FIREGEM, :WATERGEM, :ELECTRICGEM, :GRASSGEM, :ICEGEM, :FIGHTINGGEM, :POISONGEM, :GROUNDGEM, :FLYINGGEM, :PSYCHICGEM, :BUGGEM, :ROCKGEM, :GHOSTGEM, :DRAGONGEM, :DARKGEM, :STEELGEM, :NORMALGEM, :SEAINCENSE, :WAVEINCENSE, :ROSEINCENSE, :ODDINCENSE, :ROCKINCENSE, :LAXINCENSE, :FULLINCENSE], true, {})
-            when 5 # ROPA
+            when 8 # ROPA
               pbHeizoClanClothesV2 rescue nil
             end
           end
@@ -5428,7 +5496,7 @@ module Kernel
             pbBGMPlay("Acertijos")
             cat = Kernel.pbHeizoShopCategoryMenu # NUEVO MENÚ CON ICONOS
             
-            break if cat == 6 # Salir
+            break if cat == 9 # Salir
 
             case cat
             # -------------------------------------------------------
@@ -5444,26 +5512,90 @@ module Kernel
               ], true, { :MASTERBALL => 50000 })
 
             # -------------------------------------------------------
-            when 1 # BAYAS Y CURACIÓN
+            when 1 # OBJETOS DE CURACION
               _heizo_open_shop.call([
-                # Pociones y Revivir
                 :POTION, :SUPERPOTION, :HYPERPOTION, :MAXPOTION, :FULLRESTORE,
                 :REVIVE, :MAXREVIVE, :FULLHEAL,
-                # Éteres y Elixires
                 :ETHER, :MAXETHER, :ELIXIR, :MAXELIXIR,
-                # Curaciones de estado
-                :ANTIDOTE, :BURNHEAL, :PARLYZHEAL, :ICEHEAL, :AWAKENING,
-                # Bayas de curación y estado
-                :SITRUSBERRY, :ORANBERRY, :LUMBERRY, :LEPPABERRY,
-                :CHESTOBERRY, :PECHABERRY, :RAWSTBERRY, :ASPEARBERRY, :CHERIBERRY,
-                :PERSIMBERRY, :FIGYBERRY, :WIKIBERRY, :MAGOBERRY, :AGUAVBERRY, :IAPAPABERRY,
-                # Bayas de stat boost
-                :LIECHIBERRY, :GANLONBERRY, :SALACBERRY, :PETAYABERRY, :APICOTBERRY,
-                :CUSTAPBERRY, :LANSATBERRY, :STARFBERRY, :MICLEBERRY, :ENIGMABERRY
+                :ANTIDOTE, :BURNHEAL, :PARLYZHEAL, :ICEHEAL, :AWAKENING
               ], true, {})
 
             # -------------------------------------------------------
-            when 2 # MATERIALES, VITAMINAS Y EVOLUCIÓN
+            when 2 # BAYAS (Fixed Price: 100)
+              items = []
+              max_items = PBItems.maxValue rescue 1000
+              for i in 1..max_items
+                next if i <= 0
+                begin
+                  name = PBItems.getName(i) rescue ""
+                  if name.include?("Baya") || name.include?("Berry")
+                    items.push(i)
+                    $game_temp.mart_prices[i] = [100, -1]
+                  end
+                rescue; end
+              end
+              if !items.empty?
+                items.sort! { |a, b| PBItems.getName(a) <=> PBItems.getName(b) }
+                scene = PokemonMartScene.new
+                screen = PokemonMartScreen.new(scene, items)
+                screen.pbBuyScreen
+              end
+
+            # -------------------------------------------------------
+            when 3 # TODAS LAS MT (Fixed Price: 1000, Sorted)
+              items = []
+              max_items = PBItems.maxValue rescue 1000
+              for i in 1..max_items
+                next if i <= 0
+                begin
+                  name = PBItems.getName(i) rescue ""
+                  if name.start_with?("MT", "TM", "MO", "HM")
+                    items.push(i)
+                    $game_temp.mart_prices[i] = [1000, -1]
+                  end
+                rescue; end
+              end
+              if !items.empty?
+                items.sort! do |a, b|
+                  n1 = PBItems.getName(a) rescue ""
+                  n2 = PBItems.getName(b) rescue ""
+                  t1 = (n1.start_with?("MO", "HM")) ? 1 : 0
+                  t2 = (n2.start_with?("MO", "HM")) ? 1 : 0
+                  if t1 != t2; t1 <=> t2
+                  else
+                    num1 = n1.gsub(/[^0-9]/, "").to_i
+                    num2 = n2.gsub(/[^0-9]/, "").to_i
+                    num1 <=> num2
+                  end
+                end
+                scene = PokemonMartScene.new
+                screen = PokemonMartScreen.new(scene, items)
+                screen.pbBuyScreen
+              end
+
+            # -------------------------------------------------------
+            when 4 # MEGA-PIEDRAS (Fixed Price: 5000)
+              items = []
+              max_items = PBItems.maxValue rescue 1000
+              for i in 1..max_items
+                next if i <= 0
+                begin
+                  name = PBItems.getName(i) rescue ""
+                  if (name.end_with?("ita") || name.end_with?("ite")) && !name.include?("Evolut") && !name.include?("Mineral")
+                    items.push(i)
+                    $game_temp.mart_prices[i] = [5000, -1]
+                  end
+                rescue; end
+              end
+              if !items.empty?
+                items.sort! { |a, b| PBItems.getName(a) <=> PBItems.getName(b) }
+                scene = PokemonMartScene.new
+                screen = PokemonMartScreen.new(scene, items)
+                screen.pbBuyScreen
+              end
+
+            # -------------------------------------------------------
+                        when 5 # MATERIALES, VITAMINAS Y EVOLUCIÓN
               _heizo_open_shop.call([
                 # Repelentes y Mapas
                 :REPEL, :SUPERREPEL, :MAXREPEL,
@@ -5483,7 +5615,7 @@ module Kernel
               ], true, { :SHINYZADOR => 5000 })
 
             # -------------------------------------------------------
-            when 3 # OBJETOS DE COMBATE
+            when 6 # OBJETOS DE COMBATE
               _heizo_open_shop.call([
                 :LEFTOVERS, :BLACKSLUDGE, :SHELLBELL, :BIGROOT,
                 :LIFEORB, :EXPERTBELT, :MUSCLEBAND, :WISEGLASSES,
@@ -5499,7 +5631,7 @@ module Kernel
               ], true, {})
 
             # -------------------------------------------------------
-            when 4 # POTENCIADORES DE TIPO
+            when 7 # POTENCIADORES DE TIPO
               _heizo_open_shop.call([
                 # Placas
                 :FLAMEPLATE, :SPLASHPLATE, :ZAPPLATE, :MEADOWPLATE, :ICICLEPLATE,
@@ -5520,7 +5652,7 @@ module Kernel
               ], true, {})
               
             # -------------------------------------------------------
-            when 5 # ROPAJES DEL CLAN CAZADOR
+            when 8 # ROPAJES DEL CLAN CAZADOR
               # --- Helper robusto para cambiar el sprite del jugador en mkxp-z ---
               _heizo_set_player_sprite = lambda do |sprite_name|
                 begin
@@ -5967,12 +6099,15 @@ module Kernel
       cls = Class.new(Window_CommandPokemon) do
         def initialize(commands, x, y)
           @icons = [
-            "Graphics/Icons/item275", # Poke Ball
-            "Graphics/Icons/item217", # Poción
-            "Graphics/Icons/item033", # Piedra Fuego (Materiales)
-            "Graphics/Icons/item212", # Choice Band (Combate)
-            "Graphics/Icons/item245", # Tabla Llama (Tipo)
-            "Graphics/Icons/item513", # Ropajes (Mochila)
+            "Graphics/Icons/item275", # Poke Balls
+            "Graphics/Icons/item217", # Objetos de Curacion
+            "Graphics/Icons/item395", # Bayas
+            "Graphics/Icons/item670", # Todas las MT
+            "Graphics/Icons/item627", # Mega-Piedras
+            "Graphics/Icons/item033", # Materiales y Evolucion
+            "Graphics/Icons/item212", # Objetos de Combate
+            "Graphics/Icons/item245", # Potenciadores de Tipo
+            "Graphics/Icons/item513", # Ropajes del Clan
             nil                       # Salir
           ]
           super(commands, 330)
@@ -6007,7 +6142,10 @@ module Kernel
     ropajes_label = ($game_variables[994] == 1) ? _INTL("Devolver ropajes") : _INTL("Ropajes del Clan")
     commands = [
       _INTL("Poke Balls"),
-      _INTL("Bayas y Curacion"),
+      _INTL("Objetos de Curacion"),
+      _INTL("Bayas"),
+      _INTL("Todas las MT"),
+      _INTL("Mega-Piedras"),
       _INTL("Materiales y Evolucion"),
       _INTL("Objetos de Combate"),
       _INTL("Potenciadores de Tipo"),
@@ -6052,7 +6190,7 @@ module Kernel
       
       if Input.trigger?(Input::B)
         pbSEPlay("GUI menu close")
-        result = 6 # Salir
+        result = 9 # Salir
         break
       end
       
