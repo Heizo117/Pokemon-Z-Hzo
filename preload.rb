@@ -1663,6 +1663,10 @@ module Graphics
                   return true
                 end
               end
+              if @moves.length < 8
+                @moves.push(PBMove.new(move))
+                return true
+              end
               return false
             end
 
