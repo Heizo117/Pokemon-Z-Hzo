@@ -1935,6 +1935,57 @@ module Graphics
         end
         end
 
+        # --- HOOK: pbRelearnMoveScreen con soporte 8 slots ---
+        # La funcion original del juego base tiene hardcodeado el limite de 4 movimientos.
+        # La sobrescribimos para que use nuestro Kernel.pbLearnMove (que ya soporta 8 slots).
+        unless $pbRelearnMoveScreen_z_patched
+          $pbRelearnMoveScreen_z_patched = true
+          begin
+            Kernel.module_eval do
+              def pbRelearnMoveScreen(pokemon)
+                return if !pokemon || pokemon.isEgg?
+                movelist = []
+                compat = pbGetCompatibleMoveList(pokemon) rescue []
+                for move in compat
+                  movelist.push(move) if !pokemon.hasMove?(move) && move > 0
+                end
+                movelist.uniq!
+                movelist.compact!
+
+                if movelist.empty?
+                  Kernel.pbMessage(_INTL("{1} no tiene movimientos que recordar.", pokemon.name))
+                  return
+                end
+
+                commands = []
+                for move in movelist
+                  commands.push(PBMoves.getName(move))
+                end
+                commands.push(_INTL("Cancelar"))
+
+                loop do
+                  choice = Kernel.pbShowCommands(nil, commands, commands.length - 1)
+                  break if choice < 0 || choice >= movelist.length
+
+                  move = movelist[choice]
+                  movename = PBMoves.getName(move)
+
+                  if Kernel.pbConfirmMessage(_INTL("?Quieres que {1} recuerde {2}?", pokemon.name, movename))
+                    Kernel.pbLearnMove(pokemon, move)
+                    break
+                  end
+                end
+              end
+
+              def Kernel.pbRelearnMoveScreen(pokemon)
+                Object.send(:pbRelearnMoveScreen, pokemon)
+              end
+            end
+          rescue => e
+            # Si falla, dejamos la original
+          end
+        end
+
       # --- UI: RESUMEN CON 8 MOVIMIENTOS (MULTIP脕GINA) ---
       if defined?(MoveSelectionSprite)
         MoveSelectionSprite.class_eval do
@@ -2780,48 +2831,57 @@ module Graphics
               
               mv = moves[index] rescue nil
               if mv && mv.id > 0
-                cx = 461 # Centro visual (valor de compromiso)
-                ix = 429 # X para los iconos (461 - 32px)
-                # Limpiamos exhaustivamente el 谩rea
+                cx = 450 # Centro ajustado a la izquierda
+                ix = cx - 32 # X para los iconos (centrado respecto a cx)
+                
+                # Limpiamos exhaustivamente el 醨ea
                 self.bitmap.clear_rect(390, 20+UPPERGAP, self.bitmap.width-390, 100)
                 base_c = Color.new(248, 248, 248, alpha); shad_c = Color.new(32, 32, 32, alpha)
-                self.bitmap.font.size = 22 # Fuente 贸ptima para el carrusel
-                
-                # Nuevas coordenadas para mejor centrado vertical
-                y_icon = 22 + UPPERGAP
-                y_text = 56 + UPPERGAP
+                self.bitmap.font.size = 22 # Fuente 髉tima para el carrusel
                 
                 if @carousel_page == 0
-                  # Capa 1: Tipo + PP (Alineaci贸n 1 = Centro)
+                  # Capa 1: Tipo + PP
+                  y_icon = 22 + UPPERGAP
+                  y_text = 56 + UPPERGAP
+                  
+                  @typebitmap = AnimatedBitmap.new("Graphics/Pictures/types") if !@typebitmap
                   self.bitmap.blt(ix, y_icon, @typebitmap.bitmap, Rect.new(0, mv.type * 28, 64, 28), alpha)
                   pp_s = (mv.totalpp == 0) ? "PP: ---" : "PP: #{mv.pp}/#{mv.totalpp}"
-                  pbDrawTextPositions(self.bitmap, [[pp_s, cx, y_text, 1, base_c, shad_c]])
+                  pbDrawTextPositions(self.bitmap, [[pp_s, cx, y_text, 2, base_c, shad_c]])
                 else
-                  # Capa 2: Categor铆a + Precisi贸n
+                  # Capa 2: Categor韆 + Potencia + Precisi髇 (En 3 l韓eas para que quepa)
+                  y_icon = 12 + UPPERGAP
+                  y_text1 = 44 + UPPERGAP
+                  y_text2 = 70 + UPPERGAP
+                  
                   cat = 2 # Estado por defecto
                   if mv.basedamage > 0
-                    cat = 0 # Asumir F铆sico si tiene da帽o y falla la detecci贸n
+                    cat = 0 # Asumir F韘ico si tiene da駉 y falla la detecci髇
                     t = mv.type rescue 0
                     if mv.respond_to?(:pbIsPhysical?); cat = mv.pbIsPhysical?(t) ? 0 : 1
                     elsif mv.respond_to?(:category) && mv.category != nil; cat = mv.category
                     end
                   end
                   
-                  acc_s = (mv.accuracy == 0 || mv.accuracy.nil?) ? "---" : "#{mv.accuracy}%"
+                  pwr_s = (mv.basedamage > 0) ? "Pot: #{mv.basedamage}" : "Pot: ---"
+                  acc_s = (mv.accuracy == 0 || mv.accuracy.nil?) ? "Prec: ---" : "Prec: #{mv.accuracy}%"
+                  
                   begin
                     catbmp = AnimatedBitmap.new("Graphics/Pictures/category")
                     self.bitmap.blt(ix, y_icon, catbmp.bitmap, Rect.new(0, cat*28, 64, 28), alpha); catbmp.dispose
                   rescue
                     cat_name = ["FISICO", "ESPECIAL", "ESTADO"][cat]
-                    pbDrawTextPositions(self.bitmap, [[cat_name, cx, y_icon, 1, base_c, shad_c]])
+                    pbDrawTextPositions(self.bitmap, [[cat_name, cx, y_icon, 2, base_c, shad_c]])
                   end
-                  # Abreviamos Precisi贸n a Prec. y usamos alineaci贸n central (1)
-                  pbDrawTextPositions(self.bitmap, [[_INTL("Prec: {1}", acc_s), cx, y_text, 1, base_c, shad_c]])
+                  
+                  pbDrawTextPositions(self.bitmap, [
+                    [pwr_s, cx, y_text1, 2, base_c, shad_c],
+                    [acc_s, cx, y_text2, 2, base_c, shad_c]
+                  ])
                 end
-                # RESTAURACI脫N CR脥TICA: Devolvemos la fuente a su estado original para los botones
+                # RESTAURACI覰 CR蚑ICA: Devolvemos la fuente a su estado original para los botones
                 self.bitmap.font.size = old_size
               end
-              
               # --- LOGICA DE EFECTIVIDAD (Calculos de botones) ---
               return if !$_fight_menu_battler || !$_fight_menu_battle
               attacker = $_fight_menu_battler; battle = $_fight_menu_battle

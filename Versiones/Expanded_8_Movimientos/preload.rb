@@ -1,4 +1,5 @@
 # --- HELPERS (KERNEL) ---
+# Override global de precios removido (usando $game_temp.mart_prices en su lugar)
 module Kernel
   def safe_check_bitmap_file(params)
     begin
@@ -12,6 +13,7 @@ module Kernel
       return false
     end
   end
+
   # Auxiliar para detectar si el mapa actual es un Gimnasio
   def pbHeizoInGym?
     map_id = $game_map.map_id rescue 0
@@ -691,21 +693,20 @@ module Kernel
           
           # Solo aplicar si hay al menos 12 Pokémon en party1 (jugador + Heizo)
           if @party1 && @party1.length > 6 && @party2 && @party2.length > 0
+            # Obtener los Pokémon de Heizo (slots 6-11)
             heizo_sub = @party1[6..11].compact
+            
+            # Obtener los oponentes activos para puntuar contra ellos
             enemies = @party2.select { |p| p && p.hp > 0 } rescue []
             
             if heizo_sub.length > 0 && enemies.length > 0
+              # Puntuar cada Pokémon de Heizo contra los oponentes
               scored = []
-              debug_log = "COMBATE INICIADO: \nEnemigo Lead: #{PBSpecies.getName(enemies[0].species)} (Type1: #{enemies[0].type1}, Type2: #{enemies[0].type2})\n\n" rescue ""
-              
               heizo_sub.each_with_index do |pk, idx|
                 next if !pk || pk.hp <= 0
                 s = 0
                 enemies.each { |en| s += pbHeizoCalculateLeadScore(pk, en) rescue 0 }
                 scored.push([idx, s])
-                
-                sp_name = PBSpecies.getName(pk.species) rescue "Unknown"
-                debug_log += "-> #{sp_name} (T1: #{pk.type1}, T2: #{pk.type2}) | Score Final: #{s}\n" rescue ""
               end
               scored.sort! { |a, b| b[1] <=> a[1] }
               
@@ -713,27 +714,20 @@ module Kernel
               new_order = scored.map { |item| heizo_sub[item[0]] }
               heizo_sub.each { |p| new_order.push(p) unless new_order.include?(p) }
               
-              # Inyectar en party1
+              # Inyectar en party1 directamente
               new_order.each_with_index do |pk, i|
                 @party1[6 + i] = pk if pk
               end
-              
-              debug_log += "\n=== ORDEN FINAL ===\n"
-              new_order.each { |p| debug_log += "#{PBSpecies.getName(p.species)}\n" rescue "" }
-              
-              File.open("heizo_battle_debug.txt", "w") { |f| f.write(debug_log) } rescue nil
             end
           end
         rescue => e
-          File.open("heizo_battle_debug.txt", "w") { |f| f.write("CRASH en StartBattle: #{e.message}\n#{e.backtrace.join("\n")}") } rescue nil
+          # Nunca crashear, el combate debe continuar aunque falle el sorting
         end
         
         pbStartBattle_heizo_lead(*args)
       end
     end
   end
-
-
 
   def pbFormLegend_FINAL(pkmn)
     return "" if !pkmn
@@ -1642,7 +1636,7 @@ module Graphics
 
             def numMoves
               ret = 0
-              for i in 0...8 # Ampliado a 8
+              for i in 0...@moves.length # Dinámico
                 ret += 1 if @moves[i] && @moves[i].id != 0
               end
               return ret
@@ -1652,7 +1646,7 @@ module Graphics
               if move.is_a?(String) || move.is_a?(Symbol)
                 move = getID(PBMoves, move)
               end
-              for i in 0...8
+              for i in 0...@moves.length
                 return true if @moves[i] && @moves[i].id == move
               end
               return false
@@ -1663,7 +1657,7 @@ module Graphics
                 move = getID(PBMoves, move)
               end
               return false if hasMove?(move)
-              for i in 0...8
+              for i in 0...@moves.length
                 if !@moves[i] || @moves[i].id == 0
                   @moves[i] = PBMove.new(move)
                   return true
@@ -1673,10 +1667,34 @@ module Graphics
             end
 
             def pbDeleteMoveAtIndex(index)
-              return if index < 0 || index >= 8
+              return if index < 0 || index >= @moves.length
               @moves[index] = PBMove.new(0)
               @moves.compact!
               @moves.push(PBMove.new(0)) while @moves.length < 8
+            end
+            
+            def healPP(index=-1)
+              return if isEgg?
+              if index >= 0
+                @moves[index].pp = @moves[index].totalpp if @moves[index]
+              else
+                for i in 0...@moves.length
+                  @moves[i].pp = @moves[i].totalpp if @moves[i] && @moves[i].id > 0
+                end
+              end
+            end
+            
+            def pbDeleteAllMoves
+              for i in 0...@moves.length
+                @moves[i] = PBMove.new(0)
+              end
+            end
+            
+            def pbRecordFirstMoves
+              @firstmoves = []
+              for i in 0...@moves.length
+                @firstmoves.push(@moves[i].id) if @moves[i] && @moves[i].id > 0
+              end
             end
           end
           unless method_defined?(:pbCheckPokemonBitmapFiles_H)
@@ -1810,76 +1828,163 @@ module Graphics
           rescue; end
         end
         
-        # --- HOOK GLOBAL PARA APRENDER MOVIMIENTOS (8 SLOTS) ---
-        if !method_defined?(:pbLearnMove_orig_8moves) && (respond_to?(:pbLearnMove, true) || Kernel.respond_to?(:pbLearnMove, true))
-          begin
-            alias pbLearnMove_orig_8moves pbLearnMove
-            def pbLearnMove(pokemon, move, ignoreifknown=false, bymachine=false, &block)
-              return if !pokemon || move <= 0
-              # Si ya lo conoce, no hacer nada
-              return if pokemon.hasMove?(move) && ignoreifknown
-              
-              # Si tiene espacio (menos de 8), aprender directamente
-              if pokemon.numMoves < 8
-                pokemon.pbLearnMove(move)
-                movename = PBMoves.getName(move)
-                Kernel.pbMessage(_INTL("{1} aprendió {2}!", pokemon.name, movename))
-                return true
+        # --- HOOK: pbLearnMove con soporte 8 slots ---
+        # Si hay hueco en cualquiera de los 8 slots, aprende directamente sin dialogo.
+        # Solo avisa si los 8 estan llenos.
+        unless $pbLearnMove_z_patched
+          $pbLearnMove_z_patched = true
+
+          # Parche en combate (PokeBattle_Battle#pbLearnMove)
+          if defined?(PokeBattle_Battle) && !PokeBattle_Battle.method_defined?(:pbLearnMove_z_battle_orig)
+            begin
+              PokeBattle_Battle.class_eval do
+                alias pbLearnMove_z_battle_orig pbLearnMove
+                def pbLearnMove(pkmnIndex, move)
+                  pokemon = @party1[pkmnIndex]
+                  return if !pokemon
+                  pkmnname = pokemon.name
+                  movename = PBMoves.getName(move)
+                  # Intentar aprender en cualquiera de los 8 slots
+                  if pokemon.pbLearnMove(move)
+                    pbDisplayPaused(_INTL("{1} ha aprendido {2}!", pkmnname, movename))
+                    return
+                  elsif pokemon.hasMove?(move)
+                    return
+                  end
+                  
+                  # YA TIENE 8 MOVIMIENTOS EN COMBATE, BUCLE DE DECISIÓN DE OLVIDAR
+                  loop do
+                    pbDisplayPaused(_INTL("{1} está intentando aprender {2}.", pkmnname, movename))
+                    pbDisplayPaused(_INTL("Pero {1} ya conoce 8 movimientos.", pkmnname))
+                    if pbDisplayConfirm(_INTL("¿Quieres remplazar un movimiento por {1}?", movename))
+                      pbDisplayPaused(_INTL("¿Qué movimiento debería olvidar?"))
+                      forgetmove = pbForgetMove(pokemon, move)
+                      if forgetmove >= 0
+                        oldmovename = PBMoves.getName(pokemon.moves[forgetmove].id)
+                        pokemon.moves[forgetmove] = PBMove.new(move)
+                        pbDisplayPaused(_INTL("1, 2, y... ... ... ¡Puf!"))
+                        pbDisplayPaused(_INTL("{1} ha olvidado cómo usar {2}. Y... ¡{1} ha aprendido {3}!", pkmnname, oldmovename, movename))
+                        return
+                      elsif pbDisplayConfirm(_INTL("¿Prefieres que {1} no aprenda {2}?", pkmnname, movename))
+                        pbDisplayPaused(_INTL("{1} no ha aprendido {2}.", pkmnname, movename))
+                        return
+                      end
+                    elsif pbDisplayConfirm(_INTL("¿Prefieres que {1} no aprenda {2}?", pkmnname, movename))
+                      pbDisplayPaused(_INTL("{1} no ha aprendido {2}.", pkmnname, movename))
+                      return
+                    end
+                  end
+                end
               end
+            rescue; end
+          end
+
+          # Parche fuera de combate (Kernel.pbLearnMove)
+          begin
+            # Redefinimos tanto el global (para MTs) como el del módulo Kernel
+            alias _orig_pbLearnMove_z pbLearnMove if method_defined?(:pbLearnMove)
+            def pbLearnMove(pokemon, move, ignoreifknown=false, bymachine=false, &block)
+              return false if !pokemon
+              move = getID(PBMoves, move) if move.is_a?(String) || move.is_a?(Symbol)
+              return false if move.to_i <= 0
+              return false if pokemon.hasMove?(move) && ignoreifknown
+              movename = PBMoves.getName(move) rescue move.to_s
               
-              # Si tiene 8 movimientos, preguntar para olvidar uno
-              movename = PBMoves.getName(move)
-              Kernel.pbMessage(_INTL("{1} quiere aprender {2}, pero ya conoce 8 movimientos.", pokemon.name, movename))
-              if Kernel.pbConfirmMessage(_INTL("¿Quieres olvidar un movimiento para aprender {1}?", movename))
+              if pokemon.hasMove?(move)
+                Kernel.pbMessage(_INTL("{1} ya conoce {2}.", pokemon.name, movename), &block) if !ignoreifknown
+                return false
+              end
+
+              # pokemon.pbLearnMove ya itera los 8 slots y devuelve false si están todos llenos
+              if pokemon.pbLearnMove(move)
+                Kernel.pbMessage(_INTL("\\se[]{1} ha aprendido {2}!\\se[MoveLearnt]", pokemon.name, movename), &block)
+                return true
+              else
+                # YA TIENE 8 MOVIMIENTOS, BUCLE DE DECISIÓN DE OLVIDAR
+                pkmnname = pokemon.name
                 loop do
-                  Kernel.pbMessage(_INTL("Selecciona un movimiento para olvidar."))
-                  forgetmove = pbForgetMove_8moves(pokemon, move)
-                  if forgetmove >= 0 && forgetmove < 8
-                    oldmove = pokemon.moves[forgetmove].id
-                    oldmovename = PBMoves.getName(oldmove)
-                    pokemon.moves[forgetmove] = PBMove.new(move)
-                    Kernel.pbMessage(_INTL("¡1, 2 y... puf! {1} olvidó {2}...", pokemon.name, oldmovename))
-                    Kernel.pbMessage(_INTL("Y... ¡{1} aprendió {2}!", pokemon.name, movename))
-                    return true
-                  elsif Kernel.pbConfirmMessage(_INTL("¿Quieres dejar de aprender {1}?", movename))
-                    Kernel.pbMessage(_INTL("{1} no aprendió {2}.", pokemon.name, movename))
+                  Kernel.pbMessage(_INTL("{1} está intentando aprender {2}.", pkmnname, movename), &block)
+                  Kernel.pbMessage(_INTL("Pero {1} ya conoce 8 movimientos.", pkmnname), &block)
+                  if Kernel.pbConfirmMessage(_INTL("¿Quieres remplazar un movimiento por {1}?", movename), &block)
+                    Kernel.pbMessage(_INTL("¿Qué movimiento debería olvidar?"), &block)
+                    forgetmove = pbForgetMove(pokemon, move)
+                    if forgetmove >= 0
+                      oldmovename = PBMoves.getName(pokemon.moves[forgetmove].id)
+                      oldmovepp = pokemon.moves[forgetmove] ? pokemon.moves[forgetmove].pp : 0
+                      pokemon.moves[forgetmove] = PBMove.new(move) # Replaces current/total PP
+                      pokemon.moves[forgetmove].pp = [oldmovepp, pokemon.moves[forgetmove].totalpp].min if bymachine
+                      Kernel.pbMessage(_INTL("\\se[]1,\\wt[16] 2, y\\wt[16]...\\wt[16] ...\\wt[16] ... ¡Puf!\\se[balldrop]"), &block)
+                      Kernel.pbMessage(_INTL("\\se[]{1} ha olvidado cómo usar {2}. Y... ¡{1} ha aprendido {3}!\\se[MoveLearnt]", pkmnname, oldmovename, movename), &block)
+                      return true
+                    elsif Kernel.pbConfirmMessage(_INTL("¿Prefieres que {1} no aprenda {2}?", pkmnname, movename), &block)
+                      Kernel.pbMessage(_INTL("{1} no ha aprendido {2}.", pkmnname, movename), &block)
+                      return false
+                    end
+                  elsif Kernel.pbConfirmMessage(_INTL("¿Prefieres que {1} no aprenda {2}?", pkmnname, movename), &block)
+                    Kernel.pbMessage(_INTL("{1} no ha aprendido {2}.", pkmnname, movename), &block)
                     return false
                   end
                 end
-              else
-                Kernel.pbMessage(_INTL("{1} no aprendió {2}.", pokemon.name, movename))
-                return false
               end
             end
-          rescue
-          end
-        end
-        # Helper para abrir la pantalla de olvido (Resumen completo)
-        def pbForgetMove_8moves(pokemon, move)
-          ret = -1
-          # Deteccion robusta de clases segun la version de Essentials
-          scene_class = (defined?(PokemonSummaryScene) ? PokemonSummaryScene : (defined?(PokemonSummary_Scene) ? PokemonSummary_Scene : nil))
-          screen_class = (defined?(PokemonSummaryScreen) ? PokemonSummaryScreen : (defined?(PokemonSummary_Screen) ? PokemonSummary_Screen : (defined?(PokemonSummary) ? PokemonSummary : nil)))
-          
-          if !scene_class || !screen_class
-            # Fallback a mensaje si no se encuentran las clases de la UI
-            commands = []
-            for i in 0...8
-              m = pokemon.moves[i]
-              commands.push(m && m.id > 0 ? PBMoves.getName(m.id) : "[VACÍO]")
-            end
-            commands.push("Cancelar")
-            return Kernel.pbMessage(_INTL("¿Qué movimiento debe olvidar?"), commands, 8)
-          end
 
-          pbFadeOutIn(99999) {
-            scene = scene_class.new
-            screen = screen_class.new(scene)
-            ret = screen.pbStartForgetScreen([pokemon], 0, move)
-          }
-          return ret
+            def Kernel.pbLearnMove(pokemon, move, ignoreifknown=false, bymachine=false, &block)
+              Object.send(:pbLearnMove, pokemon, move, ignoreifknown, bymachine, &block)
+            end
+          rescue; end
         end
-      end
+        end
+
+        # --- HOOK: pbRelearnMoveScreen con soporte 8 slots ---
+        # La funcion original del juego base tiene hardcodeado el limite de 4 movimientos.
+        # La sobrescribimos para que use nuestro Kernel.pbLearnMove (que ya soporta 8 slots).
+        unless $pbRelearnMoveScreen_z_patched
+          $pbRelearnMoveScreen_z_patched = true
+          begin
+            Kernel.module_eval do
+              def pbRelearnMoveScreen(pokemon)
+                return if !pokemon || pokemon.isEgg?
+                movelist = []
+                compat = pbGetCompatibleMoveList(pokemon) rescue []
+                for move in compat
+                  movelist.push(move) if !pokemon.hasMove?(move) && move > 0
+                end
+                movelist.uniq!
+                movelist.compact!
+
+                if movelist.empty?
+                  Kernel.pbMessage(_INTL("{1} no tiene movimientos que recordar.", pokemon.name))
+                  return
+                end
+
+                commands = []
+                for move in movelist
+                  commands.push(PBMoves.getName(move))
+                end
+                commands.push(_INTL("Cancelar"))
+
+                loop do
+                  choice = Kernel.pbShowCommands(nil, commands, commands.length - 1)
+                  break if choice < 0 || choice >= movelist.length
+
+                  move = movelist[choice]
+                  movename = PBMoves.getName(move)
+
+                  if Kernel.pbConfirmMessage(_INTL("?Quieres que {1} recuerde {2}?", pokemon.name, movename))
+                    Kernel.pbLearnMove(pokemon, move)
+                    break
+                  end
+                end
+              end
+
+              def Kernel.pbRelearnMoveScreen(pokemon)
+                Object.send(:pbRelearnMoveScreen, pokemon)
+              end
+            end
+          rescue => e
+            # Si falla, dejamos la original
+          end
+        end
 
       # --- UI: RESUMEN CON 8 MOVIMIENTOS (MULTIPÁGINA) ---
       if defined?(MoveSelectionSprite)
@@ -1915,7 +2020,9 @@ module Graphics
 
       if defined?(PokemonSummaryScene)
         PokemonSummaryScene.class_eval do
-          # Respaldar la página 4 original (probablemente Cintas) como página 5
+          # --- NO SOBRESCRIBIR drawPageThree NI drawPageFour ---
+          # Las dejamos para el juego base (Stats y Memo)
+          
           # Página de movimientos 1-4 (NUEVA)
           def drawPageMoves1(pokemon)
             return if !pokemon
@@ -1990,8 +2097,8 @@ module Graphics
             overlay = @sprites["overlay"].bitmap
             overlay.clear
             @sprites["background"].setBitmap("Graphics/Pictures/summary4")
-            @sprites["pokemon"].visible = true
-            @sprites["pokeicon"].visible = false
+            @sprites["pokemon"].visible = true if @sprites["pokemon"]
+            @sprites["pokeicon"].visible = false if @sprites["pokeicon"]
             imagepos = []
             if pbPokerus(pokemon) == 1 || pokemon.hp == 0 || pokemon.status > 0
               status = 8 if pbPokerus(pokemon) == 1
@@ -2114,10 +2221,10 @@ module Graphics
                 case @page
                 when 0; drawPageOne(@pokemon)
                 when 1; drawPageTwo(@pokemon)
-                when 2; drawPageThree(@pokemon)
-                when 3; drawPageMoves1(@pokemon)
-                when 4; drawPageMoves2(@pokemon)
-                when 5; drawPageFive(@pokemon) rescue nil
+                when 2; drawPageThree(@pokemon) # Stats original
+                when 3; drawPageMoves1(@pokemon) # Movimientos 1-4
+                when 4; drawPageMoves2(@pokemon) # Movimientos 5-8
+                when 5; drawPageFive(@pokemon) rescue nil # Cintas original
                 end
               end
             end
@@ -2304,6 +2411,7 @@ module Graphics
                   else
                     # Si no existe el equivalente, buscar el primer válido de la página
                     selmove = (@page == 3) ? 0 : 4
+                    # (Si la pág 4 está vacía, selmove volverá a 8 o se quedará en el primero)
                   end
                 end
                 moving = true
@@ -2454,6 +2562,7 @@ module Graphics
               cw.battler = battler
               $_fight_menu_battler = battler # Soporte para eficacia visual
               $_fight_menu_battle = @battle   # Soporte para eficacia visual
+              $_fight_menu_scene = self       # Referencia dinamica para dobles
               lastIndex = @lastmove[index]
               # Asegurar que empezamos en la página correcta si el último índice fue > 3
               if lastIndex >= 4 && lastIndex < 8
@@ -2722,51 +2831,77 @@ module Graphics
               
               mv = moves[index] rescue nil
               if mv && mv.id > 0
-                cx = 461 # Centro visual (valor de compromiso)
-                ix = 429 # X para los iconos (461 - 32px)
-                # Limpiamos exhaustivamente el área
+                cx = 450 # Centro ajustado a la izquierda
+                ix = cx - 32 # X para los iconos (centrado respecto a cx)
+                
+                # Limpiamos exhaustivamente el �rea
                 self.bitmap.clear_rect(390, 20+UPPERGAP, self.bitmap.width-390, 100)
                 base_c = Color.new(248, 248, 248, alpha); shad_c = Color.new(32, 32, 32, alpha)
-                self.bitmap.font.size = 22 # Fuente óptima para el carrusel
-                
-                # Nuevas coordenadas para mejor centrado vertical
-                y_icon = 22 + UPPERGAP
-                y_text = 56 + UPPERGAP
+                self.bitmap.font.size = 22 # Fuente �ptima para el carrusel
                 
                 if @carousel_page == 0
-                  # Capa 1: Tipo + PP (Alineación 1 = Centro)
+                  # Capa 1: Tipo + PP
+                  y_icon = 22 + UPPERGAP
+                  y_text = 56 + UPPERGAP
+                  
+                  @typebitmap = AnimatedBitmap.new("Graphics/Pictures/types") if !@typebitmap
                   self.bitmap.blt(ix, y_icon, @typebitmap.bitmap, Rect.new(0, mv.type * 28, 64, 28), alpha)
                   pp_s = (mv.totalpp == 0) ? "PP: ---" : "PP: #{mv.pp}/#{mv.totalpp}"
-                  pbDrawTextPositions(self.bitmap, [[pp_s, cx, y_text, 1, base_c, shad_c]])
+                  pbDrawTextPositions(self.bitmap, [[pp_s, cx, y_text, 2, base_c, shad_c]])
                 else
-                  # Capa 2: Categoría + Precisión
+                  # Capa 2: Categor�a + Potencia + Precisi�n (En 3 l�neas para que quepa)
+                  y_icon = 12 + UPPERGAP
+                  y_text1 = 44 + UPPERGAP
+                  y_text2 = 70 + UPPERGAP
+                  
                   cat = 2 # Estado por defecto
                   if mv.basedamage > 0
-                    cat = 0 # Asumir Físico si tiene daño y falla la detección
+                    cat = 0 # Asumir F�sico si tiene da�o y falla la detecci�n
                     t = mv.type rescue 0
                     if mv.respond_to?(:pbIsPhysical?); cat = mv.pbIsPhysical?(t) ? 0 : 1
                     elsif mv.respond_to?(:category) && mv.category != nil; cat = mv.category
                     end
                   end
                   
-                  acc_s = (mv.accuracy == 0 || mv.accuracy.nil?) ? "---" : "#{mv.accuracy}%"
+                  pwr_s = (mv.basedamage > 0) ? "Pot: #{mv.basedamage}" : "Pot: ---"
+                  acc_s = (mv.accuracy == 0 || mv.accuracy.nil?) ? "Prec: ---" : "Prec: #{mv.accuracy}%"
+                  
                   begin
                     catbmp = AnimatedBitmap.new("Graphics/Pictures/category")
                     self.bitmap.blt(ix, y_icon, catbmp.bitmap, Rect.new(0, cat*28, 64, 28), alpha); catbmp.dispose
                   rescue
                     cat_name = ["FISICO", "ESPECIAL", "ESTADO"][cat]
-                    pbDrawTextPositions(self.bitmap, [[cat_name, cx, y_icon, 1, base_c, shad_c]])
+                    pbDrawTextPositions(self.bitmap, [[cat_name, cx, y_icon, 2, base_c, shad_c]])
                   end
-                  # Abreviamos Precisión a Prec. y usamos alineación central (1)
-                  pbDrawTextPositions(self.bitmap, [[_INTL("Prec: {1}", acc_s), cx, y_text, 1, base_c, shad_c]])
+                  
+                  pbDrawTextPositions(self.bitmap, [
+                    [pwr_s, cx, y_text1, 2, base_c, shad_c],
+                    [acc_s, cx, y_text2, 2, base_c, shad_c]
+                  ])
                 end
-                # RESTAURACIÓN CRÍTICA: Devolvemos la fuente a su estado original para los botones
+                # RESTAURACI�N CR�TICA: Devolvemos la fuente a su estado original para los botones
                 self.bitmap.font.size = old_size
               end
-              
-              # --- LÓGICA DE EFECTIVIDAD (Cálculos de botones) ---
+              # --- LOGICA DE EFECTIVIDAD (Calculos de botones) ---
               return if !$_fight_menu_battler || !$_fight_menu_battle
               attacker = $_fight_menu_battler; battle = $_fight_menu_battle
+              
+              # Detectar objetivo actual mirando sprites de la escena
+              target_battler = nil
+              begin
+                if defined?($_fight_menu_scene) && $_fight_menu_scene && $_fight_menu_scene.respond_to?(:sprites)
+                  for j in 0...4
+                    sp = $_fight_menu_scene.sprites["battler#{j}"] rescue nil
+                    if sp && sp.respond_to?(:selected) && sp.selected
+                      b = battle.battlers[j] rescue nil
+                      target_battler = b if b && !b.isFainted? && b.pbIsOpposing?(attacker.index)
+                      break
+                    end
+                  end
+                end
+              rescue
+                target_battler = nil
+              end
               
               opponents = []
               for i in 0...4
@@ -2784,125 +2919,100 @@ module Graphics
                 y += UPPERGAP
                 
                 target = move.target
-                next if target == PBTargets::User || target == PBTargets::UserSide || 
-                        target == PBTargets::Partner || target == PBTargets::UserOrPartner || 
+                next if target == PBTargets::User || target == PBTargets::UserSide ||
+                        target == PBTargets::Partner || target == PBTargets::UserOrPartner ||
                         target == PBTargets::NoTarget
                         
                 best_mod = -1
                 worst_mod = 999
                 is_leech_seed_immune = false
                 
-                for opp in opponents
-                  real_type = move.pbType(move.type, attacker, opp)
-                  mod = move.pbTypeModifier(real_type, attacker, opp)
-                  
-                  best_mod = mod if mod > best_mod
-                  worst_mod = mod if mod < worst_mod
-                  
-                if move.function == 0xDC && opp.pbHasType?(:GRASS)
-                  is_leech_seed_immune = true
-                end
-              end
-              
-              has_stab = attacker.pbHasType?(move.type)
-              
-              str = ""
-              curtain_text = ""
-              color = Color.new(255,255,255)
-              
-              if move.pbIsStatus?
-                if worst_mod == 0 || is_leech_seed_immune
-                  str = "(X)"
-                  curtain_text = "INMUNE"
-                  color = Color.new(200, 200, 200)
+                if target_battler
+                  real_type = move.pbType(move.type, attacker, target_battler)
+                  best_mod = move.pbTypeModifier(real_type, attacker, target_battler)
+                  worst_mod = best_mod
+                  if move.function == 0xDC && target_battler.pbHasType?(:GRASS)
+                    is_leech_seed_immune = true
+                  end
                 else
-                  next
+                  for opp in opponents
+                    real_type = move.pbType(move.type, attacker, opp)
+                    mod = move.pbTypeModifier(real_type, attacker, opp)
+                    best_mod = mod if mod > best_mod
+                    worst_mod = mod if mod < worst_mod
+                    if move.function == 0xDC && opp.pbHasType?(:GRASS)
+                      is_leech_seed_immune = true
+                    end
+                  end
                 end
-              else
-                if best_mod > 8
-                  str = "(+)"
-                  curtain_text = "SÚPER EFICAZ"
-                  color = Color.new(120, 255, 120) # Verde pastel
-                elsif best_mod == 0
-                  str = "(X)"
-                  curtain_text = "INMUNE"
-                  color = Color.new(200, 200, 200) # Gris
-                elsif best_mod < 8
-                  str = "(-)"
-                  curtain_text = "POCO EFICAZ"
-                  color = Color.new(255, 150, 150) # Rojo claro
+              
+                has_stab = attacker.pbHasType?(move.type)
+                str = ""
+                curtain_text = ""
+                color = Color.new(255,255,255)
+                
+                if move.pbIsStatus?
+                  if worst_mod == 0 || is_leech_seed_immune
+                    str = "(X)"
+                    curtain_text = "INMUNE"
+                    color = Color.new(200, 200, 200)
+                  else
+                    next
+                  end
                 else
-                  # Aunque el ataque sea x1 (neutro), si tiene STAB no hacemos 'next' 
-                  # para poder mostrarle el pulso de caja, aunque no tenga texto especial.
+                  if best_mod > 8
+                    str = (worst_mod < 8 && !target_battler) ? "(+/-)" : "(+)"
+                    curtain_text = (worst_mod < 8 && !target_battler) ? "EFIC. MIXTA" : "SUPER EFICAZ"
+                    color = Color.new(120, 255, 120)
+                  elsif best_mod == 0
+                    str = "(X)"
+                    curtain_text = "INMUNE"
+                    color = Color.new(200, 200, 200)
+                  elsif best_mod < 8
+                    str = "(-)"
+                    curtain_text = "POCO EFICAZ"
+                    color = Color.new(255, 150, 150)
+                  end
+                end
+          
+                pulse = (Math.sin((@global_frame || 0) / 10.0) + 1.0) / 2.0
+                glow_r = color.red + ((255 - color.red) * (pulse * 0.7))
+                glow_g = color.green + ((255 - color.green) * (pulse * 0.7))
+                glow_b = color.blue + ((255 - color.blue) * (pulse * 0.7))
+                
+                if i == index
+                  frame = @hover_frame || 12
+                  progress = frame / 12.0
+                  ease = 1.0 - (1.0 - progress) * (1.0 - progress)
+                  self.bitmap.clear_rect(x, y, 192, 46)
+                  self.bitmap.blt(x, y, @buttonbitmap.bitmap, Rect.new(192, move.type*46, 192, 46))
+                  anim_y_name = (curtain_text != "") ? (y + 8 - (10 * ease).to_i) : (y + 8)
+                  self.bitmap.font.size = old_size
+                  pbDrawTextPositions(self.bitmap, [[_INTL("{1}", move.name), x+96, anim_y_name, 2,
+                     PokeBattle_SceneConstants::MENUBASECOLOR, PokeBattle_SceneConstants::MENUSHADOWCOLOR]])
+                  if curtain_text != ""
+                    anim_y_eff = y + 26 - (6 * ease).to_i
+                    alpha = (255 * ease).to_i
+                    eff_col = Color.new(glow_r.to_i, glow_g.to_i, glow_b.to_i, alpha)
+                    eff_sha = Color.new(0, 0, 0, alpha)
+                    self.bitmap.font.size = 20
+                    pbDrawTextPositions(self.bitmap, [[curtain_text, x+96, anim_y_eff, 2, eff_col, eff_sha]])
+                  end
+                else
+                  if has_stab && best_mod > 8 && !move.pbIsStatus?
+                    box_glow_alpha = (140 * pulse).to_i
+                    self.bitmap.blt(x, y, @buttonbitmap.bitmap, Rect.new(192, move.type*46, 192, 46), box_glow_alpha)
+                  end
+                  if str != ""
+                    self.bitmap.font.size = 18
+                    chapa_x = x + 172
+                    chapa_y = y + 6
+                    glow_color = Color.new(glow_r.to_i, glow_g.to_i, glow_b.to_i, 255)
+                    pbDrawTextPositions(self.bitmap, [[str, chapa_x, chapa_y, 1, glow_color, Color.new(0, 0, 0, 255)]])
+                  end
                 end
               end
-        
-              # Animación de brillo constante (Glow Web) compartida por ambos estados
-              pulse = (Math.sin((@global_frame || 0) / 10.0) + 1.0) / 2.0 # Oscila de 0.0 a 1.0 lentamente
-              
-              glow_r = color.red + ( (255 - color.red) * (pulse * 0.7) )
-              glow_g = color.green + ( (255 - color.green) * (pulse * 0.7) )
-              glow_b = color.blue + ( (255 - color.blue) * (pulse * 0.7) )
-              
-              if i == index
-                # Cálculo de frames para la animación "CSS"
-                frame = @hover_frame || 12
-                progress = frame / 12.0
-                # Ease-out quad para un movimiento suave
-                ease = 1.0 - (1.0 - progress) * (1.0 - progress)
-                
-                # 1. Limpiar completamente el área del botón para borrar el texto antiguo
-                self.bitmap.clear_rect(x, y, 192, 46)
-                
-                # 2. Redibujamos la textura base del botón pulsado
-                self.bitmap.blt(x, y, @buttonbitmap.bitmap, Rect.new(192, move.type*46, 192, 46))
-                
-                # 3. Reescribimos el nombre del ataque desplazado hacia ARRIBA animado
-                # Si el ataque tiene texto de efectividad (ej. Súper Eficaz), lo desplazamos
-                anim_y_name = (curtain_text != "") ? (y + 8 - (10 * ease).to_i) : (y + 8)
-                
-                self.bitmap.font.size = old_size
-                pbDrawTextPositions(self.bitmap, [[_INTL("{1}", move.name), x+96, anim_y_name, 2, 
-                   PokeBattle_SceneConstants::MENUBASECOLOR, PokeBattle_SceneConstants::MENUSHADOWCOLOR]])
-                   
-                # 4. Ponemos el texto de efectividad emergiendo (Fade-in + Slide-up) Y CON BRILLO
-                if curtain_text != ""
-                  anim_y_eff = y + 26 - (6 * ease).to_i
-                  alpha = (255 * ease).to_i
-                  
-                  eff_col = Color.new(glow_r.to_i, glow_g.to_i, glow_b.to_i, alpha)
-                  eff_sha = Color.new(0, 0, 0, alpha)
-                  
-                  self.bitmap.font.size = 20
-                  pbDrawTextPositions(self.bitmap, [[curtain_text, x+96, anim_y_eff, 2, eff_col, eff_sha]])
-                end
-              else
-                # Botones INACTIVOS
-                
-                # === INDICADOR STAB SÚPER EFICAZ (Daño Devastador) ===
-                # Si el ataque tiene STAB *y además* es Súper Eficaz contra al menos un oponente,
-                # mezclamos su versión "hover" brillante encima para que la caja entera parezca palpitar.
-                if has_stab && best_mod > 8 && !move.pbIsStatus?
-                  box_glow_alpha = (140 * pulse).to_i 
-                  self.bitmap.blt(x, y, @buttonbitmap.bitmap, Rect.new(192, move.type*46, 192, 46), box_glow_alpha)
-                end
-                
-                # === INDICADOR EFECTIVIDAD (Chapita Oculta) ===
-                if str != ""
-                  self.bitmap.font.size = 18
-                  
-                  # Posición ajustada para integrarse sin tocar los bordes (Alineación Derecha = 1)
-                  chapa_x = x + 172
-                  chapa_y = y + 6 # Lo bajamos ligeramente
-                  
-                  glow_color = Color.new(glow_r.to_i, glow_g.to_i, glow_b.to_i, 255)
-                  
-                  pbDrawTextPositions(self.bitmap, [[str, chapa_x, chapa_y, 1, glow_color, Color.new(0, 0, 0, 255)]])
-                end
-              end
-            end
-            
-            self.bitmap.font.size = old_size # Restaurar
+              self.bitmap.font.size = old_size # Restaurar
           end
         end
           
@@ -3259,7 +3369,38 @@ module Graphics
                   pkmn.name = (newname=="") ? speciesname : newname
                   pbRefresh
                 elsif cmdItem>=0 && command==cmdItem
-                  item=pbItemMenu(pkmnid)
+                  # --- RESTAURACIÓN MANUAL DEL MENÚ ORIGINAL ---
+                  cmd_itm = []
+                  c_give = -1; c_take = -1; c_move = -1; c_quit = -1
+                  cmd_itm[c_give = cmd_itm.length] = _INTL("Dar")
+                  cmd_itm[c_take = cmd_itm.length] = _INTL("Quitar") if pkmn.hasItem?
+                  cmd_itm[c_move = cmd_itm.length] = _INTL("Mover") if pkmn.hasItem?
+                  cmd_itm[c_quit = cmd_itm.length] = _INTL("Cerrar")
+                  
+                  sel_itm = @scene.pbShowCommands(_INTL("¿Qué hacer con {1}?", pkmn.name), cmd_itm)
+                  
+                  if c_give >= 0 && sel_itm == c_give
+                    scene_b = PokemonBag_Scene.new
+                    screen_b = PokemonBagScreen.new(scene_b, $PokemonBag)
+                    itm = screen_b.pbStartScreen
+                    if itm > 0
+                      pbGiveItemToPokemon(itm, pkmn, pkmnid, self) rescue begin
+                        pkmn.setItem(itm); $PokemonBag.pbDeleteItem(itm)
+                        pbDisplay(_INTL("{1} ahora lleva {2}.", pkmn.name, PBItems.getName(itm)))
+                      end
+                    end
+                  elsif c_take >= 0 && sel_itm == c_take
+                    pbTakeItemFromPokemon(pkmn, pkmnid, self) rescue begin
+                      old_itm = pkmn.item
+                      if old_itm > 0 && $PokemonBag.pbStoreItem(old_itm)
+                        pkmn.setItem(0)
+                        pbDisplay(_INTL("Has recuperado {1}.", PBItems.getName(old_itm)))
+                      end
+                    end
+                  elsif c_move >= 0 && sel_itm == c_move
+                    pbMoveItemFromPokemon(pkmn, pkmnid, self) rescue nil
+                  end
+                  pbRefresh
                 elsif cmdPokedex>=0 && command==cmdPokedex
                   $Trainer.pokedex=true
                   scene=PokemonPokedexScene.new
@@ -3910,6 +4051,7 @@ module Graphics
     end
   end
 end
+
 # ===============================================================================
 # BOTÓN DE PC EN PANTALLA DE EQUIPO (LATE-BINDING PATCH)
 # ===============================================================================
@@ -3926,171 +4068,179 @@ if !defined?($PC_Button_Injector_Hooked)
         if !@pc_patch_applied && defined?(PokemonScreen_Scene) && PokemonScreen_Scene.method_defined?(:pbStartScene)
           @pc_patch_applied = true
           
-          # Evaluar dinámicamente para evitar SyntaxError (class en método)
-          eval <<-'RUBY_CODE'
-            class ::PokeSelectionPCSprite < ::PokeSelectionConfirmCancelSprite
-              def initialize(viewport=nil, x=270, y=328)
-                super("PKM's", x, y, false, viewport)
+          [::PokemonScreen_Scene].each do |scene_class|
+            next unless scene_class.method_defined?(:pbStartScene)
+            scene_class.class_eval do
+              
+              # 1. Start Scene: Inyectar PC (6) y bajar SALIR (7) antes del Fade-In
+              unless method_defined?(:_pc_orig_pbStartScene)
+                alias _pc_orig_pbStartScene pbStartScene
+                alias _pc_orig_pbChangeSelection pbChangeSelection
+                alias _pc_orig_pbChoosePokemon pbChoosePokemon
+                alias _pc_orig_pbSetHelpText pbSetHelpText
+                alias _pc_orig_pbFadeInAndShow pbFadeInAndShow rescue nil
               end
-            end
-
-            class ::PokemonScreen_Scene
-              def pbRefresh
-                @party = $Trainer.party
-                (0...6).each do |i|
-                  pkmn = @party[i]
-                  sprite = @sprites["pokemon#{i}"]
-                  if pkmn
-                    if !sprite.is_a?(PokeSelectionSprite)
-                      sprite.dispose if sprite
-                      @sprites["pokemon#{i}"] = PokeSelectionSprite.new(pkmn, i, @viewport)
-                    else
-                      sprite.pokemon = pkmn
-                    end
-                  else
-                    if !sprite.is_a?(PokeSelectionPlaceholderSprite)
-                      sprite.dispose if sprite
-                      @sprites["pokemon#{i}"] = PokeSelectionPlaceholderSprite.new(nil, i, @viewport)
-                    else
-                      # Placeholder simple
-                    end
-                  end
-                end
-              end
-
+              
+              # ACORTAR LA CAJA DE TEXTO PARA QUE QUEPA EL BOTON PC
               def pbSetHelpText(helptext)
+                _pc_orig_pbSetHelpText(helptext)
                 if @sprites["helpwindow"]
-                  @sprites["helpwindow"].text = helptext
                   @sprites["helpwindow"].width = 260
-                  @sprites["helpwindow"].visible = true
                 end
               end
-
-              def pbStartScene(party, starthelptext, annotations=nil, multiselect=false)
-                @sprites = {}
-                @party = party
-                @viewport = ::Viewport.new(0, 0, ::Graphics.width, ::Graphics.height)
-                @viewport.z = 99999
-                @multiselect = multiselect
-                addBackgroundPlane(@sprites, "partybg", "partybg", @viewport)
-                @sprites["messagebox"] = ::Window_AdvancedTextPokemon.new("")
-                @sprites["helpwindow"] = ::Window_UnformattedTextPokemon.new(starthelptext)
-                @sprites["messagebox"].viewport = @viewport
-                @sprites["messagebox"].visible = false
-                @sprites["messagebox"].letterbyletter = true
-                @sprites["helpwindow"].viewport = @viewport
-                @sprites["helpwindow"].visible = true
-                pbBottomLeftLines(@sprites["messagebox"], 2)
-                pbBottomLeftLines(@sprites["helpwindow"], 1)
-                pbSetHelpText(starthelptext)
-                (0...6).each do |i|
-                  if @party[i]
-                    @sprites["pokemon#{i}"] = PokeSelectionSprite.new(@party[i], i, @viewport)
-                  else
-                    @sprites["pokemon#{i}"] = PokeSelectionPlaceholderSprite.new(@party[i], i, @viewport)
+              
+              # Inyectar botones EXCACTAMENTE antes de que comience el fundido desde negro
+              def pbFadeInAndShow(sprites, visiblesprites=nil, &block)
+                if !@multiselect && sprites.is_a?(Hash) && sprites.has_key?("pokemon0")
+                  sprites["pokemon6"].dispose if sprites["pokemon6"]
+                  
+                  # Botón PC (Posición 6) - restaurada posición y forma ancha original
+                  sprites["pokemon6"] = ::PokeSelectionConfirmCancelSprite.new("PKM's", 270, 328, false, @viewport) rescue nil
+                  
+                  # Botón Salir (Posición 7) se queda en su sitio nativo a la derecha
+                  sprites["pokemon7"] = ::PokeSelectionCancelSprite.new(@viewport) rescue nil
+                  
+                  if sprites["pokemon6"]
+                    sprites["pokemon6"].selected = false if sprites["pokemon6"].respond_to?(:selected=)
+                    sprites["pokemon6"].refresh if sprites["pokemon6"].respond_to?(:refresh)
                   end
-                  @sprites["pokemon#{i}"].text = annotations[i] if annotations
+                  if sprites["pokemon7"]
+                    sprites["pokemon7"].selected = false if sprites["pokemon7"].respond_to?(:selected=)
+                    sprites["pokemon7"].refresh if sprites["pokemon7"].respond_to?(:refresh)
+                  end
                 end
                 
-                # Botón PC (Añadido antes del fade)
-                @sprites["pokemon_pc"] = ::PokeSelectionPCSprite.new(@viewport, 280, 328)
-                @sprites["pokemon_pc"].selected = false
-                @sprites["pokemon_pc"].visible = !multiselect
-                
-                if @multiselect
-                  @sprites["pokemon6"] = PokeSelectionConfirmSprite.new(@viewport)
-                  @sprites["pokemon7"] = PokeSelectionCancelSprite2.new(@viewport)
+                # Ejecutar el fundido original con los botones ya cargados
+                if respond_to?(:_pc_orig_pbFadeInAndShow)
+                  _pc_orig_pbFadeInAndShow(sprites, visiblesprites, &block)
                 else
-                  @sprites["pokemon6"] = PokeSelectionCancelSprite.new(@viewport)
-                  @sprites["pokemon6"].selected = false
+                  super(sprites, visiblesprites, &block) rescue nil
                 end
-                @activecmd = 0
-                @sprites["pokemon0"].selected = true
-                pbFadeInAndShow(@sprites) { update }
               end
 
+              def pbStartScene(party, *args)
+                _pc_orig_pbStartScene(party, *args)
+              end
+
+              # 2. Navegación en Rejilla 2-Columnas Adaptada (7 botones -> 8 botones)
               def pbChangeSelection(key, currentsel)
+                return _pc_orig_pbChangeSelection(key, currentsel) if @multiselect
+                
+                # Manual overrides for PC (6) and Salir (7) to make navigation pixel-perfect
+                pkmn_count = @party.length
                 res = currentsel
+                
                 case key
                 when ::Input::LEFT
-                  if currentsel == (@multiselect ? 8 : 7)
-                    res = @multiselect ? 7 : 6
+                  if res == 7; res = 6
+                  elsif res == 6; res = 7
                   else
-                    res -= 1
+                    begin; res -= 1; end while res > 0 && res < 6 && !@party[res]
+                    res = 7 if res < 0
                   end
                 when ::Input::RIGHT
-                  if currentsel == (@multiselect ? 7 : 6)
-                    res = @multiselect ? 8 : 7
+                  if res == 6; res = 7
+                  elsif res == 7; res = 6
                   else
-                    res += 1
+                    begin; res += 1; end while res < 6 && !@party[res]
+                    res = 6 if res >= pkmn_count && res < 6
                   end
                 when ::Input::UP
-                  if currentsel == (@multiselect ? 7 : 6)
+                  if res == 6
                     res = 4
-                  elsif currentsel == (@multiselect ? 8 : 7)
+                    res = 2 if !@party[res]
+                    res = 0 if !@party[res]
+                  elsif res == 7
                     res = 5
+                    res = 3 if !@party[res]
+                    res = 1 if !@party[res]
+                    res = 0 if !@party[res]
                   else
-                    res -= 2
+                    begin; res -= 2; end while res > 0 && res < 6 && !@party[res]
+                    res = 6 if res < 0 && currentsel % 2 == 0
+                    res = 7 if res < 0 && currentsel % 2 != 0
                   end
                 when ::Input::DOWN
-                  if currentsel == 4 || currentsel == 5
-                    res = @multiselect ? 7 : 6
+                  if res == 6
+                    res = 0
+                  elsif res == 7
+                    res = 1
+                    res = 0 if !@party[res]
                   else
                     res += 2
+                    if res >= 6 || !@party[res]
+                      res = (currentsel % 2 == 0) ? 6 : 7
+                    end
                   end
                 end
                 
-                # Saltar huecos vacíos
-                max_pkmn = ($Trainer.party.length - 1)
-                if res >= 0 && res < 6 && res > max_pkmn
-                  if key == ::Input::RIGHT || key == ::Input::DOWN
-                    res = 6 # Salto al PC
-                  elsif key == ::Input::LEFT || key == ::Input::UP
-                    res = max_pkmn # Vuelta al último mon
-                  end
-                end
-
-                # Límites estrictos
-                max_idx = @multiselect ? 8 : 7
-                res = 0 if res < 0
-                res = max_idx if res > max_idx
                 return res
               end
 
-              alias _pc_pbChoosePokemon pbChoosePokemon rescue nil
-              def pbChoosePokemon(switching=false, initialsel=-1)
-                (0...6).each do |idx|
-                  present = @sprites["pokemon#{idx}"]
-                  present.preselected = (switching && idx==@activecmd) if present
-                  present.switching = switching if present
+              # 3. Bucle de Elección de Combate y Fuera de él
+              def pbChoosePokemon(switching=false,initialsel=-1)
+                return _pc_orig_pbChoosePokemon(switching, initialsel) if @multiselect
+                
+                for i in 0...6
+                  @sprites["pokemon#{i}"].preselected=(switching && i==@activecmd) if @sprites["pokemon#{i}"]
+                  @sprites["pokemon#{i}"].switching=switching if @sprites["pokemon#{i}"]
                 end
-                @activecmd = initialsel if initialsel >= 0
+                @activecmd=initialsel if initialsel>=0
                 pbRefresh
                 loop do
-                  ::Graphics.update; ::Input.update; self.update
-                  oldsel = @activecmd
-                  key = -1; key = ::Input::DOWN if ::Input.repeat?(::Input::DOWN); key = ::Input::RIGHT if ::Input::repeat?(::Input::RIGHT)
-                  key = ::Input::LEFT if ::Input::repeat?(::Input::LEFT); key = ::Input::UP if ::Input::repeat?(::Input::UP)
-                  @activecmd = pbChangeSelection(key, @activecmd) if key >= 0
-                  if @activecmd != oldsel
+                  ::Graphics.update
+                  ::Input.update
+                  self.update
+                  oldsel=@activecmd
+                  key=-1
+                  key=::Input::DOWN if ::Input.repeat?(::Input::DOWN)
+                  key=::Input::RIGHT if ::Input.repeat?(::Input::RIGHT)
+                  key=::Input::LEFT if ::Input.repeat?(::Input::LEFT)
+                  key=::Input::UP if ::Input.repeat?(::Input::UP)
+                  if key>=0
+                    @activecmd=pbChangeSelection(key,@activecmd)
+                  end
+                  if @activecmd!=oldsel # Changing selection
                     pbPlayCursorSE()
-                    (0...6).each { |idx| @sprites["pokemon#{idx}"].selected = (idx == @activecmd) if @sprites["pokemon#{idx}"] }
-                    if @multiselect
-                      @sprites["pokemon6"].selected = (@activecmd == 6) if @sprites["pokemon6"]
-                      @sprites["pokemon7"].selected = (@activecmd == 7) if @sprites["pokemon7"]
-                      @sprites["pokemon8"].selected = (@activecmd == 8) if @sprites["pokemon8"]
-                    else
-                      @sprites["pokemon_pc"].selected = (@activecmd == 6) if @sprites["pokemon_pc"]
-                      @sprites["pokemon6"].selected = (@activecmd == 7) if @sprites["pokemon6"]
+                    for i in 0...8
+                      @sprites["pokemon#{i}"].selected=(i==@activecmd) if @sprites["pokemon#{i}"]
                     end
                   end
-                  return -1 if ::Input.trigger?(::Input::B)
+                  if ::Input.trigger?(::Input::B)
+                    return -1
+                  end
                   if ::Input.trigger?(::Input::C)
-                    pc_idx = @multiselect ? 7 : 6; exit_idx = @multiselect ? 8 : 7
-                    if @activecmd == pc_idx
+                    if @activecmd == 6 # BOTÓN PC
                       pbPlayDecisionSE()
-                      pbFadeOutIn(99999) { screen = ::PokemonStorageScreen.new(::PokemonStorageScene.new, $PokemonStorage); screen.pbStartScreen(2) }
-                      # UNLOCK SYSTEM: Recuperar control al salir de la caja PC
+                      pbFadeOutIn(99999) { 
+                        pbApplyHeizoPC_Lockdown # Aplicar bloqueo de solo lectura antes de abrir
+                        screen = ::PokemonStorageScreen.new(::PokemonStorageScene.new, $PokemonStorage)
+                        screen.pbStartScreen(2) 
+                      }
+                      # Sincronizar el party de la batalla si venimos de un combate
+                      if $current_battle_for_ui && $current_battle_for_ui.respond_to?(:pbParty)
+                        bp = $current_battle_for_ui.pbParty(0)
+                        for i in 0...6; bp[i] = $Trainer.party[i] if $Trainer.party[i]; end
+                      end
+                      @party = $Trainer.party
+                      
+                      # REFRESCADO SEGURO: Destruir y rehacer los sprites del equipo 
+                      # para evitar el bug de texturas fantasmas (ej. sale un Alakazam pero es un Venusaur)
+                      (0...6).each do |i|
+                        if @sprites["pokemon#{i}"]
+                          @sprites["pokemon#{i}"].dispose
+                        end
+                        if @party[i]
+                          # Generar el sprite nativo con todos sus datos frescos
+                          @sprites["pokemon#{i}"] = ::PokeSelectionSprite.new(@party[i], i, @viewport) rescue nil
+                        else
+                          @sprites["pokemon#{i}"] = ::PokeSelectionPlaceholderSprite.new(@party[i], i, @viewport) rescue nil
+                        end
+                        # Mantener el estado de selección o inactividad si aplica
+                        @sprites["pokemon#{i}"].selected = (i == @activecmd) if @sprites["pokemon#{i}"]
+                      end
+                      
+                      # Unlock safety
                       if $game_player
                         $game_player.straighten rescue nil
                         $game_player.force_move_route(::RPG::MoveRoute.new) rescue nil
@@ -4103,16 +4253,18 @@ if !defined?($PC_Button_Injector_Hooked)
                         interp.instance_variable_set(:@move_route_waiting, false) rescue nil
                       end
                       $game_map.need_refresh = true rescue nil if $game_map
+                      
                       pbRefresh; next
                     end
-                    return -1 if @activecmd == exit_idx
+                    
                     pbPlayDecisionSE()
-                    return @activecmd if @party[@activecmd]
+                    return (@activecmd==7) ? -1 : @activecmd
                   end
                 end
               end
+              
             end
-          RUBY_CODE
+          end
         end
       end
     end
@@ -4123,6 +4275,9 @@ def pbScreenCapture; end
 $_debug_pkmn = nil
 $mega_shiny_toggle = false if $mega_shiny_toggle.nil?
 
+# ==============================================================================
+# HOOKS DE MODO PORTABLE v4 - Hilo vigilante (sin depender de alias save_data)
+# ==============================================================================
 
 $pkmn_usb_dir = begin
   _usb = File.join(Dir.pwd, "Partidas Guardadas")
@@ -4134,6 +4289,7 @@ end
 
 begin
   if $pkmn_usb_dir
+    # Calcular ruta PC nativa
     $pkmn_pc_dir = if ENV['USERPROFILE'] && File.directory?(File.join(ENV['USERPROFILE'], "Saved Games"))
       File.join(ENV['USERPROFILE'], "Saved Games", "Pokemon Z")
     else
@@ -4154,12 +4310,13 @@ begin
       def self.getSaveFileName(f); File.join($pkmn_pc_dir, f); end
     end
 
-    # ARRANQUE: USB -> PC (USB es la fuente portable oficial)
+    # === ARRANQUE: USB siempre es la partida "porta" — se inyecta al PC ===
+    # Solo copiamos USB->PC si USB existe (es la fuente portable)
     if File.exist?($pkmn_usb_save)
       File.open($pkmn_pc_save, 'wb') { |w| File.open($pkmn_usb_save, 'rb') { |r| w.write(r.read) } } rescue nil
     end
 
-    # HILO VIGILANTE: detecta guardado en PC y replica al USB
+    # === HILO VIGILANTE: detecta cuando el juego guarda en PC y lo copia al USB ===
     Thread.new do
       begin
         _last_mtime = File.exist?($pkmn_pc_save) ? (File.mtime($pkmn_pc_save) rescue nil) : nil
@@ -4170,6 +4327,7 @@ begin
           next unless _cur
           if _last_mtime.nil? || _cur > _last_mtime
             _last_mtime = _cur
+            # PC guardo algo nuevo -> copiar al USB
             File.open($pkmn_usb_save, 'wb') { |w|
               File.open($pkmn_pc_save, 'rb') { |r| w.write(r.read) }
             } rescue nil
@@ -4181,20 +4339,7 @@ begin
 
   end
 rescue
-endcue
 end
-begin
-  File.open('preload_test.txt', 'w') { |f| 
-    f.puts("PokeBattle_Battle defined? #{defined?(PokeBattle_Battle).inspect}")
-    f.puts("PokeBattle_Scene defined? #{defined?(PokeBattle_Scene).inspect}")
-  }
-rescue
-end
-
-
-
-
-
 
 # Heizo NPC - Helpers de Seguimiento
 def pbHeizoFollowing?
@@ -5191,19 +5336,87 @@ module Kernel
           loop do
             pbBGMPlay("Acertijos")
             cat = Kernel.pbHeizoShopCategoryMenu
-            break if cat == 6
+            break if cat == 9 # Salir
             case cat
-            when 0 # BALLS
+            when 0 # POKE BALLS
               _heizo_open_shop.call([:POKEBALL, :GREATBALL, :ULTRABALL, :NETBALL, :DIVEBALL, :NESTBALL, :REPEATBALL, :TIMERBALL, :LUXURYBALL, :DUSKBALL, :HEALBALL, :QUICKBALL, :FASTBALL, :LEVELBALL, :LUREBALL, :HEAVYBALL, :LOVEBALL, :FRIENDBALL, :MOONBALL, :POKEBALLCASERA, :SUPERBALLCASERA, :ULTRABALLCASERA, :MASTERBALL], true, { :MASTERBALL => 50000 })
-            when 1 # CURA
-              _heizo_open_shop.call([:POTION, :SUPERPOTION, :HYPERPOTION, :MAXPOTION, :FULLRESTORE, :REVIVE, :MAXREVIVE, :FULLHEAL, :ETHER, :MAXETHER, :ELIXIR, :MAXELIXIR, :ANTIDOTE, :BURNHEAL, :PARLYZHEAL, :ICEHEAL, :AWAKENING, :SITRUSBERRY, :ORANBERRY, :LUMBERRY, :LEPPABERRY, :CHESTOBERRY, :PECHABERRY, :RAWSTBERRY, :ASPEARBERRY, :CHERIBERRY, :PERSIMBERRY, :FIGYBERRY, :WIKIBERRY, :MAGOBERRY, :AGUAVBERRY, :IAPAPABERRY, :LIECHIBERRY, :GANLONBERRY, :SALACBERRY, :PETAYABERRY, :APICOTBERRY, :CUSTAPBERRY, :LANSATBERRY, :STARFBERRY, :MICLEBERRY, :ENIGMABERRY], true, {})
-            when 2 # MATS
+            when 1 # OBJETOS DE CURACION (sin bayas)
+              _heizo_open_shop.call([:POTION, :SUPERPOTION, :HYPERPOTION, :MAXPOTION, :FULLRESTORE, :REVIVE, :MAXREVIVE, :FULLHEAL, :ETHER, :MAXETHER, :ELIXIR, :MAXELIXIR, :ANTIDOTE, :BURNHEAL, :PARLYZHEAL, :ICEHEAL, :AWAKENING], true, {})
+            when 2 # BAYAS (precio fijo: 100)
+              items = []
+              max_items = PBItems.maxValue rescue 1000
+              for i in 1..max_items
+                next if i <= 0
+                begin
+                  name = PBItems.getName(i) rescue ""
+                  if name.include?("Baya") || name.include?("Berry")
+                    items.push(i)
+                    $game_temp.mart_prices[i] = [100, -1]
+                  end
+                rescue; end
+              end
+              if !items.empty?
+                items.sort! { |a, b| PBItems.getName(a) <=> PBItems.getName(b) }
+                scene = PokemonMartScene.new
+                screen = PokemonMartScreen.new(scene, items)
+                screen.pbBuyScreen
+              end
+            when 3 # TODAS LAS MT (precio fijo: 1000, ordenadas por numero)
+              items = []
+              max_items = PBItems.maxValue rescue 1000
+              for i in 1..max_items
+                next if i <= 0
+                begin
+                  name = PBItems.getName(i) rescue ""
+                  if name.start_with?("MT", "TM", "MO", "HM")
+                    items.push(i)
+                    $game_temp.mart_prices[i] = [1000, -1]
+                  end
+                rescue; end
+              end
+              if !items.empty?
+                items.sort! do |a, b|
+                  n1 = PBItems.getName(a) rescue ""
+                  n2 = PBItems.getName(b) rescue ""
+                  t1 = (n1.start_with?("MO", "HM")) ? 1 : 0
+                  t2 = (n2.start_with?("MO", "HM")) ? 1 : 0
+                  if t1 != t2; t1 <=> t2
+                  else
+                    num1 = n1.gsub(/[^0-9]/, "").to_i
+                    num2 = n2.gsub(/[^0-9]/, "").to_i
+                    num1 <=> num2
+                  end
+                end
+                scene = PokemonMartScene.new
+                screen = PokemonMartScreen.new(scene, items)
+                screen.pbBuyScreen
+              end
+            when 4 # MEGA-PIEDRAS (precio fijo: 5000)
+              items = []
+              max_items = PBItems.maxValue rescue 1000
+              for i in 1..max_items
+                next if i <= 0
+                begin
+                  name = PBItems.getName(i) rescue ""
+                  if (name.end_with?("ita") || name.end_with?("ite")) && !name.include?("Evolut") && !name.include?("Mineral")
+                    items.push(i)
+                    $game_temp.mart_prices[i] = [5000, -1]
+                  end
+                rescue; end
+              end
+              if !items.empty?
+                items.sort! { |a, b| PBItems.getName(a) <=> PBItems.getName(b) }
+                scene = PokemonMartScene.new
+                screen = PokemonMartScreen.new(scene, items)
+                screen.pbBuyScreen
+              end
+            when 5 # MATS
               _heizo_open_shop.call([:REPEL, :SUPERREPEL, :MAXREPEL, :FIRESTONE, :WATERSTONE, :THUNDERSTONE, :LEAFSTONE, :MOONSTONE, :SUNSTONE, :DUSKSTONE, :DAWNSTONE, :SHINYSTONE, :EVERSTONE, :DRAGONSCALE, :FRASCOCRISTALINO, :MADERA, :GUIJARRO, :TROZODEHIERRO, :POLVODEHUESO, :ESPECIASEXOTICAS, :POLVOEXPLOSIVO, :HPUP, :PROTEIN, :IRON, :CALCIUM, :ZINC, :CARBOS, :PPUP, :PPMAX, :LUCKYEGG, :EXPSHARE, :AMULETCOIN, :SHINYZADOR], true, { :SHINYZADOR => 5000 })
-            when 3 # COMBATE
+            when 6 # COMBATE
               _heizo_open_shop.call([:LEFTOVERS, :BLACKSLUDGE, :SHELLBELL, :BIGROOT, :LIFEORB, :EXPERTBELT, :MUSCLEBAND, :WISEGLASSES, :CHOICEBAND, :CHOICESPECS, :CHOICESCARF, :FOCUSSASH, :FOCUSBAND, :WHITEHERB, :POWERHERB, :MENTALHERB, :AIRBALLOON, :ROCKYHELMET, :EJECTBUTTON, :REDCARD, :EVIOLITE, :QUICKCLAW, :RAZORCLAW, :SCOPELENS, :WIDELENS, :ZOOMLENS, :BRIGHTPOWDER, :HEATROCK, :DAMPROCK, :SMOOTHROCK, :ICYROCK, :LIGHTCLAY, :FLAMEORB, :TOXICORB, :DESTINYKNOT, :KINGSROCK, :RAZORFANG, :METRONOME, :GRIPCLAW, :BINDINGBAND, :FLOATSTONE, :ABSORBBULB, :CELLBATTERY, :SHEDSHELL, :SMOKEBALL, :IRONBALL, :RINGTARGET, :LAGGINGTAIL], true, {})
-            when 4 # TIPOS
+            when 7 # TIPOS
               _heizo_open_shop.call([:FLAMEPLATE, :SPLASHPLATE, :ZAPPLATE, :MEADOWPLATE, :ICICLEPLATE, :FISTPLATE, :TOXICPLATE, :EARTHPLATE, :SKYPLATE, :MINDPLATE, :INSECTPLATE, :STONEPLATE, :SPOOKYPLATE, :DRACOPLATE, :DREADPLATE, :IRONPLATE, :CHARCOAL, :MYSTICWATER, :MAGNET, :MIRACLESEED, :NEVERMELTICE, :BLACKBELT, :POISONBARB, :SOFTSAND, :SHARPBEAK, :TWISTEDSPOON, :SILVERPOWDER, :HARDSTONE, :SPELLTAG, :DRAGONFANG, :BLACKGLASSES, :METALCOAT, :SILKSCARF, :FIREGEM, :WATERGEM, :ELECTRICGEM, :GRASSGEM, :ICEGEM, :FIGHTINGGEM, :POISONGEM, :GROUNDGEM, :FLYINGGEM, :PSYCHICGEM, :BUGGEM, :ROCKGEM, :GHOSTGEM, :DRAGONGEM, :DARKGEM, :STEELGEM, :NORMALGEM, :SEAINCENSE, :WAVEINCENSE, :ROSEINCENSE, :ODDINCENSE, :ROCKINCENSE, :LAXINCENSE, :FULLINCENSE], true, {})
-            when 5 # ROPA
+            when 8 # ROPA
               pbHeizoClanClothesV2 rescue nil
             end
           end
@@ -5343,7 +5556,7 @@ module Kernel
             pbBGMPlay("Acertijos")
             cat = Kernel.pbHeizoShopCategoryMenu # NUEVO MENÚ CON ICONOS
             
-            break if cat == 6 # Salir
+            break if cat == 9 # Salir
 
             case cat
             # -------------------------------------------------------
@@ -5359,26 +5572,90 @@ module Kernel
               ], true, { :MASTERBALL => 50000 })
 
             # -------------------------------------------------------
-            when 1 # BAYAS Y CURACIÓN
+            when 1 # OBJETOS DE CURACION
               _heizo_open_shop.call([
-                # Pociones y Revivir
                 :POTION, :SUPERPOTION, :HYPERPOTION, :MAXPOTION, :FULLRESTORE,
                 :REVIVE, :MAXREVIVE, :FULLHEAL,
-                # Éteres y Elixires
                 :ETHER, :MAXETHER, :ELIXIR, :MAXELIXIR,
-                # Curaciones de estado
-                :ANTIDOTE, :BURNHEAL, :PARLYZHEAL, :ICEHEAL, :AWAKENING,
-                # Bayas de curación y estado
-                :SITRUSBERRY, :ORANBERRY, :LUMBERRY, :LEPPABERRY,
-                :CHESTOBERRY, :PECHABERRY, :RAWSTBERRY, :ASPEARBERRY, :CHERIBERRY,
-                :PERSIMBERRY, :FIGYBERRY, :WIKIBERRY, :MAGOBERRY, :AGUAVBERRY, :IAPAPABERRY,
-                # Bayas de stat boost
-                :LIECHIBERRY, :GANLONBERRY, :SALACBERRY, :PETAYABERRY, :APICOTBERRY,
-                :CUSTAPBERRY, :LANSATBERRY, :STARFBERRY, :MICLEBERRY, :ENIGMABERRY
+                :ANTIDOTE, :BURNHEAL, :PARLYZHEAL, :ICEHEAL, :AWAKENING
               ], true, {})
 
             # -------------------------------------------------------
-            when 2 # MATERIALES, VITAMINAS Y EVOLUCIÓN
+            when 2 # BAYAS (Fixed Price: 100)
+              items = []
+              max_items = PBItems.maxValue rescue 1000
+              for i in 1..max_items
+                next if i <= 0
+                begin
+                  name = PBItems.getName(i) rescue ""
+                  if name.include?("Baya") || name.include?("Berry")
+                    items.push(i)
+                    $game_temp.mart_prices[i] = [100, -1]
+                  end
+                rescue; end
+              end
+              if !items.empty?
+                items.sort! { |a, b| PBItems.getName(a) <=> PBItems.getName(b) }
+                scene = PokemonMartScene.new
+                screen = PokemonMartScreen.new(scene, items)
+                screen.pbBuyScreen
+              end
+
+            # -------------------------------------------------------
+            when 3 # TODAS LAS MT (Fixed Price: 1000, Sorted)
+              items = []
+              max_items = PBItems.maxValue rescue 1000
+              for i in 1..max_items
+                next if i <= 0
+                begin
+                  name = PBItems.getName(i) rescue ""
+                  if name.start_with?("MT", "TM", "MO", "HM")
+                    items.push(i)
+                    $game_temp.mart_prices[i] = [1000, -1]
+                  end
+                rescue; end
+              end
+              if !items.empty?
+                items.sort! do |a, b|
+                  n1 = PBItems.getName(a) rescue ""
+                  n2 = PBItems.getName(b) rescue ""
+                  t1 = (n1.start_with?("MO", "HM")) ? 1 : 0
+                  t2 = (n2.start_with?("MO", "HM")) ? 1 : 0
+                  if t1 != t2; t1 <=> t2
+                  else
+                    num1 = n1.gsub(/[^0-9]/, "").to_i
+                    num2 = n2.gsub(/[^0-9]/, "").to_i
+                    num1 <=> num2
+                  end
+                end
+                scene = PokemonMartScene.new
+                screen = PokemonMartScreen.new(scene, items)
+                screen.pbBuyScreen
+              end
+
+            # -------------------------------------------------------
+            when 4 # MEGA-PIEDRAS (Fixed Price: 5000)
+              items = []
+              max_items = PBItems.maxValue rescue 1000
+              for i in 1..max_items
+                next if i <= 0
+                begin
+                  name = PBItems.getName(i) rescue ""
+                  if (name.end_with?("ita") || name.end_with?("ite")) && !name.include?("Evolut") && !name.include?("Mineral")
+                    items.push(i)
+                    $game_temp.mart_prices[i] = [5000, -1]
+                  end
+                rescue; end
+              end
+              if !items.empty?
+                items.sort! { |a, b| PBItems.getName(a) <=> PBItems.getName(b) }
+                scene = PokemonMartScene.new
+                screen = PokemonMartScreen.new(scene, items)
+                screen.pbBuyScreen
+              end
+
+            # -------------------------------------------------------
+                        when 5 # MATERIALES, VITAMINAS Y EVOLUCIÓN
               _heizo_open_shop.call([
                 # Repelentes y Mapas
                 :REPEL, :SUPERREPEL, :MAXREPEL,
@@ -5398,7 +5675,7 @@ module Kernel
               ], true, { :SHINYZADOR => 5000 })
 
             # -------------------------------------------------------
-            when 3 # OBJETOS DE COMBATE
+            when 6 # OBJETOS DE COMBATE
               _heizo_open_shop.call([
                 :LEFTOVERS, :BLACKSLUDGE, :SHELLBELL, :BIGROOT,
                 :LIFEORB, :EXPERTBELT, :MUSCLEBAND, :WISEGLASSES,
@@ -5414,7 +5691,7 @@ module Kernel
               ], true, {})
 
             # -------------------------------------------------------
-            when 4 # POTENCIADORES DE TIPO
+            when 7 # POTENCIADORES DE TIPO
               _heizo_open_shop.call([
                 # Placas
                 :FLAMEPLATE, :SPLASHPLATE, :ZAPPLATE, :MEADOWPLATE, :ICICLEPLATE,
@@ -5435,7 +5712,7 @@ module Kernel
               ], true, {})
               
             # -------------------------------------------------------
-            when 5 # ROPAJES DEL CLAN CAZADOR
+            when 8 # ROPAJES DEL CLAN CAZADOR
               # --- Helper robusto para cambiar el sprite del jugador en mkxp-z ---
               _heizo_set_player_sprite = lambda do |sprite_name|
                 begin
@@ -5882,12 +6159,15 @@ module Kernel
       cls = Class.new(Window_CommandPokemon) do
         def initialize(commands, x, y)
           @icons = [
-            "Graphics/Icons/item275", # Poke Ball
-            "Graphics/Icons/item217", # Poción
-            "Graphics/Icons/item033", # Piedra Fuego (Materiales)
-            "Graphics/Icons/item212", # Choice Band (Combate)
-            "Graphics/Icons/item245", # Tabla Llama (Tipo)
-            "Graphics/Icons/item513", # Ropajes (Mochila)
+            "Graphics/Icons/item275", # Poke Balls
+            "Graphics/Icons/item217", # Objetos de Curacion
+            "Graphics/Icons/item395", # Bayas
+            "Graphics/Icons/item670", # Todas las MT
+            "Graphics/Icons/item627", # Mega-Piedras
+            "Graphics/Icons/item033", # Materiales y Evolucion
+            "Graphics/Icons/item212", # Objetos de Combate
+            "Graphics/Icons/item245", # Potenciadores de Tipo
+            "Graphics/Icons/item513", # Ropajes del Clan
             nil                       # Salir
           ]
           super(commands, 330)
@@ -5922,7 +6202,10 @@ module Kernel
     ropajes_label = ($game_variables[994] == 1) ? _INTL("Devolver ropajes") : _INTL("Ropajes del Clan")
     commands = [
       _INTL("Poke Balls"),
-      _INTL("Bayas y Curacion"),
+      _INTL("Objetos de Curacion"),
+      _INTL("Bayas"),
+      _INTL("Todas las MT"),
+      _INTL("Mega-Piedras"),
       _INTL("Materiales y Evolucion"),
       _INTL("Objetos de Combate"),
       _INTL("Potenciadores de Tipo"),
@@ -5967,7 +6250,7 @@ module Kernel
       
       if Input.trigger?(Input::B)
         pbSEPlay("GUI menu close")
-        result = 6 # Salir
+        result = 9 # Salir
         break
       end
       
@@ -5990,6 +6273,5 @@ end
 
 
 
-
 
 $patch
