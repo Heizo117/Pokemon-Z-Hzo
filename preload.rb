@@ -1899,12 +1899,25 @@ module Graphics
                 return false
               end
 
-              # pokemon.pbLearnMove ya itera los 8 slots y devuelve false si están todos llenos
+              # Si pbLearnMove falla pero numMoves < 8, insertar directamente en hueco vacio
               if pokemon.pbLearnMove(move)
-                Kernel.pbMessage(_INTL("\\se[]{1} ha aprendido {2}!\\se[MoveLearnt]", pokemon.name, movename), &block)
+                Kernel.pbMessage(_INTL("\se[]{1} ha aprendido {2}!\se[MoveLearnt]", pokemon.name, movename), &block)
+                return true
+              elsif (pokemon.numMoves rescue pokemon.moves.count{|m| m && m.id != 0}) < 8
+                # Tiene huecos libres pero pbLearnMove fallo (array lleno de ceros): insertar directo
+                inserted = false
+                pokemon.moves.each_with_index do |m, i|
+                  if !m || m.id == 0
+                    pokemon.moves[i] = PBMove.new(move)
+                    inserted = true
+                    break
+                  end
+                end
+                pokemon.moves.push(PBMove.new(move)) if !inserted
+                Kernel.pbMessage(_INTL("\se[]{1} ha aprendido {2}!\se[MoveLearnt]", pokemon.name, movename), &block)
                 return true
               else
-                # YA TIENE 8 MOVIMIENTOS, BUCLE DE DECISIÓN DE OLVIDAR
+                # YA TIENE 8 MOVIMIENTOS, BUCLE DE DECISION DE OLVIDAR
                 pkmnname = pokemon.name
                 loop do
                   Kernel.pbMessage(_INTL("{1} está intentando aprender {2}.", pkmnname, movename), &block)
