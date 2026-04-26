@@ -1901,7 +1901,7 @@ module Graphics
 
               # Si pbLearnMove falla pero numMoves < 8, insertar directamente en hueco vacio
               if pokemon.pbLearnMove(move)
-                Kernel.pbMessage(_INTL("\se[]{1} ha aprendido {2}!\se[MoveLearnt]", pokemon.name, movename), &block)
+                Kernel.pbMessage(_INTL("\\se[]{1} ha aprendido {2}!\\se[MoveLearnt]", pokemon.name, movename), &block)
                 return true
               elsif (pokemon.numMoves rescue pokemon.moves.count{|m| m && m.id != 0}) < 8
                 # Tiene huecos libres pero pbLearnMove fallo (array lleno de ceros): insertar directo
@@ -1914,7 +1914,7 @@ module Graphics
                   end
                 end
                 pokemon.moves.push(PBMove.new(move)) if !inserted
-                Kernel.pbMessage(_INTL("\se[]{1} ha aprendido {2}!\se[MoveLearnt]", pokemon.name, movename), &block)
+                Kernel.pbMessage(_INTL("\\se[]{1} ha aprendido {2}!\\se[MoveLearnt]", pokemon.name, movename), &block)
                 return true
               else
                 # YA TIENE 8 MOVIMIENTOS, BUCLE DE DECISION DE OLVIDAR
@@ -1988,7 +1988,17 @@ module Graphics
                   movename = PBMoves.getName(move)
 
                   if Kernel.pbConfirmMessage(_INTL("?Quieres que {1} recuerde {2}?", pokemon.name, movename))
-                    Kernel.pbLearnMove(pokemon, move)
+                    # Insertar el movimiento directamente (soporte 8 slots)
+                    learned = false
+                    pokemon.moves.each_with_index do |m, i|
+                      if !m || m.id == 0
+                        pokemon.moves[i] = PBMove.new(move)
+                        learned = true
+                        break
+                      end
+                    end
+                    pokemon.moves.push(PBMove.new(move)) if !learned && (pokemon.moves.length rescue 0) < 8
+                    Kernel.pbMessage(_INTL("\\se[]{1} ha recordado {2}!\\se[MoveLearnt]", pokemon.name, movename))
                     break
                   end
                 end
