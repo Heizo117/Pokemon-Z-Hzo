@@ -5456,9 +5456,50 @@ module Kernel
         elsif choice_text == _INTL("Vuelve al Centro Pokémon") || choice_text == _INTL("Acompáñame") || (cmd == 2 && !$heizo_following)
           # Lógica Despedida/Seguimiento
           if pbHeizoFollowing?
-            pbMessage(_INTL("Heizo: Bien. Volveré a por más hidromiel. Cuídate."))
+                        pbSEPlay("VozCrisantoSigh") rescue nil
+            pbMessage(_INTL("Heizo: Está bien. Nos vemos en el Centro Pokémon."))
+            
+            # Desactivar mercenario al irse
+            $game_variables[992] = 0
+            pbDeregisterPartner rescue nil
+            
+            # --- INICIAR CORTINA NEGRA ANTES DEL TP ---
+            blink_vp = Viewport.new(0,0,Graphics.width,Graphics.height); blink_vp.z = 999999
+            blink_col = Color.new(0,0,0,0)
+            for j in 0..12 # Aumentamos un poco más la duración del fundido de entrada
+              blink_col.set(0,0,0,j*22)
+              blink_vp.color = blink_col
+              Graphics.update
+              Input.update
+            end
+            
+            # EL MOMENTO DEL TP (con la pantalla totalmente negra)
             pbStopHeizoFollowing rescue nil
             pbWait(10); spawn_heizo_final rescue nil
+            
+            # Re-activar el evento si estamos en el mapa base
+            if $game_map.events[995]
+              ge = $game_map.events[995]
+              ge.instance_variable_set(:@erased, false)
+              ge.refresh rescue nil
+              h_pos = $game_variables[998] || [3, 11, 2]
+              ge.moveto(h_pos[0], h_pos[1])
+              ge.instance_variable_set(:@direction, h_pos[2])
+              $game_player.straighten rescue nil
+            end
+            
+            # Un pequeño parpadeo extra en negro puro para asegurar
+            pbWait(5) if defined?(pbWait)
+            
+            # Fundido de salida
+            for j in 0..12
+              blink_col.set(0,0,0,255 - j*22)
+              blink_vp.color = blink_col
+              Graphics.update
+              Input.update
+            end
+            blink_vp.dispose
+            # ------------------------------------------
           else
             pbMessage(_INTL("Heizo: Bien. Vamos a ver de qué pasta estás hecho."))
             pbStartHeizoFollowing rescue nil
