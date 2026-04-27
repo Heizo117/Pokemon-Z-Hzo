@@ -10,25 +10,28 @@ Este mod inyecta mejoras de calidad de vida (QoL) y herramientas de depuración 
 
 ## 📸 Galería Visual (Mejoras en acción)
 
-![HUD de Combate Inteligente (STAB y Efectividad)](./screenshots/Captura%20de%20pantalla%202026-03-19%20214930.png)
+![HUD de Combate Inteligente (STAB y Efectividad)](./screenshots/hud_combate_1.png)
 *HUD de Combate: Indicadores de efectividad (+) (-) y STAB en tiempo real.*
 
-![Selector de Formas Visual](./screenshots/Captura%20de%20pantalla%202026-03-19%20215010.png)
+![HUD de Combate: Menú Avanzado](./screenshots/hud_combate_2.png)
+*HUD de Combate: Más opciones e información detallada en combate.*
+
+![Selector de Formas Visual](./screenshots/selector_formas.png)
 *Herramientas Debug: Selector de Formas (Megas, Alola, Galar) totalmente visual por nombres.*
 
-![Buscador Dinámico](./screenshots/Captura%20de%20pantalla%202026-03-19%20214944.png)
+![Buscador Dinámico](./screenshots/buscador_dinamico.png)
 *Buscador Inteligente: Filtra por texto para asignar Especies, Habilidades o Movimientos.*
 
-![Control de Tipos Custom](./screenshots/Captura%20de%20pantalla%202026-03-19%20220109.png)
+![Control de Tipos Custom](./screenshots/control_tipos.png)
 *Customización: Forzar tipos personalizados en cualquier Pokémon de tu equipo.*
 
-![Resumen de Estadísticas y Naturalezas](./screenshots/Captura%20de%20pantalla%202026-03-19%20215028.png)
+![Resumen de Estadísticas y Naturalezas](./screenshots/stats_scene.png)
 *Stats Scene: Visualización de Naturalezas e IVs/EVs mejorada en el menú Debug.*
 
-![Editor de Movimientos y Especiales](./screenshots/Captura%20de%20pantalla%202026-03-19%20215405.png)
+![Editor de Movimientos y Especiales](./screenshots/editor_movimientos.png)
 *Moveset Editor: Gestión rápida de ataques y movimientos especiales.*
 
-![Navegación Intuitiva](./screenshots/Captura%20de%20pantalla%202026-03-19%20215328.png)
+![Navegación Intuitiva](./screenshots/navegacion.png)
 *Navegación: Menús más rápidos y descriptivos para una depuración ágil.*
 
 ---
